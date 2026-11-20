@@ -27,10 +27,10 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);overflow:hi
 .brand{font:italic 700 15px/1 var(--disp);letter-spacing:.34em;color:var(--dim);margin:0 0 8px}
 .brand b{color:var(--accent)}
 .brand span{font-style:normal;letter-spacing:.04em;font-size:11px;margin-left:10px;color:var(--dim);font-weight:500}
-.songs{display:flex;flex-direction:column;gap:5px}
-.sg{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;text-align:left;padding:5px 10px 5px 5px;background:var(--panel);border:1px solid var(--line);color:var(--ink);font-family:var(--disp);border-radius:3px;min-width:0}
+.songs{display:flex;flex-direction:column;gap:4px}
+.sg{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;text-align:left;padding:4px 10px 4px 4px;background:var(--panel);border:1px solid var(--line);color:var(--ink);font-family:var(--disp);border-radius:3px;min-width:0}
 .sg.on{border-color:var(--warm);background:linear-gradient(90deg,rgba(255,171,92,.16),var(--panel) 70%);box-shadow:inset 3px 0 0 var(--warm)}
-.sg .art{width:36px;height:36px;object-fit:cover;display:grid;place-items:center;font:italic 700 15px var(--disp);color:#06070c;border-radius:2px}
+.sg .art{width:32px;height:32px;object-fit:cover;display:grid;place-items:center;font:italic 700 15px var(--disp);color:#06070c;border-radius:2px}
 .sg .tt{min-width:0}
 .sg .tt b{display:block;font:italic 700 16px/1.15 var(--disp);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sg .tt small{font:500 10.5px var(--disp);color:var(--dim);letter-spacing:.06em;font-variant-numeric:tabular-nums}
@@ -153,8 +153,10 @@ const SR = 32000; let BPM = 174, BEAT = 60 / 174, STEP = BEAT / 4, BAR = BEAT * 
 __VOICES__
 __INDIGO__
 __SONGS__
+__PRISM__
 const RG = JSON.parse($('#chartData').textContent);
 const SONGS = [
+  { id: 'prism', title: 'Prism Cascade', lv: 17, hue: '#6ef0c6', src: PRISM },
   { id: 'bloom', title: 'Static Bloom', lv: 15, hue: '#ffab5c', src: BLOOM },
   { id: 'fracture', title: 'Fracture Engine', lv: 16, hue: '#ff4d6a', src: FRACTURE },
   { id: 'sunrise', title: 'Zero Day Sunrise', lv: 16, hue: '#c58bff', src: SUNRISE },
