@@ -10,21 +10,50 @@ def pad(v): return np.concatenate([v,np.zeros(NS+64-len(v))])[:NS+64]
 K,SN,HH,M,AA,PIT=[pad(F[k]) for k in 'k s h m a pit'.split()]
 rng=random.Random(20261120)
 
-# ---------- step selection ----------
-def sel(bar,level,glitch=False):
-    b0=bar*16; out=[]
-    ev=[s for s in range(0,16,2) if A[b0+s]>0.05 or AA[b0+s]>=0.22]
-    score=lambda s: A[b0+s]+0.3*AA[b0+s]+(0.25 if s%4==0 else 0)
-    if glitch:
-        return sorted(set(ev+[s for s in range(1,16,2) if A[b0+s]>=0.10]))
-    if level==1: ev=sorted(sorted(ev,key=score,reverse=True)[:4])
-    elif level==2: ev=sorted(sorted(ev,key=score,reverse=True)[:6])
-    od=[]
-    if level>=4:
-        thr=0.33 if level==4 else 0.24
-        od=[s for s in range(1,16,2) if A[b0+s]>=thr]
-        od=sorted(sorted(od,key=lambda s:-A[b0+s])[:(3 if level==4 else 5)])
-    return sorted(ev+od)
+# ---------- step selection (per-beat intensity from 16th-note salience) ----------
+F2=np.load('feat2.npz')
+RAW=np.concatenate([np.maximum.reduce([F2['k_raw'],F2['s_raw'],F2['m_raw'],F2['a_raw']]),np.zeros(64)])
+RMS=np.concatenate([F2['rms'],np.zeros(64)])
+NBEAT=NB*4
+LOUD=[]
+KIND=[]  # per beat: 'S' full 16th stream, 'G' gallop (one 16th), 'E' eighths, 'Q' quarter only, 'R' rest
+ODD={}
+for q in range(NBEAT):
+    i=q*4; o1,o3=RAW[i+1],RAW[i+3]; e0,e2=RAW[i],RAW[i+2]
+    # loudness of the surrounding two bars decides how much salience a beat needs: quiet passages only keep
+    # their clear bursts, loud passages follow the 16th-note texture closely
+    Lq=min(1.0,max(0.0,(RMS[max(0,i-16):i+20].mean()*100-6.8)/(11.5-6.8))); LOUD.append(Lq)
+    if min(o1,o3)>=0.92-0.37*Lq and (o1+o3)/2>=1.28-0.54*Lq: KIND.append('S')
+    elif max(o1,o3)>=1.45-0.60*Lq: KIND.append('G'); ODD[q]=1 if o1>=o3 else 3
+    elif e0<0.60-0.30*Lq and e2<0.85-0.40*Lq: KIND.append('R')
+    elif e2<0.85-0.40*Lq: KIND.append('Q')
+    else: KIND.append('E')
+# breathing room: never more than 8 stream beats (32 notes) in a row
+run=0
+for q in range(NBEAT):
+    run=run+1 if KIND[q]=='S' else 0
+    if run>8: KIND[q]='E'; run=0
+# a lone eighth-note beat between two stream beats reads as a gap in the roll: keep it only if the 16ths there are clearly weaker
+for q in range(1,NBEAT-1):
+    if KIND[q] in 'EG' and KIND[q-1]=='S' and KIND[q+1]=='S' and (RAW[q*4+1]+RAW[q*4+3])/2>=1.15-0.45*LOUD[q]:
+        back=0
+        while q-1-back>=0 and KIND[q-1-back]=='S': back+=1
+        fwd=0
+        while q+1+fwd<NBEAT and KIND[q+1+fwd]=='S': fwd+=1
+        if back+fwd+1<=8: KIND[q]='S'; ODD.pop(q,None)
+def sel(bar,level,glitch=False,evens_only=False):
+    out=[]
+    for qq in range(4):
+        q=bar*4+qq; k=KIND[q]; b=qq*4
+        if k=='R': continue
+        out.append(b)
+        if k in 'ESG': out.append(b+2)
+        if evens_only: continue
+        if k=='S': out+= [b+1,b+3]
+        elif k=='G': out.append(b+ODD[q])
+    return sorted(out)
+def nstream(bar): return sum(1 for qq in range(4) if KIND[bar*4+qq]=='S')
+def odmean(bar): return float(RAW[bar*16+1:bar*16+16:2].mean())
 def accent(bar,s):
     i=bar*16+s; return (s%4==0 and K[i]>=0.55) or SN[i]>=0.85 or A[i]>=0.75
 def pitx(bar,s):
@@ -164,20 +193,66 @@ PLAN=[(0,1,'melody center melody wide'),(4,3,'glitch glitch'),(6,2,'stairs hold_
  (141,3,'dual_slide hold_tap sweep'),(144,4,'melody stairs mirror melody slide_tap stairs center glitch'),
  (152,5,'jack offdouble slide_jack trill1h glitch'),(157,2,'wide'),(158,5,'jack glitch offdouble glitch'),(162,1,'dual_slide wide')]
 CRASH={32,48,56,72,88,120,128,152,158}
+_br=[float(F2['rms'][b*16:b*16+16].mean())*100 for b in range(NB)]
+CRASH|={b for b in range(1,NB) if _br[b]-_br[b-1]>=2.0}
+print('impact bars',sorted(CRASH))
 plan={}
 for (b0,lv,names) in PLAN:
     for i,nm in enumerate(names.split()): plan[b0+i]=(lv,nm)
 assert sorted(plan)==list(range(NB)), [b for b in range(NB) if b not in plan]
 styles_used={}
+LONGS={'hold_tap','hold_jack','slide_tap','slide_jack','dual_slide','sweep'}
+POOL_A=['stairs','offdouble','center','mirror','melody','jack','trill1h','glitch']
+pa=0; sf=0; lead=0
+FIG=['trill','up','out','broken','tight','down','in','wide']
+def stream_fig(g0,n,fig,lead):
+    # n consecutive 16ths starting at global step g0; hands strictly alternate, `lead` plays the first note
+    res=[]
+    for i in range(n):
+        h=lead if i%2==0 else ('R' if lead=='L' else 'L'); j=i//2; f=i/max(1,n-1)
+        if fig=='trill': x=5.6 if h=='L' else 10.4
+        elif fig=='up': x=(3.0 if h=='L' else 7.4)+f*5.4
+        elif fig=='down': x=(8.6 if h=='L' else 13.0)-f*5.4
+        elif fig=='out': x=(6.6-f*4.2) if h=='L' else (9.4+f*4.2)
+        elif fig=='in': x=(2.4+f*4.2) if h=='L' else (13.6-f*4.2)
+        elif fig=='broken': x=[4.0,6.6,3.0,5.6][j%4] if h=='L' else [10.4,13.0,9.4,12.0][j%4]
+        elif fig=='tight': x=6.7 if h=='L' else 9.3
+        else: x=[2.6,5.2][j%2] if h=='L' else [13.4,10.8][j%2]
+        res.append(['tap',g0+i,float(x),2.2 if fig!='tight' else 2.0,h])
+    return res
+kinds={}
 for bar in range(NB):
-    lv,nm=plan[bar]; steps=sel(bar,lv,nm=='glitch')
+    lv,nm=plan[bar]; ns=nstream(bar)
+    if nm in LONGS and ns>=2: nm=POOL_A[pa%len(POOL_A)]; pa+=1
+    if nm=='dual_slide' and not (odmean(bar)<0.64 or bar>=162): nm='slide_tap'
+    if nm=='glitch' and ns==0: nm='offdouble'
+    steps=sel(bar,lv,evens_only=nm in LONGS)
     if not steps: continue
     styles_used[nm]=styles_used.get(nm,0)+1
     n0=len(EV); SF[nm](bar,steps,lv)
-    if bar in CRASH:  # section impact: two wide notes replace whatever sits on the downbeat
+    if bar in CRASH:
         EV[n0:]=[e for e in EV[n0:] if not (e[0]=='tap' and e[1]==bar*16)]
         if not any(e[0]=='long' and e[1]==bar*16 for e in EV[n0:]):
             EV.append(['tap',bar*16,4.2,5.0,'L']); EV.append(['tap',bar*16,11.8,5.0,'R'])
+# stream runs replace whatever the style put on those beats
+q=0
+while q<NBEAT:
+    if KIND[q]!='S': q+=1; continue
+    q1=q
+    while q1<NBEAT and KIND[q1]=='S': q1+=1
+    g0,g1=q*4,q1*4
+    if any(e[0]=='long' and e[1]<g1 and e[2][-1][0]>=g0 for e in EV): q=q1; continue
+    keep_first=[e for e in EV if e[0]=='tap' and e[1]==g0 and e[3]>=4.5]   # section impact stays
+    EV=[e for e in EV if not (e[0]=='tap' and g0<=e[1]<g1)]
+    n=g1-g0; lead_h='L' if lead%2==0 else 'R'; lead+=1
+    # long runs change figure every 2 beats so the roll keeps moving
+    pos=0
+    while pos<n:
+        ln=min(8,n-pos) if n-pos!=12 else 4
+        hand=lead_h if pos%2==0 else ('R' if lead_h=='L' else 'L')
+        EV+=stream_fig(g0+pos,ln,FIG[sf%len(FIG)],hand); sf+=1; pos+=ln
+    if keep_first: EV=[e for e in EV if not (e[0]=='tap' and e[1]==g0 and e[3]<4.5)]+keep_first
+    q=q1
 
 # ---------- hand solver ----------
 EV.sort(key=lambda e:(e[1],0 if e[0]=='long' else 1,e[2] if e[0]=='tap' else 0))
@@ -232,7 +307,7 @@ print('x hist (0-16 by 2):',np.histogram(xs,bins=range(0,17,2))[0])
 dbl=[(a['x'],b['x']) for a,b in zip(taps,taps[1:]) if a['g']==b['g']]
 print('doubles',len(dbl),'lopsided (both same side)',sum(1 for a,b in dbl if (a<8)==(b<8)))
 per=[sum(1 for n in out if n['g']//16==b) for b in range(NB)]; print('notes/bar',per)
-print('styles',styles_used)
+print('styles',styles_used); print('beat kinds',{k:KIND.count(k) for k in 'SGEQR'}); print('kinds/bar',' '.join(''.join(KIND[b*4:b*4+4]) for b in range(NB)))
 sec=lambda a,b: sum(per[a:b])/((b-a)*4*B)
 print('nps intro %.1f verse %.1f drop72 %.1f final %.1f overall %.1f'%(sec(0,8),sec(8,32),sec(72,79),sec(158,162),len(out)/190))
 for n in out: n.pop('hand')
