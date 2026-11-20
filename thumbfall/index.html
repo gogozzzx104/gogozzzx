@@ -22,9 +22,21 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);overflow:hi
   color:var(--ink);font:700 13px var(--disp);letter-spacing:.12em}
 .ov{position:absolute;inset:0;display:flex;background:rgba(6,7,12,.88);overflow:auto;padding:12px 20px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 #menu{background:linear-gradient(100deg,rgba(6,7,12,.97) 30%,rgba(6,7,12,.82)),var(--bg)}
-.wrap{margin:auto;width:100%;max-width:860px;display:grid;grid-template-columns:1fr 1.05fr;gap:14px 30px;align-items:center}
-.brand{font:italic 700 15px/1 var(--disp);letter-spacing:.34em;color:var(--dim);margin:0 0 12px}
+.wrap{margin:auto;width:100%;max-width:880px;display:grid;grid-template-columns:1fr 1fr;gap:12px 26px;align-items:center}
+.wrap>*{min-width:0}
+.brand{font:italic 700 15px/1 var(--disp);letter-spacing:.34em;color:var(--dim);margin:0 0 8px}
 .brand b{color:var(--accent)}
+.brand span{font-style:normal;letter-spacing:.04em;font-size:11px;margin-left:10px;color:var(--dim);font-weight:500}
+.songs{display:flex;flex-direction:column;gap:5px}
+.sg{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;text-align:left;padding:5px 10px 5px 5px;background:var(--panel);border:1px solid var(--line);color:var(--ink);font-family:var(--disp);border-radius:3px;min-width:0}
+.sg.on{border-color:var(--warm);background:linear-gradient(90deg,rgba(255,171,92,.16),var(--panel) 70%);box-shadow:inset 3px 0 0 var(--warm)}
+.sg .art{width:36px;height:36px;object-fit:cover;display:grid;place-items:center;font:italic 700 15px var(--disp);color:#06070c;border-radius:2px}
+.sg .tt{min-width:0}
+.sg .tt b{display:block;font:italic 700 16px/1.15 var(--disp);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sg .tt small{font:500 10.5px var(--disp);color:var(--dim);letter-spacing:.06em;font-variant-numeric:tabular-nums}
+.sg .rt{text-align:right;font:700 10px var(--disp);letter-spacing:.08em;color:var(--dim);font-variant-numeric:tabular-nums}
+.sg .rt i{display:inline-block;font-style:normal;padding:1px 6px;background:var(--miss);color:#fff;margin-bottom:3px}
+.sg .rt em{font-style:normal;color:var(--perfect)}
 .song{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}
 .cover{width:clamp(92px,26vmin,132px);aspect-ratio:1;object-fit:cover;border:1px solid var(--line);box-shadow:0 0 0 4px #0b0d14,0 12px 40px rgba(255,171,92,.18);background:var(--panel)}
 .song h1{font:italic 700 clamp(24px,5vmax,40px)/1.02 var(--disp);margin:0;letter-spacing:.01em;text-wrap:balance}
@@ -73,17 +85,9 @@ h2{font:italic 700 28px/1 var(--disp);margin:0 0 4px;letter-spacing:.06em}
 
   <section id="menu" class="ov">
     <div class="wrap">
-      <div>
-        <p class="brand">THUMB<b>FALL</b></p>
-        <div class="song">
-          <img class="cover" src="cover.jpg" alt="Reality Glitch 앨범 커버">
-          <div>
-            <h1>Reality Glitch</h1>
-            <div class="meta"><span class="chip">202 BPM</span><span class="chip">3:14</span><span class="chip" id="noteCount">–</span><span class="chip lv">EXTREME 15</span></div>
-            <div class="best" id="best"></div>
-          </div>
-        </div>
-        <p class="how">폰을 가로로 잡고 <i>엄지 두 개</i>로 칩니다. 노트가 판정선에 닿는 순간 그 위치를 누르고, <i>초록 롱노트</i>는 끝까지 누르고, <i>보라 슬라이드</i>는 손가락으로 따라가세요.</p>
+      <div class="left">
+        <p class="brand">THUMB<b>FALL</b> <span>곡을 고르세요</span></p>
+        <div class="songs" id="songs"></div>
       </div>
       <div class="set">
         <div class="row"><label><b>노트 속도</b>높을수록 빨리 내려옴</label>
@@ -94,7 +98,7 @@ h2{font:italic 700 28px/1 var(--disp);margin:0 0 4px;letter-spacing:.06em}
           <div class="step"><button class="sb" data-k="offset" data-d="-5" type="button">−</button><output data-o="offset"></output><button class="sb" data-k="offset" data-d="5" type="button">+</button></div></div>
         <div class="row"><label><b>오토플레이</b>채보 감상 · 오프셋 맞추기용</label>
           <button class="tg" id="autoBtn" type="button">OFF</button></div>
-        <button class="go" id="startBtn" type="button" disabled>곡 불러오는 중…</button>
+        <button class="go" id="startBtn" type="button">START</button>
       </div>
     </div>
   </section>
@@ -143,40 +147,541 @@ h2{font:italic 700 28px/1 var(--disp);margin:0 0 4px;letter-spacing:.06em}
 const $ = s => document.querySelector(s);
 
 /* =====================================================================
-   CHART — generated offline from an onset/beat analysis of the track (tools/gen.py)
+   SONGS — four tracks are synthesized in the browser from their scores, one is an audio file with an analysed chart
    ===================================================================== */
-const CH = JSON.parse($('#chartData').textContent), STEP = CH.step, BEAT = STEP * 4, T0 = CH.t0;
-const gt = g => T0 + g * STEP;
-const notes = CH.notes.map(n => n.long
-  ? { long: true, slide: !!n.slide, t: gt(n.g), t2: gt(n.path[n.path.length - 1][0]), path: n.path.map(([g, x]) => [gt(g), x]), x: n.path[0][1], w: n.w }
-  : { long: false, t: gt(n.g), x: n.x, w: n.w });
-notes.sort((a, b) => a.t - b.t || a.x - b.x);
-let TOTAL = 0;
-notes.forEach((n, i) => {
-  n.i = i;
-  if (n.long) { n.ticks = []; for (let tt = n.t + 2 * STEP; tt < n.t2 - STEP * 0.5; tt += 2 * STEP) n.ticks.push(tt); TOTAL += 2 + n.ticks.length; } else TOTAL += 1;
-  const prev = notes[i - 1]; if (prev && Math.abs(prev.t - n.t) < 1e-4) { n.pair = prev; prev.pair = n; }
-});
-const LAST_T = notes.reduce((m, n) => Math.max(m, n.long ? n.t2 : n.t), 0);
-$('#noteCount').textContent = TOTAL + ' NOTES';
+const SR = 32000; let BPM = 174, BEAT = 60 / 174, STEP = BEAT / 4, BAR = BEAT * 4, NS = 0, L, R, SND, DRY = false, kicks = [], T0 = 0;
+let seed = 987654321; const reseed = () => { seed = 987654321; }; const rnd = () => { seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5; return (seed >>> 0) / 4294967296; };
+const mtof = m => 440 * Math.pow(2, (m - 69) / 12), TAU = Math.PI * 2;
+function saw(ph, dt) { let v = 2 * ph - 1; if (ph < dt) { const x = ph / dt; v -= x + x - x * x - 1; } else if (ph > 1 - dt) { const x = (ph - 1) / dt; v -= x * x + x + x + 1; } return v; }
+
+function vKick(t, v) { const i0 = Math.round(t * SR), n = (0.3 * SR) | 0; let ph = 0;
+  for (let i = 0; i < n; i++) { const tt = i / SR; ph += (46 + 175 * Math.exp(-tt * 36)) / SR; let s = Math.sin(TAU * ph) * Math.exp(-tt * 8);
+    if (i < 64) s += (1 - i / 64) * 0.4 * (rnd() * 2 - 1); if (i > n - 300) s *= (n - i) / 300; s = Math.tanh(s * 1.6) * 0.85 * v; L[i0 + i] += s; R[i0 + i] += s; } }
+function vSnare(t, v) { if (DRY) return; const i0 = Math.round(t * SR), n = (0.2 * SR) | 0; let lp = 0, ph = 0;
+  for (let i = 0; i < n; i++) { const tt = i / SR, w = rnd() * 2 - 1; lp += 0.35 * (w - lp); ph += (180 + 70 * Math.exp(-tt * 45)) / SR;
+    let s = ((w - lp) * 0.75 * Math.exp(-tt * 20) + Math.sin(TAU * ph) * 0.6 * Math.exp(-tt * 32)) * v * 0.6; if (i > n - 200) s *= (n - i) / 200; L[i0 + i] += s; R[i0 + i] += s; } }
+function vHat(t, v, open, pan) { if (DRY) return; const i0 = Math.round(t * SR), n = ((open ? 0.16 : 0.04) * SR) | 0, k = open ? 24 : 120; let p1 = 0, p2 = 0;
+  for (let i = 0; i < n; i++) { const w = rnd() * 2 - 1, h1 = w - p1; p1 = w; const h2 = h1 - p2; p2 = h1; const s = h2 * 0.2 * Math.exp(-i / SR * k) * v; L[i0 + i] += s * (1 - pan); R[i0 + i] += s * (1 + pan); } }
+function vCrash(t, v) { if (DRY) return; const i0 = Math.round(t * SR), n = (1.8 * SR) | 0; let a = 0, b = 0;
+  for (let i = 0; i < n; i++) { const e = Math.exp(-i / SR * 2.6) * v * 0.3 * Math.min(1, (n - i) / 2000), w1 = rnd() * 2 - 1, w2 = rnd() * 2 - 1; L[i0 + i] += (w1 - a) * e; R[i0 + i] += (w2 - b) * e; a = w1; b = w2; } }
+function vRiser(t, dur, v) { if (DRY) return; const i0 = Math.round(t * SR), n = (dur * SR) | 0; let ic1 = 0, ic2 = 0, g = 0, a1 = 0, a2 = 0, a3 = 0; const k = 0.5;
+  for (let i = 0; i < n; i++) { const p = i / n; if ((i & 31) === 0) { g = Math.tan(Math.PI * 400 * Math.pow(16, p) / SR); a1 = 1 / (1 + g * (g + k)); a2 = g * a1; a3 = g * a2; }
+    const x = rnd() * 2 - 1, v3 = x - ic2, v1 = a1 * ic1 + a2 * v3, v2 = ic2 + a2 * ic1 + a3 * v3; ic1 = 2 * v1 - ic1; ic2 = 2 * v2 - ic2;
+    const s = v1 * p * p * v * 0.5 * Math.min(1, (n - i) / 300); L[i0 + i] += s; R[i0 + i] += s; } }
+function vImpact(t, v) { if (DRY) return; const i0 = Math.round(t * SR), n = (1.4 * SR) | 0; let ph = 0, lp = 0;
+  for (let i = 0; i < n; i++) { const tt = i / SR; ph += (38 + 60 * Math.exp(-tt * 12)) / SR; lp += 0.08 * ((rnd() * 2 - 1) - lp);
+    const s = (Math.sin(TAU * ph) * Math.exp(-tt * 3.2) + lp * 1.2 * Math.exp(-tt * 9)) * v * 0.7 * Math.min(1, (n - i) / 2000); L[i0 + i] += s; R[i0 + i] += s; } }
+function vBass(t, dur, m, v, c0, c1) { const i0 = Math.round(t * SR), nd = dur * SR, rel = 0.03 * SR, n = (nd + rel) | 0, f = mtof(m), d1 = f * 1.007 / SR, d2 = f / 1.007 / SR, ds = f / SR;
+  let p1 = 0, p2 = 0.5, ps = 0, ic1 = 0, ic2 = 0, g = 0, a1 = 0, a2 = 0, a3 = 0; const k = 0.9;
+  for (let i = 0; i < n; i++) { if ((i & 31) === 0) { g = Math.tan(Math.PI * (c1 + (c0 - c1) * Math.exp(-i / SR * 9)) / SR); a1 = 1 / (1 + g * (g + k)); a2 = g * a1; a3 = g * a2; }
+    p1 += d1; if (p1 >= 1) p1 -= 1; p2 += d2; if (p2 >= 1) p2 -= 1; ps += ds;
+    const x = (saw(p1, d1) + saw(p2, d2)) * 0.5, v3 = x - ic2, v1 = a1 * ic1 + a2 * v3, v2 = ic2 + a2 * ic1 + a3 * v3; ic1 = 2 * v1 - ic1; ic2 = 2 * v2 - ic2;
+    let e = 1; if (i < 128) e = i / 128; if (i > nd) e = Math.max(0, 1 - (i - nd) / rel);
+    const s = (Math.tanh(v2 * 1.8) * 0.6 + Math.sin(TAU * ps) * 0.7) * e * v * 0.4; L[i0 + i] += s; R[i0 + i] += s; } }
+function vGrowl(t, dur, m, v, rate) { const i0 = Math.round(t * SR), nd = dur * SR, rel = 0.03 * SR, n = (nd + rel) | 0, f = mtof(m); let pc = 0, pm = 0, ps = 0, lp = 0;
+  for (let i = 0; i < n; i++) { const tt = i / SR; pc += f / SR; pm += f * 0.5 / SR; ps += f * 0.5 / SR; const I = 3 + 2.6 * Math.sin(TAU * rate * tt - 1.57);
+    const x = Math.tanh(Math.sin(TAU * pc + I * Math.sin(TAU * pm)) * 2.2); lp += 0.45 * (x - lp);
+    let e = 1; if (i < 96) e = i / 96; if (i > nd) e = Math.max(0, 1 - (i - nd) / rel);
+    const s = (lp * 0.5 + Math.sin(TAU * ps) * 0.6) * e * v * 0.42; L[i0 + i] += s; R[i0 + i] += s; } }
+function vSub(t, dur, m, v) { const i0 = Math.round(t * SR), nd = dur * SR, rel = 0.1 * SR, n = (nd + rel) | 0, d = mtof(m) / SR; let ph = 0;
+  for (let i = 0; i < n; i++) { ph += d; let e = Math.min(1, i / (0.05 * SR)); if (i > nd) e *= Math.max(0, 1 - (i - nd) / rel); const s = Math.sin(TAU * ph) * e * v * 0.4; L[i0 + i] += s; R[i0 + i] += s; } }
+function vLead(t, dur, m, v) { const i0 = Math.round(t * SR), nd = dur * SR, rel = 0.06 * SR, n = (nd + rel) | 0, f = mtof(m), d1 = f * 0.9945 / SR, d2 = f / SR, d3 = f * 1.0055 / SR;
+  let p1 = 0.1, p2 = 0.5, p3 = 0.8, l1 = 0, l2 = 0, r1 = 0, r2 = 0, g = 0, a1 = 0, a2 = 0, a3 = 0; const k = 1.1;
+  for (let i = 0; i < n; i++) { const tt = i / SR; if ((i & 31) === 0) { g = Math.tan(Math.PI * Math.min(12000, 900 + 1400 * v + 5200 * v * Math.exp(-tt * 5)) / SR); a1 = 1 / (1 + g * (g + k)); a2 = g * a1; a3 = g * a2; }
+    p1 += d1; if (p1 >= 1) p1 -= 1; p2 += d2; if (p2 >= 1) p2 -= 1; p3 += d3; if (p3 >= 1) p3 -= 1;
+    const s2 = saw(p2, d2) * 0.7, xl = saw(p1, d1) + s2, xr = saw(p3, d3) + s2;
+    let v3 = xl - l2, v1 = a1 * l1 + a2 * v3, v2 = l2 + a2 * l1 + a3 * v3; l1 = 2 * v1 - l1; l2 = 2 * v2 - l2; const ol = v2;
+    v3 = xr - r2; v1 = a1 * r1 + a2 * v3; v2 = r2 + a2 * r1 + a3 * v3; r1 = 2 * v1 - r1; r2 = 2 * v2 - r2;
+    let e = (i < 96 ? i / 96 : 1) * (0.72 + 0.28 * Math.exp(-tt * 10)); if (i > nd) e *= Math.max(0, 1 - (i - nd) / rel);
+    const a = e * v * 0.15; L[i0 + i] += ol * a; R[i0 + i] += v2 * a; SND[i0 + i] += (ol + v2) * a * 0.22; } }
+function vPluck(t, m, v, pan) { const i0 = Math.round(t * SR), n = (0.22 * SR) | 0, d = mtof(m) / SR; let p = 0, lp = 0;
+  for (let i = 0; i < n; i++) { const tt = i / SR; p += d; if (p >= 1) p -= 1; const x = saw(p, d) * 0.6 + (p < 0.5 ? 0.4 : -0.4); lp += (0.08 + 0.5 * Math.exp(-tt * 18)) * (x - lp);
+    const s = lp * Math.exp(-tt * 13) * v * Math.min(1, i / 32) * Math.min(1, (n - i) / 200); L[i0 + i] += s * (1 - pan); R[i0 + i] += s * (1 + pan); SND[i0 + i] += s * 0.3; } }
+function vPad(t, dur, m, v) { const i0 = Math.round(t * SR), nd = dur * SR, att = 0.12 * SR, rel = 0.3 * SR, n = (nd + rel) | 0, f = mtof(m), d1 = f * 1.004 / SR, d2 = f / 1.004 / SR; let p1 = 0, p2 = 0.37, a = 0, a2 = 0, b = 0, b2 = 0;
+  for (let i = 0; i < n; i++) { p1 += d1; if (p1 >= 1) p1 -= 1; p2 += d2; if (p2 >= 1) p2 -= 1; a += 0.17 * (saw(p1, d1) - a); a2 += 0.17 * (a - a2); b += 0.17 * (saw(p2, d2) - b); b2 += 0.17 * (b - b2);
+    let e = Math.min(1, i / att); if (i > nd) e *= Math.max(0, 1 - (i - nd) / rel); L[i0 + i] += a2 * e * v; R[i0 + i] += b2 * e * v; } }
+function vBell(t, m, v, pan) { const i0 = Math.round(t * SR), n = (1.5 * SR) | 0, f = mtof(m); let pc = 0, pm = 0;
+  for (let i = 0; i < n; i++) { const tt = i / SR; pc += f / SR; pm += f * 4 / SR;
+    const s = (Math.sin(TAU * pc + (1.6 * Math.exp(-tt * 9) + 0.2) * Math.sin(TAU * pm)) * Math.exp(-tt * 3) + Math.sin(TAU * pc * 2) * 0.2 * Math.exp(-tt * 6)) * v * Math.min(1, i / 64) * Math.min(1, (n - i) / 1500);
+    L[i0 + i] += s * (1 - pan); R[i0 + i] += s * (1 + pan); SND[i0 + i] += s * 0.45; } }
+
+function vPiano(t, m, v, pan) { const i0 = Math.round(t * SR), n = (0.75 * SR) | 0, f = mtof(m); let pc = 0, pm = 0;
+  for (let i = 0; i < n; i++) { const tt = i / SR; pc += f / SR; pm += f * 3 / SR;
+    const s = (Math.sin(TAU * pc + (2.2 * Math.exp(-tt * 14) + 0.35) * Math.sin(TAU * pm)) * Math.exp(-tt * 5.5) + Math.sin(TAU * pc * 2) * 0.25 * Math.exp(-tt * 9)) * v * Math.min(1, i / 48) * Math.min(1, (n - i) / 1200);
+    L[i0 + i] += s * (1 - pan); R[i0 + i] += s * (1 + pan); SND[i0 + i] += s * 0.3; } }
+const kick = (t, v, dk) => { if (DRY) kicks.push([t, dk]); else vKick(t, v); };
+const INDIGO = (() => {
+/* Per-bar data.  m = lead melody, p = bell melody, c = tap rows, h = holds [step,len,pos], s = slides [step,[[dstep,pos]...]]
+   Melody chars index the D-minor scale from A3 ("0123456789abcdefghij"), '-' sustains, '.' rests.
+   Chart chars are hex positions 0-f across the field (left thumb ~1-6, right thumb ~9-e). */
+const D = [];
+const B = (o) => D.push(o);
+// --- Intro (0-7): bells over pads
+B({p:'a.......e.......',c:['4.......b.......']});
+B({p:'c.......a...8...',c:['3.......c...5...']});
+B({p:'9...c...e.......',c:['4...a...d.......']});
+B({p:'d.......b...9.b.',h:[[0,8,11]],c:['........5...3.5.']});
+B({p:'a...c.e.h...e.c.',c:['3...5.b.d...b.4.']});
+B({p:'f...c.a.c...a.8.',c:['c...a.4.5...3.2.']});
+B({p:'g...e.c.e...g.e.',s:[[0,[[0,3],[8,6]]]],c:['....b.c.....b.d.']});
+B({p:'d.b.9.b.d.g.i...',c:['2.4.6.9.b.d.e...']});
+// --- Build A (8-15): half-time drums, 3-3-2 lead
+B({m:'a..a..c.e..d..c.',c:['3..b..4.c..3..b.']});
+B({m:'f..d..c.a..c..d.',c:['c..4..b.3..c..5.']});
+B({m:'c..e..g.e..c..9.',c:['4..b..d.b..5..3.']});
+B({m:'b..d..g.d.b.9.b.',c:['3..c..e.c.a.6.4.']});
+B({m:'a..a..c.e.h.e.c.',h:[[0,8,2]],c:['...b..c.d.4.c.5.']});
+B({m:'f..f..d.c.a.c.d.',h:[[0,8,13]],c:['...3..4.5.b.3.c.']});
+B({m:'c.e.g.e.c.e.g.j.',c:['4.b.5.c.3.a.4.d.']});
+B({m:'d.b.d.g.b.d.g.i.',c:['3.c.4.d.5.b.3.e.','c.......e.......']});
+// --- Build-up (16-19): snare roll
+B({c:['3...4...3...4...','c...b...c...b...']});
+B({c:['3.c.4.b.5.a.6.9.']});
+B({c:['3c3c4b4b5a5a6969']});
+B({c:['2d3c4b5a6978....']});
+// --- Drop 1 (20-35)
+B({m:'a-.a.c.e-.d.c.a.',c:['3..b.4.c..3.b.4.','c...........4...']});
+B({m:'f-.f.d.c-.a.c.d.',c:['c..4.b.3..c.4.b.','3...........c...']});
+B({m:'c-.c.e.g-.e.c.9.',c:['4..a.5.d..4.c.3.','b...........5...']});
+B({m:'b-.b.d.g-.b.9bdg',c:['c..3.b.4..c.3b5d','3...............']});
+B({m:'a-.a.c.e-.d.c.a.',c:['d..4.c.3..d.4.c.','2...........b...']});
+B({m:'f-.f.d.c-.acdfdc',c:['3..c.4.b..3c4b5a','c...............']});
+B({m:'c-.c.e.g-.e.c.9.',c:['b..5.c.4..b.5.d.','4...........c...']});
+B({m:'d.d.b.b.9.9.9bdg',c:['c.4.b.5.a.6.3b5d','3.......4.......']});
+B({m:'ace-eca.ace-h.e.',c:['3b4.c5d.4c5.e.3.','............2...']});
+B({m:'8ac-ca8.8acfc.a.',c:['c4b.3c4.b3c4b.3.']});
+B({m:'9ce-ec9.9ceg-.e.',c:['2a4.d5b.3b5d..c.','..............4.']});
+B({m:'9bd-db9.gdb9gdb9',c:['3b5.d4c.e5c3d4b2']});
+B({m:'ace-eca.ace-h.e.',c:['c4b.3a2.b3a.1.c.','............d...']});
+B({m:'8ac-ca8.fcafca8a',c:['3c4.b5a.d4c3b5a6']});
+B({m:'ceg-gec.cegj-.g.',c:['4b5.c6d.3a4b..5.','..............d.']});
+B({m:'gdb9gdb9g.g.g...',c:['d4c3b5a63.4.5...','........c.b.a...']});
+// --- Break (36-43): slides and holds over bells
+B({p:'f...d...c...a...',s:[[0,[[0,12],[8,10],[16,13]]]],c:['....3...5...2...']});
+B({p:'g...b...d...g.b.',s:[[0,[[0,3],[8,6],[16,2]]]],c:['....c...a...d.b.']});
+B({p:'a.c.e.h.e.c.a.c.',h:[[0,7,13],[8,7,2]],c:['..3.5.2...b.d.a.']});
+B({p:'e.......a.......',s:[[0,[[0,2],[8,6],[14,2]]],[0,[[0,13],[8,9],[14,13]]]]});
+B({p:'d.g.8.d.g.a.d.g.',s:[[0,[[0,2],[4,5],[8,2],[12,5],[15,3]]]],c:['..b.d.b.e.c.a.c.']});
+B({p:'f.d.8.d.f.a.d.f.',s:[[0,[[0,13],[4,10],[8,13],[12,10],[15,12]]]],c:['..4.2.4.1.3.5.3.']});
+B({p:'g.d.b.9.b.d.g.i.',c:['3.b.4.c.5.d.3.e.','c.......b.......']});
+B({p:'e.......b.......',h:[[0,7,3],[0,7,12]],c:['........b.4.c.5.']});
+// --- Build 2 (44-51): four-on-the-floor, 16th arp
+B({c:['3.b.4.cc3.b.44c.']});
+B({c:['c.4.b.33c.4.bb3.']});
+B({c:['3b4.c.5d3.b4c.5.']});
+B({c:['c4b.3.a5c.4b3.a.']});
+B({m:'a-.a.c.e-.d.c.a.',h:[[0,6,2]],c:['...b.c.d..3.b.4.']});
+B({m:'f-.f.d.c-.a.c.d.',h:[[0,6,13]],c:['...4.3.2..c.4.b.']});
+B({m:'c.e.g.e.cegecege',c:['4.b.4.b.4b4b4b4b']});
+B({m:'b.d.g.b.9bdg....',c:['3.4.5.6.5a4b....','c.b.a.9.........']});
+// --- Drop 2 (52-67)
+B({m:'a-.a.c.e-.d.c.a.',c:['3..b4c5d..3.b.4.','c...........4...']});
+B({m:'f-.f.d.c-.a.c.d.',c:['c..4b3a2..c.4.b.','3...........c...']});
+B({m:'c-.c.e.g-.e.c.9.',s:[[0,[[0,3],[3,5],[7,2]]]],c:['...b.c.d..4.c.3.','............5...']});
+B({m:'b-.b.d.g-.b.9bdg',s:[[0,[[0,12],[3,10],[7,13]]]],c:['...4.3.2..c.3b5d']});
+B({m:'a-.a.c.e-.d.c.a.',c:['3b4c5d4c..3.b.4.','............4...']});
+B({m:'f-.f.d.c-.acdfdc',c:['c4b3a2b3..c4b3a2']});
+B({m:'c-.c.e.g-.e.c.9.',c:['3.4.5.4.3.4.5.6.','c.b.a.b.c.d.c.b.']});
+B({m:'d.d.b.b.9.9.9bdg',c:['c.c.4.4.b.b.3b5d','3...b...4.......']});
+B({m:'aceacehecaecaeca',c:['3b4c5d6e5d4c3b2a']});
+B({m:'8acf8acfcfa8cfa8',c:['c4b3c4b3a2b3c4d5']});
+B({m:'ceg-gec.ceg-j.g.',c:['3b4.c5d.4c5.e.c.','............3.4.']});
+B({m:'gdb9gdb9bdgbdgi.',c:['d4c3b5a6b4c5d6e.']});
+B({m:'aceacehecaecaeca',c:['33bb44cc55dd44cc']});
+B({m:'8acf8acfcfa8cfa8',c:['44cc33bb44cc3b4c']});
+B({m:'cegjgecegjgecgcj',h:[[0,7,3],[8,7,12]],c:['..b.cc....4.33.2']});
+B({m:'gdb9gdb9g.g.gggg',c:['d4c3b5a63.4.3c3c','........c.b.....']});
+// --- Bridge (68-75): half-time bass stabs
+B({c:['3..4..5...4.3...','c..b..a...b.c...']});
+B({c:['3.b4..c.3..b..4.','c.......b.......']});
+B({s:[[0,[[0,3],[3,6],[6,3],[10,6],[12,3],[15,5]]]],c:['...c..b...c.d...']});
+B({s:[[0,[[0,12],[3,9],[6,12],[8,9],[11,12],[14,10],[15,11]]]],c:['..34..2.4..3..5.']});
+B({c:['2..3..4...6.5...','9..a..b...d.c...']});
+B({c:['d.4c..3.d..4..c.','3.......4.......']});
+B({c:['3.c.4.b.3c4b3c4b']});
+B({c:['33cc44bb55aa....']});
+// --- Final drop (76-99), one whole tone up
+B({m:'a-.a.c.e-.d.c.a.',c:['3..b4c5d..3b4.c.','c...........d...']});
+B({m:'f-.f.d.c-.a.c.d.',c:['c..4b3a2..c4b.3.','3...........2...']});
+B({m:'c-.c.e.g-.e.c.9.',c:['33.bb.44.cc.3b4c']});
+B({m:'b-.b.d.g-.b.9bdg',c:['3..4.5.6..4.3b5d','c..b.a.9..b.....']});
+B({m:'a-.a.c.e-.d.c.a.',h:[[0,7,2],[8,7,13]],c:['..b.cb....4.34.2']});
+B({m:'f-.f.d.c-.acdfdc',c:['c..4.b.3..c4b3a2','3......c........']});
+B({m:'c-.c.e.g-.e.c.9.',s:[[0,[[0,3],[4,6]]],[4,[[0,12],[4,9]]],[8,[[0,3],[4,6]]],[12,[[0,12],[3,9]]]],c:['..b...4...c...3.']});
+B({m:'d.d.b.b.9.9.9bdg',c:['c.4.b.5.a.6.3b5d','3.c.4.b.5.a.....']});
+B({m:'aceacehecaecaeca',c:['3b4c5d6e5d4c3b2a']});
+B({m:'8acf8acfcfa8cfa8',c:['c4b3a2b3c4d5c4b3']});
+B({m:'9cegc9cegecgec9c',c:['bb33cc44dd55ee66']});
+B({m:'gdb9gdb9bdgbdgi.',c:['e5d4c3b2a3b4c5d.']});
+B({m:'aceacehecaecaeca',c:['3b4c5d4c3b4c5d4c','c...............']});
+B({m:'8acf8acfcfa8cfa8',c:['c4b3a2b3c4b3a2b3','3...............']});
+B({m:'cegjgecegjgecgcj',s:[[0,[[0,13],[8,9],[15,13]]]],c:['3.4.33.2..3.44.2']});
+B({m:'gdb9gdb9gdb9bdgi',s:[[0,[[0,2],[6,6],[10,3]]]],c:['c.b.cc.d..c.3c4b']});
+B({m:'ace-eca.ace-h.e.',c:['3b4.c5d.4c5.e.3.','........d...2.c.']});
+B({m:'8ac-ca8.8acfc.a.',c:['c4b.3c4.b3c4b.3.','........4.....c.']});
+B({m:'9ce-ec9.9ceg-.e.',c:['33b.cc4.3b5d..c.','..............4.']});
+B({m:'9bd-db9.gdb9gdb9',c:['3b5.d4c.e5c3d4b2','c...............']});
+B({m:'ace-eca.ace-h.e.',c:['c4b.3a2.b3a.1.c.','............d...']});
+B({m:'8ac-ca8.fcafca8a',c:['3c4.b5a.d4c3b5a6']});
+B({m:'ceg-gec.cegj-.g.',c:['cc4.dd5.3a4b..5.','..............d.']});
+B({m:'gdb9gdb9bdgbdgij',c:['e5d4c3b2a3b4c5d6']});
+// --- Outro (100-107)
+B({p:'a.......e.......',c:['3.......b.......','c...............']});
+B({p:'c.......a...8...',c:['4.......c...5...']});
+B({p:'9...c...e...g...',c:['3...6...9...c...']});
+B({p:'d.......b.......',c:['c.......4.......']});
+B({p:'a...c.e.h...e.c.',c:['3...5.b.d...b.4.']});
+B({p:'f...c.a.c...a.8.',c:['c...a.4.5...3.2.']});
+B({p:'9.c.e.g.e.c.9.c.',c:['3.5.a.c.d.b.4.2.']});
+B({p:'a...............',h:[[0,14,3],[0,14,12]]});
+// Harmony
+const Dm = { r: 38, n: [62, 65, 69] }, Bb = { r: 34, n: [58, 62, 65] }, F = { r: 41, n: [60, 65, 69] }, C = { r: 36, n: [60, 64, 67] }, Gm = { r: 43, n: [58, 62, 67] }, A = { r: 33, n: [61, 64, 69] };
+const PROG = [Dm, Bb, F, C];
+const chordAt = b => b >= 36 && b < 44 ? [Bb, C, Dm, Dm, Gm, Bb, C, A][b - 36] : b >= 68 && b < 76 ? [Dm, Dm, Bb, Bb, Gm, Gm, A, A][b - 68] : PROG[b % 4];
+const sec = b => b < 8 ? 0 : b < 16 ? 1 : b < 20 ? 2 : b < 36 ? 3 : b < 44 ? 4 : b < 52 ? 5 : b < 68 ? 6 : b < 76 ? 7 : b < 100 ? 8 : 9;
+const SCALE = [0, 1, 3, 5, 7, 8, 10], KEYS = '0123456789abcdefghij';
+const deg = ch => { const i = KEYS.indexOf(ch); return 57 + SCALE[i % 7] + 12 * Math.floor(i / 7); };
+const GAP = b => b === 19 || b === 51 || b === 75; // last beat of these bars is silent before the drop
+
+
+function musicBar(b) {
+  const t0 = b * BAR, s = sec(b), ch = chordAt(b), tr = b >= 76 ? 2 : 0, lim = GAP(b) ? 12 : 16, T = i => t0 + i * STEP, d = D[b];
+  // pads
+  const pv = [0.09, 0.07, 0.08, 0.045, 0.1, 0.06, 0.045, 0.04, 0.045, 0.1][s], pd = (b === 107 ? 2.2 * BAR : lim * STEP);
+  ch.n.forEach(m => vPad(t0, pd, m + tr, pv)); vPad(t0, pd, ch.n[0] + 12 + tr, pv * 0.6);
+  // melodies
+  const melody = (str, fn) => { if (!str) return; for (let i = 0; i < 16; i++) { const c = str[i]; if (c === '.' || c === '-') continue; let len = 1; while (i + len < 16 && str[i + len] === '-') len++; fn(T(i), len, deg(c) + tr); } };
+  const lv = [0, 0.55, 0, 0.8, 0, 0.55, 0.85, 0, 0.92, 0][s];
+  melody(d.m, (t, len, m) => vLead(t, len * STEP * (len > 1 ? 0.95 : 0.82), m, lv));
+  melody(d.p, (t, len, m) => vBell(t, m, 0.2, (m % 5 - 2) * 0.12));
+  // arps
+  const n = ch.n, a8 = [n[0], n[1], n[2], n[0] + 12, n[2], n[1], n[2], n[0] + 12], a16 = [n[0], n[1], n[2], n[0] + 12, n[1] + 12, n[0] + 12, n[2], n[1]];
+  const arp8 = v => { for (let i = 0; i < lim; i += 2) vPluck(T(i), a8[i / 2] + 12 + tr, v, (i & 2) ? 0.35 : -0.35); };
+  const arp16 = v => { for (let i = 0; i < lim; i++) vPluck(T(i), a16[i % 8] + 12 + tr, v * (i % 2 ? 0.7 : 1), (i & 1) ? 0.4 : -0.4); };
+  if ((s === 0 && b >= 4) || s === 1 || (s === 4 && b >= 40)) arp8(0.1);
+  if (s === 9 && b < 106) arp8(0.08);
+  if (s === 5) arp16(0.1); if (s === 6 || s === 8) arp16(0.05);
+  // bass
+  const r = ch.r + tr, seq = (steps, fn) => steps.forEach((st, j) => { if (st >= lim) return; const nx = Math.min(lim, j + 1 < steps.length ? steps[j + 1] : 16); fn(T(st), (nx - st) * STEP * 0.92, st, j); });
+  if (s === 0 && b >= 4) vSub(t0, BAR, r, 0.5);
+  if (s === 1) seq([0, 3, 6, 8, 11, 14], (t, du) => vBass(t, du, r, 0.55, 600, 220));
+  if (s === 2) seq([0, 2, 4, 6, 8, 10, 12, 14], (t, du) => vBass(t, du, r, 0.6, 500 + (b - 16) * 500, 250));
+  if (s === 3 || s === 6) seq([0, 3, 6, 8, 11, 14], (t, du, st) => vBass(t, du, r + (st === 6 ? 12 : st === 14 ? 7 : 0), 0.85, 2400, 380));
+  if (s === 8) seq([0, 2, 3, 5, 6, 8, 10, 11, 13, 14, 15], (t, du, st) => vBass(t, du, r + (st === 3 || st === 11 ? 12 : st === 6 || st === 14 ? 7 : 0), 0.85, 2800, 420));
+  if (s === 4) vSub(t0, BAR, r, 0.6);
+  if (s === 5) seq([2, 6, 10, 14], (t) => vBass(t, STEP * 1.7, r, 0.7, 1500 + (b - 44) * 150, 300));
+  if (s === 7) { const W = b === 75 ? [0, 2, 4, 6, 8, 10] : (b % 2 === 0 ? [0, 3, 6, 10, 12] : [0, 2, 3, 6, 8, 11, 14]);
+    seq(W, (t, du, st, j) => vGrowl(t, Math.min(du, STEP * 2.8), r + 12 + (j % 3 === 2 ? 7 : j % 3 === 1 ? 12 : 0), 0.9, 1 / (STEP * (j % 2 ? 2 : 4)))); }
+  if (s === 9) vSub(t0, b === 107 ? 2 * BAR : BAR, r, 0.5);
+}
+function drumBar(b) {
+  const t0 = b * BAR, s = sec(b), T = i => t0 + i * STEP, lim = GAP(b) ? 12 : 16;
+  const K = (st, v = 1, dk = 0.5) => { if (st < lim) kick(T(st), v, dk); }, S = (st, v = 1) => { if (st < lim) vSnare(T(st), v); };
+  const hats16 = v => { for (let i = 0; i < lim; i++) vHat(T(i), v * (i % 2 ? 0.45 : 1), false, i % 2 ? 0.3 : -0.2); };
+  const hats8 = v => { for (let i = 0; i < lim; i += 2) vHat(T(i), v, false, 0.1); };
+  if (s === 0 && b >= 4) for (let i = 0; i < 16; i += 4) vHat(T(i), 0.5, false, 0);
+  if (s === 1) { K(0, 0.9, 0.35); K(10, 0.8, 0.35); S(8, 0.9); hats8(0.6); }
+  if (s === 2) { [0, 4, 8, 12].forEach(i => K(i, 0.85, 0.35)); const stp = b === 16 ? 4 : b === 17 ? 2 : 1; for (let i = 0; i < lim; i += stp) S(i, 0.45 + 0.5 * ((b - 16) * 16 + i) / 60); }
+  if (s === 3) { if (b === 35) { K(0); S(4); K(6); [8, 10, 12].forEach(i => { K(i, 0.9); S(i); }); for (let i = 0; i < 8; i++) vHat(T(i), 0.8, false, 0); }
+    else { K(0); K(10); S(4); S(12); hats16(0.8); vHat(T(14), 0.5, true, 0.2); } }
+  if (s === 4 && b >= 40) hats8(0.4);
+  if (s === 5) { [0, 4, 8, 12].forEach(i => K(i, 0.9, 0.5)); [2, 6, 10, 14].forEach(i => i < lim && vHat(T(i), 0.7, true, 0.15));
+    if (b >= 48 && b < 50) { S(4, 0.8); S(12, 0.8); }
+    if (b === 50) { for (let i = 0; i < 8; i += 2) S(i, 0.6 + i * 0.02); for (let i = 8; i < 16; i++) S(i, 0.65 + i * 0.02); }
+    if (b === 51) [0, 2, 4, 6, 8, 9, 10, 11].forEach(i => S(i, 0.9)); }
+  if (s === 6) { if (b === 67) { K(0); S(4); K(6); [8, 10].forEach(i => { K(i, 0.9); S(i); }); for (let i = 12; i < 16; i++) S(i, 0.85); for (let i = 0; i < 8; i++) vHat(T(i), 0.8, false, 0); }
+    else { K(0); K(6, 0.85); K(10); S(4); S(12); hats16(0.85); vHat(T(14), 0.5, true, 0.2); } }
+  if (s === 7) { if (b === 74) { K(0, 1, 0.35); for (let i = 0; i < 8; i += 2) S(i, 0.7); for (let i = 8; i < 16; i++) S(i, 0.7 + i * 0.015); }
+    else if (b === 75) { for (let i = 0; i < 12; i++) S(i, 0.8 + i * 0.015); }
+    else { K(0, 1, 0.35); K(3, 0.8, 0.35); K(10, 0.9, 0.35); S(8, 1.1); hats8(0.5); } }
+  if (s === 8) { K(0); K(6, 0.85); K(10); K(13, 0.8); S(4); S(12); hats16(0.9); vHat(T(14), 0.5, true, 0.2); if (b === 99) for (let i = 8; i < 16; i++) S(i, 0.7 + i * 0.02); }
+  // transitions
+  if ([20, 52, 76, 100].includes(b)) { vCrash(t0, 1); vImpact(t0, 1); }
+  if ([28, 60, 84, 92].includes(b)) vCrash(t0, 0.7);
+  if (b === 36) vCrash(t0, 0.5);
+  if (b === 16) vRiser(t0, 3.75 * BAR, 0.8); if (b === 50) vRiser(t0, 1.75 * BAR, 0.9); if (b === 74) vRiser(t0, 1.75 * BAR, 0.9); if (b === 99) vRiser(t0, BAR, 0.6); if (b === 43) vRiser(t0, BAR, 0.3);
+}
+  const cx = p => Math.max(1.6, Math.min(14.4, p + 0.5)), cn = [];
+  D.forEach((d, bi) => { const g0 = bi * 16;
+    (d.c || []).forEach(row => { for (let i = 0; i < 16; i++) { const ch = row[i]; if (ch && ch !== '.') cn.push({ g: g0 + i, long: 0, x: cx(parseInt(ch, 16)), w: 3 }); } });
+    (d.h || []).forEach(([st, len, pos]) => cn.push({ g: g0 + st, long: 1, slide: 0, w: 3, path: [[g0 + st, cx(pos)], [g0 + st + len, cx(pos)]] }));
+    (d.s || []).forEach(([st, path]) => cn.push({ g: g0 + st, long: 1, slide: 1, w: 3, path: path.map(([ds, pos]) => [g0 + st + ds, cx(pos)]) })); });
+  return { bpm: 174, nbars: D.length, music: musicBar, drums: drumBar, notes: cn };
+})();
+/* =====================================================================
+   CHART ENGINE — turns a per-bar rhythm (taken straight from the score) into positioned notes.
+   Every note sits on a step where the song actually plays something.
+   ===================================================================== */
+function buildChart(info, seed0) {
+  let sd = seed0 >>> 0; const rnd = () => { sd = (sd + 0x6D2B79F5) | 0; let t = Math.imul(sd ^ (sd >>> 15), 1 | sd); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  let EV = [];
+  const tap = (b, s, x, w = 3, h = null) => EV.push({ k: 0, g: b * 16 + s, x, w, h });
+  const lng = (b, s, path, w, h, slide = 1) => EV.push({ k: 1, g: b * 16 + s, path: path.map(([d, x]) => [b * 16 + s + d, x]), w, h, slide });
+  const mir = p => p.map(([d, x]) => [d, 16 - x]);
+  let lo = 999, hi = -999; info.forEach(I => Object.values(I.pit).forEach(m => { if (m < lo) lo = m; if (m > hi) hi = m; }));
+  const pitx = (b, s) => { const m = info[b].pit[s]; return m == null ? 8 : 2.4 + 11.2 * (m - lo) / Math.max(1, hi - lo); };
+  const acc = (b, s) => info[b].acc.has(s);
+  const st = { stair: 5, dir: 1, jl: seed0 % 6, od: seed0 % 10, sg: 0, tr: seed0 % 3, hk: seed0 % 4, sl: seed0 % 6, ds: seed0 % 5, sw: seed0 % 3, gl: 0, ce: 0, mi: seed0 % 2 };
+  const pathx = (p, d) => { for (let i = 1; i < p.length; i++) if (d <= p[i][0]) { const f = (d - p[i - 1][0]) / (p[i][0] - p[i - 1][0]); return p[i - 1][1] + (p[i][1] - p[i - 1][1]) * (0.5 - 0.5 * Math.cos(Math.PI * f)); } return p[p.length - 1][1]; };
+  const JL = [[8, 4.5, 11.5, 6.5], [3, 12.5, 9.5, 5.5], [10, 6, 13, 2.5], [7, 9, 4, 12], [5, 11, 8, 13.5], [12, 3.5, 6.5, 10]];
+  const PAIRS = [[2.5, 7.2], [9, 13.5], [4, 11], [6, 10.6], [1.9, 6.2], [9.8, 14.1], [5, 8.8], [7.4, 12], [3, 13], [6.6, 9.4]];
+  const SING = [8, 4.5, 11.5, 6.4, 9.6, 2.6, 13.4, 7.2, 10.2, 5.4];
+  const HX = [[3, [11, 13, 12, 10]], [5.5, [12, 14, 11, 13]], [7.2, [12.5, 13.8, 11.5, 13]], [2.2, [8, 10, 7, 9.5]]];
+  const SLP = [[[0, 2.5], [4, 7], [8, 3], [12, 8], [14, 6]], [[0, 6.5], [6, 2.2], [14, 9]], [[0, 3], [14, 10]], [[0, 8], [4, 4], [8, 8.5], [14, 2.5]], [[0, 2.2], [3, 5.5], [6, 2.2], [9, 5.5], [12, 2.2], [14, 4]], [[0, 9.5], [7, 3], [14, 7]]];
+  const DS = [[[[0, 2.5], [7, 6.3], [14, 2.5]], [[0, 13.5], [7, 9.7], [14, 13.5]]], [[[0, 2.5], [7, 8], [14, 3]], [[0, 8], [7, 13.5], [14, 8.5]]], [[[0, 6], [5, 2.2], [10, 6.2], [14, 3]], [[0, 10], [5, 13.8], [10, 9.8], [14, 13]]], [[[0, 2.2], [14, 8.5]], [[0, 7.5], [14, 13.8]]], [[[0, 6.8], [7, 2.5], [14, 6.8]], [[0, 13.5], [7, 9.2], [14, 13.5]]]];
+  const SW = [[[3, 7], [13, 9], [6, 2.2], [10, 13.8]], [[6.5, 2.5], [9.5, 13.5], [2.5, 6.5], [13.5, 9.5]], [[2.5, 8], [13.5, 8], [7, 3], [9, 13]]];
+  const O = h => h === 'L' ? 'R' : 'L';
+  const SF = {
+    melody(b, S, L) { for (const s of S) { if (s % 2) tap(b, s, pitx(b, s) + (rnd() < 0.5 ? 1.6 : -1.6), 2.2); else { tap(b, s, pitx(b, s), acc(b, s) ? 3.8 : 3); if (L >= 5 && s % 8 === 0) { const x = pitx(b, s); tap(b, s, x < 8 ? x + 5.4 : x - 5.4, 2.8); } } } },
+    center(b, S, L) { for (const s of S) { st.ce += 0.95; const x = 8 + 3.1 * Math.sin(st.ce); tap(b, s, x, s % 2 ? 2.2 : 2.7); if (L >= 4 && s % 8 === 0) tap(b, s, x + (x < 8 ? 5.2 : -5.2), 2.7); } },
+    stairs(b, S, L) { for (const s of S) { st.stair += st.dir * (s % 2 ? 1 : 1.75); if (st.stair > 13.6) { st.stair = 13.6; st.dir = -1; } if (st.stair < 2.4) { st.stair = 2.4; st.dir = 1; } tap(b, s, st.stair, 2.8); if (L >= 5 && s % 8 === 4) tap(b, s, st.stair > 8 ? st.stair - 5 : st.stair + 5, 2.8); } },
+    mirror(b, S, L) { st.mi++; const inw = st.mi % 2 === 0; S.forEach((s, k) => { const j = (k >> 1) % 4, d = inw ? j * 1.5 : (3 - j) * 1.5; if (k % 2 === 0) tap(b, s, 2 + d, 2.8, 'L'); else tap(b, s, 14 - d, 2.8, 'R'); if (L >= 4 && s % 8 === 0 && k % 2 === 0) tap(b, s, 14 - d, 2.8, 'R'); }); },
+    jack(b, S, L) { const lanes = JL[st.jl++ % JL.length]; for (const s of S) { const q = s >> 2, x = lanes[q % 4], h = x < 7.5 ? 'L' : x > 8.5 ? 'R' : (q % 2 ? 'R' : 'L');
+        if (s % 2) { tap(b, s, x + (h === 'L' ? 3.4 : -3.4), 2, O(h)); continue; } tap(b, s, x, 2.6, h);
+        if ((s % 4 === 0 && L >= 4) || (L >= 5 && acc(b, s))) tap(b, s, Math.min(14.3, Math.max(1.7, h === 'L' ? x + 5 : x - 5)), 2.6, O(h)); } },
+    trill1h(b, S, L) { st.tr++; for (const s of S) { const h = ((s >> 3) + st.tr) % 2 === 0 ? 'L' : 'R', base = [3.2, 5, 2.2][st.tr % 3], a = h === 'L' ? base : 16 - base, c = h === 'L' ? base + 2.9 : 16 - base - 2.9;
+        if (s % 2) { tap(b, s, h === 'L' ? 11.5 : 4.5, 2, O(h)); continue; } tap(b, s, (s >> 1) % 2 === 0 ? a : c, 2.4, h);
+        if (s % 8 === 0) tap(b, s, h === 'L' ? 12.5 : 3.5, 4.2, O(h)); else if (L >= 5 && s % 8 === 4) tap(b, s, h === 'L' ? 10.5 : 5.5, 2.6, O(h)); } },
+    offdouble(b, S, L) { for (const s of S) { if (s % 2) { tap(b, s, SING[st.sg % 10] + (st.sg % 2 ? 1.3 : -1.3), 2); continue; }
+        if ((s % 4 === 0 && (L >= 4 || acc(b, s))) || (L >= 5 && acc(b, s))) { const [a, c] = PAIRS[st.od++ % PAIRS.length], w = c - a < 4.5 ? 2.4 : 3; tap(b, s, a, w, 'L'); tap(b, s, c, w, 'R'); }
+        else { tap(b, s, SING[st.sg++ % 10], 2.8); } } },
+    hold_tap(b, S, L, jk) { st.hk++; for (const half of [0, 1]) { let [hx, tx] = HX[(st.hk + half) % HX.length]; const h = (st.hk + half) % 2 === 0 ? 'L' : 'R'; if (h === 'R') { hx = 16 - hx; tx = tx.map(v => 16 - v); }
+        if (!S.includes(half * 8) && !S.includes(half * 8 + 2)) continue; lng(b, half * 8, [[0, hx], [6, hx]], Math.abs(hx - 8) > 2 ? 3.2 : 2.6, h, 0);
+        let k = 0; for (const s of S) if (s > half * 8 && s < half * 8 + 8 && s % 2 === 0) { tap(b, s, jk ? tx[0] : tx[k % 4], jk ? 2.6 : 2.8, O(h)); k++; } } },
+    hold_jack(b, S, L) { SF.hold_tap(b, S, L, true); },
+    slide_tap(b, S, L, jk) { const p = SLP[st.sl % SLP.length], h = st.sl++ % 2 === 0 ? 'L' : 'R'; lng(b, 0, h === 'L' ? p : mir(p), 3, h, 1);
+      let k = 0; for (const s of S) { if (s < 2 || s % 2) continue; const sx = pathx(p, Math.min(s, 14)); let x = jk ? 13.2 : Math.max(sx + 4.6, [11.5, 13.5, 12.4, 14][k % 4]); x = Math.min(14.4, Math.max(x, sx + 4.4)); k++; tap(b, s, h === 'L' ? x : 16 - x, 2.6, O(h)); } },
+    slide_jack(b, S, L) { SF.slide_tap(b, S, L, true); },
+    dual_slide(b) { const [a, c] = DS[st.ds++ % DS.length]; lng(b, 0, a, 3, 'L', 1); lng(b, 0, c, 3, 'R', 1); },
+    sweep(b, S) { const sw = SW[st.sw++ % SW.length]; for (let q = 0; q < 4; q++) { const [a, c] = sw[q], h = q % 2 === 0 ? 'L' : 'R'; lng(b, q * 4, [[0, a], [3, c]], 2.8, h, 1); const s = q * 4 + 2; if (S.includes(s)) tap(b, s, (h === 'L' ? 13 : 3) + (q > 1 ? -1.5 : 0), 2.6, O(h)); } },
+    glitch(b, S) { for (const s of S) { st.gl++; tap(b, s, [4, 12, 8, 6, 10][st.gl % 5], s % 4 ? 3.2 : 4.6); } },
+    wide(b, S) { S.forEach((s, k) => { if (s % 8 === 0) tap(b, s, 8, 7); else tap(b, s, [4.5, 11.5, 6.5, 9.5][k % 4], 3); }); },
+  };
+  const LONGS = new Set(['hold_tap', 'hold_jack', 'slide_tap', 'slide_jack', 'dual_slide', 'sweep']), POOL = ['stairs', 'offdouble', 'center', 'mirror', 'melody', 'jack', 'trill1h'];
+  let pa = seed0 % 7;
+  info.forEach((I, b) => {
+    if (!I.steps.length) return;
+    let nm = I.style; const odd = I.steps.filter(s => s % 2).length;
+    if (LONGS.has(nm) && (odd >= 2 || I.sus.length)) nm = POOL[pa++ % POOL.length];
+    if (nm === 'dual_slide' && !I.calm) nm = 'slide_tap';
+    const S = LONGS.has(nm) ? I.steps.filter(s => s % 2 === 0) : I.steps, n0 = EV.length;
+    SF[nm](b, S, I.lv);
+    // sustained melody notes become holds on the melody's own position
+    for (const [s, len] of I.sus) { const x = Math.min(13.5, Math.max(2.5, pitx(b, s))), h = x < 8 ? 'L' : 'R';
+      EV = EV.slice(0, n0).concat(EV.slice(n0).filter(e => !(e.g === b * 16 + s))); lng(b, s, [[0, x], [len, x]], 3.2, h, 0); }
+    if (I.crash) { EV = EV.slice(0, n0).concat(EV.slice(n0).filter(e => !(e.k === 0 && e.g === b * 16))); if (!EV.slice(n0).some(e => e.k === 1 && e.g === b * 16)) { EV.push({ k: 0, g: b * 16, x: 4.2, w: 5, h: 'L' }, { k: 0, g: b * 16, x: 11.8, w: 5, h: 'R' }); } }
+  });
+  // runs of consecutive 16ths become two-hand rolls
+  const on = new Set(); info.forEach((I, b) => I.steps.forEach(s => on.add(b * 16 + s)));
+  { let run = 0; for (let g = 0; g < info.length * 16; g++) { if (!on.has(g)) { run = 0; continue; } run++; if (run > 32 && g % 2) { on.delete(g); EV = EV.filter(e => !(e.k === 0 && e.g === g)); run = 0; } } }
+  const FIG = ['trill', 'up', 'out', 'broken', 'tight', 'down', 'in', 'wide']; let sf = seed0 % 8, lead = seed0 % 2;
+  const fig = (g0, n, f, ld) => { for (let i = 0; i < n; i++) { const h = i % 2 === 0 ? ld : O(ld), j = i >> 1, r = i / Math.max(1, n - 1); let x;
+      if (f === 'trill') x = h === 'L' ? 5.6 : 10.4; else if (f === 'up') x = (h === 'L' ? 3 : 7.4) + r * 5.4; else if (f === 'down') x = (h === 'L' ? 8.6 : 13) - r * 5.4;
+      else if (f === 'out') x = h === 'L' ? 6.6 - r * 4.2 : 9.4 + r * 4.2; else if (f === 'in') x = h === 'L' ? 2.4 + r * 4.2 : 13.6 - r * 4.2;
+      else if (f === 'broken') x = h === 'L' ? [4, 6.6, 3, 5.6][j % 4] : [10.4, 13, 9.4, 12][j % 4]; else if (f === 'tight') x = h === 'L' ? 6.7 : 9.3; else x = h === 'L' ? [2.6, 5.2][j % 2] : [13.4, 10.8][j % 2];
+      EV.push({ k: 0, g: g0 + i, x, w: f === 'tight' ? 2 : 2.2, h }); } };
+  const total = info.length * 16;
+  for (let g = 0; g < total; g++) { if (!on.has(g) || on.has(g - 1)) continue; let g1 = g; while (on.has(g1 + 1)) g1++; const n = g1 - g + 1; if (n < 3) continue;
+    if (EV.some(e => e.k === 1 && e.g <= g1 && e.path[e.path.length - 1][0] >= g)) continue;
+    const keep = EV.filter(e => e.k === 0 && e.g === g && e.w >= 4.5);
+    EV = EV.filter(e => !(e.k === 0 && e.g >= g && e.g <= g1));
+    let pos = 0; const ld = lead++ % 2 ? 'R' : 'L';
+    while (pos < n) { const ln = Math.min(n - pos <= 10 ? n - pos : 8, n - pos); fig(g + pos, ln, FIG[sf++ % FIG.length], pos % 2 === 0 ? ld : O(ld)); pos += ln; }
+    if (keep.length) { EV = EV.filter(e => !(e.k === 0 && e.g === g && e.w < 4.5)).concat(keep); }
+  }
+  // hand solver: two thumbs, no crossing, no same-thumb 16ths
+  EV.sort((a, c) => a.g - c.g || c.k - a.k || (a.x || 0) - (c.x || 0));
+  const H = { L: { busy: -9, last: -9, x: 4, path: null }, R: { busy: -9, last: -9, x: 12, path: null } }, out = [];
+  const hx = (h, g) => { const d = H[h]; if (d.path && g <= d.path[d.path.length - 1][0]) return pathx(d.path.map(([a, x]) => [a - d.path[0][0], x]), g - d.path[0][0]); return null; };
+  for (const e of EV) { const g = e.g;
+    if (e.k === 1) { const h = e.h, d = H[h], ox = hx(O(h), g), x0 = e.path[0][1];
+      if (g < d.busy || g - d.last < 2) continue; if (ox != null && ((h === 'L' && x0 > ox - 2.6) || (h === 'R' && x0 < ox + 2.6))) continue;
+      const end = e.path[e.path.length - 1]; d.busy = end[0] + 2; d.last = end[0]; d.path = e.path; d.x = end[1];
+      out.push({ g, long: 1, slide: e.slide, w: e.w, path: e.path.map(([a, x]) => [a, Math.round(x * 100) / 100]) }); continue; }
+    const ok = h => g >= H[h].busy && g - H[h].last >= 2, cand = ['L', 'R'].filter(ok); if (!cand.length) continue;
+    let h, x = e.x; if (cand.includes(e.h)) h = e.h; else if (cand.length === 1) h = cand[0]; else h = x < 5.5 ? 'L' : x > 10.5 ? 'R' : H.L.last < H.R.last ? 'L' : H.R.last < H.L.last ? 'R' : x < 8 ? 'L' : 'R';
+    const o = O(h); x = h === 'L' ? Math.min(x, 11) : Math.max(x, 5);
+    let ox = hx(o, g); if (ox == null && H[o].last === g) ox = H[o].x;
+    if (ox != null) x = h === 'L' ? Math.min(x, ox - 2.7) : Math.max(x, ox + 2.7);
+    const gap = g - H[h].last, mj = gap <= 2 ? 5.5 : gap <= 4 ? 8.5 : 99; if (Math.abs(x - H[h].x) > mj) x = H[h].x + Math.sign(x - H[h].x) * mj;
+    if (ox != null && ((h === 'L' && x > ox - 2.5) || (h === 'R' && x < ox + 2.5))) continue;
+    x = Math.min(16 - e.w / 2 - 0.1, Math.max(e.w / 2 + 0.1, x)); H[h].last = g; H[h].x = x;
+    out.push({ g, long: 0, x: Math.round(x * 100) / 100, w: e.w });
+  }
+  return out;
+}
+
+/* =====================================================================
+   SONG BUILDER — a song is sections of bars; each bar takes its melody from a motif and its chord from a
+   progression.  The same data drives the synth and the chart.
+   Melody chars index the natural-minor scale ('3' = tonic, 'a' = tonic an octave up, 'h' = two octaves up),
+   '-' sustains, '.' rests.
+   ===================================================================== */
+const MINOR = [0, 2, 3, 5, 7, 8, 10], KEYCH = '0123456789abcdefghij';
+const PLAN = {
+  intro: 'melody center melody wide', outro: 'melody center dual_slide melody',
+  verse: 'melody offdouble hold_tap stairs slide_tap mirror center jack',
+  build: 'mirror stairs offdouble center',
+  drop: 'jack offdouble stairs trill1h slide_jack mirror hold_jack melody slide_tap center sweep offdouble jack stairs',
+  break: 'dual_slide slide_tap hold_tap sweep dual_slide slide_tap melody sweep',
+  glitch: 'glitch', half: 'offdouble jack slide_tap mirror trill1h hold_jack stairs sweep',
+};
+const LV = { intro: 1, outro: 1, verse: 4, build: 4, drop: 5, break: 2, glitch: 5, half: 5 };
+function makeSong(def) {
+  const bars = [], rot = {};
+  def.sections.forEach(s => { const mot = s.m ? def.motifs[s.m] : null, pr = def.prog[s.p || 'main'], pl = PLAN[s.t].split(' '); rot[s.t] = rot[s.t] == null ? def.seed % pl.length : rot[s.t];
+    for (let i = 0; i < s.n; i++) bars.push({ type: s.t, i, n: s.n, mel: mot ? mot[i % mot.length] : null, deg: pr[i % pr.length], style: pl[rot[s.t]++ % pl.length], gap: s.t === 'build' && i === s.n - 1 }); });
+  const NB = bars.length, tn = def.tonic;
+  const pitch = ch => { const i = KEYCH.indexOf(ch) - 3; return tn + MINOR[((i % 7) + 7) % 7] + 12 * Math.floor(i / 7); };
+  const chord = d => { let n = [0, 2, 4].map(k => tn - 12 + MINOR[(d + k) % 7] + 12 * Math.floor((d + k) / 7)); if (n[0] - (tn - 12) >= 8) n = n.map(v => v - 12); return n.map(v => v + 12); };
+  const root = d => tn - 24 + MINOR[d] - (MINOR[d] >= 8 ? 12 : 0);
+  const parse = str => { const o = []; if (!str) return o; for (let i = 0; i < 16; i++) { const c = str[i]; if (c === '.' || c === '-') continue; let len = 1; while (i + len < 16 && str[i + len] === '-') len++; o.push({ s: i, len, m: pitch(c) }); } return o; };
+  const rollStep = B => [4, 2, 1, 1][Math.min(3, Math.floor(B.i * 4 / B.n))];
+  const piano = def.lead === 'piano';
+  function music(b) {
+    const B = bars[b], t0 = b * BAR, ty = B.type, lim = B.gap ? 12 : 16, T = i => t0 + i * STEP, ch = chord(B.deg), r = root(B.deg), ons = parse(B.mel), late = B.i >= B.n / 2;
+    const pv = { intro: 0.09, verse: 0.06, build: 0.08, drop: 0.045, break: 0.1, glitch: 0, half: 0.04, outro: 0.1 }[ty];
+    if (pv) { const pd = b === NB - 1 ? 2.2 * BAR : lim * STEP; ch.forEach(m => vPad(t0, pd, m, pv)); vPad(t0, pd, ch[0] + 12, pv * 0.6); }
+    if (ty === 'intro' || ty === 'break' || ty === 'outro') ons.forEach(o => vBell(T(o.s), o.m, 0.2, (o.m % 5 - 2) * 0.12));
+    else if (ty === 'half') ons.forEach((o, j) => vGrowl(T(o.s), Math.min(o.len, 3) * STEP * 0.9, o.m - 24, 0.9, 1 / (STEP * (j % 2 ? 2 : 4))));
+    else { const lv = { verse: 0.55, drop: 0.88, build: 0.6, glitch: 0.9 }[ty];
+      ons.forEach(o => { if (o.s >= lim) return; if (piano) { vPiano(T(o.s), o.m, lv * 0.34, (o.m % 5 - 2) * 0.1); if (ty === 'drop') vLead(T(o.s), STEP * 0.7, o.m, 0.3); } else vLead(T(o.s), o.len * STEP * (ty === 'glitch' ? 0.6 : o.len > 1 ? 0.95 : 0.82), o.m, lv); }); }
+    const a8 = [ch[0], ch[1], ch[2], ch[0] + 12, ch[2], ch[1], ch[2], ch[0] + 12], a16 = [ch[0], ch[1], ch[2], ch[0] + 12, ch[1] + 12, ch[0] + 12, ch[2], ch[1]];
+    const arp8 = v => { for (let i = 0; i < lim; i += 2) vPluck(T(i), a8[i / 2] + 12, v, (i & 2) ? 0.35 : -0.35); }, arp16 = v => { for (let i = 0; i < lim; i++) vPluck(T(i), a16[i % 8] + 12, v * (i % 2 ? 0.7 : 1), (i & 1) ? 0.4 : -0.4); };
+    if (ty === 'verse' || ((ty === 'intro' || ty === 'break') && late) || (ty === 'outro' && B.i < B.n - 2)) arp8(0.09);
+    if (ty === 'drop' && !piano) arp16(0.05);
+    if (ty === 'verse') [2, 6, 10, 14].forEach(s => vBass(T(s), STEP * 1.7, r, 0.65, 1300, 280));
+    if (ty === 'drop') [2, 6, 10, 14].forEach(s => vBass(T(s), STEP * 1.7, r + (s === 14 ? 12 : 0), 0.85, 2600, 400));
+    if (ty === 'build') for (let s = 0; s < lim; s += 2) vBass(T(s), STEP * 1.7, r, 0.6, 500 + B.i / B.n * 2000, 250);
+    if (ty === 'break' || ty === 'outro' || (ty === 'intro' && late) || ty === 'half') vSub(t0, b === NB - 1 ? 2 * BAR : BAR, r, 0.55);
+  }
+  function drums(b) {
+    const B = bars[b], t0 = b * BAR, ty = B.type, lim = B.gap ? 12 : 16, T = i => t0 + i * STEP, ons = parse(B.mel), late = B.i >= B.n / 2;
+    const K = (s, v, dk) => { if (s < lim) kick(T(s), v, dk); };
+    if (ty === 'verse') { [0, 4, 8, 12].forEach(s => K(s, 0.9, 0.45)); vSnare(T(4), 0.8); vSnare(T(12), 0.8); [2, 6, 10, 14].forEach(s => vHat(T(s), 0.7, false, 0.1)); }
+    if (ty === 'drop') { [0, 4, 8, 12].forEach(s => K(s, 1, 0.55)); vSnare(T(4), 1); vSnare(T(12), 1); for (let i = 0; i < 16; i++) vHat(T(i), 0.8 * (i % 2 ? 0.45 : 1), false, i % 2 ? 0.3 : -0.2); [2, 6, 10, 14].forEach(s => vHat(T(s), 0.35, true, 0.2)); }
+    if (ty === 'build') { if (!B.gap) [0, 4, 8, 12].forEach(s => K(s, 0.85, 0.35)); const stp = rollStep(B), p = B.i / B.n; for (let i = 0; i < lim; i += stp) vSnare(T(i), 0.5 + 0.45 * (p + i / 16 / B.n)); if (B.i === 0) vRiser(t0, (B.n * 16 - 4) * STEP, 0.85); }
+    if (ty === 'glitch') ons.forEach(o => { vSnare(T(o.s), 0.85); if (o.s % 4 === 0) K(o.s, 0.9, 0.3); });
+    if (ty === 'half') { K(0, 1, 0.35); K(10, 0.9, 0.35); vSnare(T(8), 1.1); for (let i = 0; i < 16; i += 2) vHat(T(i), 0.5, false, 0.1); }
+    if ((ty === 'break' || ty === 'intro') && late) for (let i = 0; i < 16; i += 2) vHat(T(i), 0.4, false, 0.1);
+    if (B.i === 0) { if (ty === 'drop' || ty === 'half') { vCrash(t0, 1); vImpact(t0, 1); } else if (ty === 'verse' || ty === 'break' || ty === 'outro') vCrash(t0, 0.5); }
+    else if (ty === 'drop' && B.i % 8 === 0) vCrash(t0, 0.7);
+  }
+  // rhythm the player hits = what is audible in that bar
+  const info = bars.map(B => { const ons = parse(B.mel), ty = B.type, set = new Set(), pit = {}, lim = B.gap ? 12 : 16;
+    ons.forEach(o => { if (o.s < lim) { pit[o.s] = o.m; } });
+    if (ty === 'build') { for (let i = 0; i < lim; i += rollStep(B)) set.add(i); }
+    else { ons.forEach(o => o.s < lim && set.add(o.s)); if (ty === 'verse' || ty === 'drop') for (let i = 0; i < 16; i += 2) set.add(i); if (ty === 'half') set.add(8); }
+    const steps = [...set].sort((a, c) => a - c);
+    steps.forEach(s => { if (pit[s] == null) { let k = s; while (k >= 0 && pit[k] == null) k--; if (k >= 0) pit[s] = pit[k]; } });
+    const sus = (ty === 'verse' || ty === 'drop') ? ons.filter(o => o.len >= 5).map(o => [o.s, o.len]) : [];
+    return { steps, pit, sus, acc: new Set(ty === 'verse' || ty === 'drop' ? [4, 12] : ty === 'half' ? [0, 8] : []), lv: LV[ty], style: B.style, calm: ty === 'intro' || ty === 'break' || ty === 'outro', crash: B.i === 0 && (ty === 'drop' || ty === 'half') };
+  });
+  return { bpm: def.bpm, nbars: NB, music, drums, notes: buildChart(info, def.seed) };
+}
+
+/* ---------------- the three new tracks ---------------- */
+const BLOOM = makeSong({ bpm: 196, tonic: 64, seed: 11, lead: 'saw', prog: { main: [0, 5, 2, 6], alt: [5, 6, 0, 0, 3, 5, 6, 4], half: [0, 0, 5, 5, 3, 3, 4, 4] },
+  motifs: {
+    IB: ['a.......e.......', 'f.......c...a...', 'c.......g...e...', 'b...d...g.......', 'a...e...h...e...', 'f...c...a...c.f.', 'g...e...c...e.g.', 'i...g...d.b.g...'],
+    V: ['a-----..c.e.h---', 'f-----..c.a.c---', 'c-----..e.g.j---', 'i---g---d---b.d.', 'a.c.e-----..h.e.', 'f.a.c-----..a.8.', 'g.e.c-----..e.g.', 'd.g.i---g.d.b.9.'],
+    D1: ['h-..e.h.g-..e.c.', 'f-..c.f.e-..c.a.', 'g-..e.g.j-..g.e.', 'i-..g.i.g.d.bdgi', 'h-..e.h.g-..ehec', 'f-..c.f.e-..cfca', 'g-..e.g.j-..gjge', 'i.g.d.g.bdgbdgig'],
+    D2: ['acehecaeacehe.c.', '8acfca8a8acfc.a.', '9cegec9c9cegj.g.', '9bdgdb9bgdb9bdgi', 'aceheca.ehecaceh', '8acfca8.cfca8acf', 'cegjgec.gjgecegj', 'gdb9gdb9bdgbdgi.'],
+    D3: ['a.a.aaaac.c.e.h.', 'f.f.ffffa.a.c.f.', 'c.c.cccce.e.g.j.', 'g.g.ggggdddbbbgg', 'h.e.hehec.a.caca', 'f.c.fcfca.8.a8a8', 'j.g.jgjge.c.ecec', 'i.g.igigdgbdgbdg'],
+    H: ['a..a..a...a.c...', 'a.aa..c.a..a..e.', 'f..f..f...f.h...', 'f.ff..h.f..f..c.', 'd..d..d...d.f...', 'd.dd..f.d..d..h.', 'e..e..e...e.g...', 'e.ee..g.e..e..i.'],
+    BB: ['f...c...a...c...', 'g...d...b...d...', 'a.c.e.h.e.c.a.c.', 'e.......a.......', 'd.f.h.f.d.f.h.d.', 'f.a.c.f.c.a.f.a.', 'g.d.b.9.b.d.g.i.', 'e.......b.......'],
+    OUT: ['a.......e.......', 'f.......c...a...', 'c...e...g...e...', 'b...d...g.......', 'a...e...h...e...', 'f...c...a...c...', 'g...e...c...9...', 'a...............'],
+  },
+  sections: [{ t: 'intro', n: 8, m: 'IB' }, { t: 'verse', n: 16, m: 'V' }, { t: 'build', n: 4 }, { t: 'drop', n: 8, m: 'D1' }, { t: 'drop', n: 8, m: 'D2' }, { t: 'break', n: 8, m: 'BB', p: 'alt' },
+    { t: 'verse', n: 8, m: 'V' }, { t: 'build', n: 4 }, { t: 'drop', n: 8, m: 'D2' }, { t: 'drop', n: 8, m: 'D3' }, { t: 'half', n: 8, m: 'H', p: 'half' }, { t: 'build', n: 2 },
+    { t: 'drop', n: 8, m: 'D1' }, { t: 'drop', n: 8, m: 'D3' }, { t: 'drop', n: 8, m: 'D2' }, { t: 'outro', n: 8, m: 'OUT' }] });
+
+const FRACTURE = makeSong({ bpm: 208, tonic: 61, seed: 23, lead: 'saw', prog: { main: [0, 0, 5, 6], alt: [5, 5, 6, 6, 3, 3, 4, 4] },
+  motifs: {
+    IB: ['a.......a...e...', 'a...........h...', 'f.......f...c...', 'g.......b...d...'],
+    V: ['a.....c.a.....e.', 'a...c.....e.c.a.', '8...a.....c.a...', '9...b...d...g.b.', 'a.....c.a...e.h.', 'h...e.....c.a.c.', 'f...a.....c.f...', 'g...d...b.d.g.i.'],
+    D1: ['a.a.aaa.c.c.e...', 'a.a.aaa.h.e.c.a.', 'f.f.fff.a.c.f...', 'g.g.ggg.gdb9bdgi', 'h.h.hhh.e.e.c...', 'a.a.aaa.c.e.hehe', 'f.f.fff.c.a.fcfc', 'g.g.ggg.bdgbdgig'],
+    D2: ['aaaa....eeee....', 'hhhh..e.c.a.eeee', 'ffff....cccc..a.', 'gggggggg....bdgi', 'aaaa..c.eeee..h.', 'hhhheeeeccccaaaa', 'ffff..a.cccc..f.', 'gggg....dddd9bdg'],
+    D3: ['aecaecaeheceheca', 'aecaecaecaeahec.', 'fca8fca8cfacfca8', 'gdb9gdb9bdgbdgi.', 'hecahecaecaeceh.', 'acehecaeacehecae', 'fcafcafc8acfcaf.', 'gdbgdbgdbdgbdgig'],
+    G: ['aa..aa..aaaa....', 'e.e.eeee........'],
+    H: ['a.a.aa..a.c.a...', 'a..aa.a.e..c..a.', 'f.f.ff..f.h.f...', 'g..gg.g.i..g..d.'],
+    BB: ['a...e...h...e...', 'c...e...a.......', 'f...a...c...a...', 'g...b...d.g.i...', 'd...f...h...f...', 'd...a...f.......', 'e...g...b...g...', 'e...b...e.g.b...'],
+    OUT: ['a.......e...c...', 'a...............', 'f.......c...a...', 'g.......d.......', 'a...e...h.......', 'a...............'],
+  },
+  sections: [{ t: 'intro', n: 8, m: 'IB' }, { t: 'verse', n: 8, m: 'V' }, { t: 'build', n: 4 }, { t: 'drop', n: 8, m: 'D1' }, { t: 'drop', n: 8, m: 'D3' }, { t: 'glitch', n: 2, m: 'G' }, { t: 'break', n: 8, m: 'BB', p: 'alt' },
+    { t: 'verse', n: 8, m: 'V' }, { t: 'build', n: 2 }, { t: 'drop', n: 8, m: 'D2' }, { t: 'drop', n: 8, m: 'D3' }, { t: 'half', n: 8, m: 'H' }, { t: 'glitch', n: 2, m: 'G' }, { t: 'build', n: 2 },
+    { t: 'drop', n: 8, m: 'D1' }, { t: 'drop', n: 8, m: 'D3' }, { t: 'drop', n: 8, m: 'D2' }, { t: 'outro', n: 6, m: 'OUT' }] });
+
+const SUNRISE = makeSong({ bpm: 184, tonic: 66, seed: 37, lead: 'piano', prog: { main: [5, 6, 0, 0], alt: [5, 6, 2, 4] },
+  motifs: {
+    IB: ['c.......a.......', 'd.......b.......', 'e...c...a...c...', 'e.......h.......', 'f...c...a...c...', 'g...d...b...d...', 'h...e...c...a...', 'e...c...a.......'],
+    V: ['c...a.f.c...a.c.', 'd...b.g.d...b.d.', 'e...c.a.e...c.e.', 'h...e.c.a.c.e.h.', 'f...c.a.f...c.f.', 'g...d.b.g...d.g.', 'h...e.c.h...e.c.', 'a.c.e.h.j.h.e.c.'],
+    D1: ['cfahafcfahaf.c.f', 'dgbigdbdgbig.d.g', 'acehecaeaceh.e.c', 'hecaecaehecaeceh', 'fcafhfcafcaf.a.c', 'gdbgigdbgdbg.b.d', 'hecahecaeceh.c.e', 'acehjhecaceheca.'],
+    D2: ['f.c.fcaf.c.fcafc', 'g.d.gdbg.d.gdbgd', 'a.e.aecah.e.heca', 'ehecaceheh.e.c.a', 'c.f.cfac.f.cfahf', 'd.g.dgbd.g.dgbig', 'e.a.eace.a.ecehe', 'hjhecaecaceh.e.h'],
+    D3: ['fcafcafcfahafcaf', 'gdbgdbgdgbigdbgd', 'ecaecaecaceheace', 'hehecacaeceheh..', 'cfahafcfahjhafca', 'dgbigdbdgbigdbg.', 'acehjhecacehjhec', 'hecaecaceheceh..'],
+    BB: ['f...........c...', 'g...........d...', 'a...c...e...h...', 'e...............', 'f...c...a...c...', 'g...d...b...g...', 'e...g...j...g...', 'e...b...g.......'],
+    OUT: ['c.......a.......', 'd.......b.......', 'e...c...a...c...', 'e.......h.......', 'f...c...a.......', 'g...d...b.......', 'h...e...c...a...', 'a...............'],
+  },
+  sections: [{ t: 'intro', n: 8, m: 'IB' }, { t: 'verse', n: 8, m: 'V' }, { t: 'build', n: 4 }, { t: 'drop', n: 8, m: 'D1' }, { t: 'drop', n: 8, m: 'D2' }, { t: 'break', n: 8, m: 'BB', p: 'alt' },
+    { t: 'verse', n: 8, m: 'V' }, { t: 'build', n: 4 }, { t: 'drop', n: 8, m: 'D2' }, { t: 'drop', n: 8, m: 'D3' }, { t: 'break', n: 4, m: 'BB' }, { t: 'build', n: 2 },
+    { t: 'drop', n: 8, m: 'D1' }, { t: 'drop', n: 8, m: 'D3' }, { t: 'drop', n: 8, m: 'D3' }, { t: 'outro', n: 8, m: 'OUT' }] });
+
+const RG = JSON.parse($('#chartData').textContent);
+const SONGS = [
+  { id: 'bloom', title: 'Static Bloom', lv: 15, hue: '#ffab5c', src: BLOOM },
+  { id: 'fracture', title: 'Fracture Engine', lv: 16, hue: '#ff4d6a', src: FRACTURE },
+  { id: 'sunrise', title: 'Zero Day Sunrise', lv: 16, hue: '#c58bff', src: SUNRISE },
+  { id: 'rg', title: 'Reality Glitch', lv: 15, file: 'song.mp3', cover: 'cover.jpg', bpm: 202, secs: 194, chart: { t0: RG.t0, step: RG.step, notes: RG.notes } },
+  { id: 'indigo', title: 'Indigo Overdrive', lv: 14, hue: '#8fd8ff', src: INDIGO },
+];
+SONGS.forEach(s => { if (s.src) { s.bpm = s.src.bpm; const stp = 60 / s.bpm / 4; s.chart = { t0: 0, step: stp, notes: s.src.notes }; s.secs = s.src.nbars * 16 * stp + 1.5; }
+  s.total = s.chart.notes.reduce((a, n) => { if (!n.long) return a + 1; let k = 2; for (let g = n.g + 2; g < n.path[n.path.length - 1][0] - 0.5; g += 2) k++; return a + k; }, 0); });
+let notes = [], TOTAL = 1, LAST_T = 1, cur = SONGS[0];
+function prep(song) {
+  cur = song; const CH = song.chart; STEP = CH.step; BEAT = STEP * 4; T0 = CH.t0; const gt = g => T0 + g * STEP;
+  notes = CH.notes.map(n => n.long
+    ? { long: true, slide: !!n.slide, t: gt(n.g), t2: gt(n.path[n.path.length - 1][0]), path: n.path.map(([g, x]) => [gt(g), x]), x: n.path[0][1], w: n.w }
+    : { long: false, t: gt(n.g), x: n.x, w: n.w });
+  notes.sort((a, b) => a.t - b.t || a.x - b.x); TOTAL = 0;
+  notes.forEach((n, i) => { n.i = i;
+    if (n.long) { n.ticks = []; for (let tt = n.t + 2 * STEP; tt < n.t2 - STEP * 0.5; tt += 2 * STEP) n.ticks.push(tt); TOTAL += 2 + n.ticks.length; } else TOTAL += 1;
+    const prev = notes[i - 1]; if (prev && Math.abs(prev.t - n.t) < 1e-4) { n.pair = prev; prev.pair = n; } });
+  LAST_T = notes.reduce((m, n) => Math.max(m, n.long ? n.t2 : n.t), 0);
+}
 function pathX(n, t) {
   const P = n.path; if (t <= P[0][0]) return P[0][1];
   for (let i = 1; i < P.length; i++) if (t <= P[i][0]) { const f = (t - P[i - 1][0]) / (P[i][0] - P[i - 1][0]); return P[i - 1][1] + (P[i][1] - P[i - 1][1]) * (0.5 - 0.5 * Math.cos(Math.PI * f)); }
   return P[P.length - 1][1];
 }
+function synthSong(src, onProg) { return new Promise(res => {
+  BPM = src.bpm; BEAT = 60 / BPM; STEP = BEAT / 4; BAR = BEAT * 4; NS = Math.ceil((src.nbars * BAR + 3.6) * SR); reseed(); kicks = []; DRY = false;
+  let buf = null; try { buf = new AudioBuffer({ length: NS, numberOfChannels: 2, sampleRate: SR }); L = buf.getChannelData(0); R = buf.getChannelData(1); } catch (e) { buf = null; L = new Float32Array(NS); R = new Float32Array(NS); }
+  SND = new Float32Array(NS); const tasks = [], NB = src.nbars;
+  for (let b = 0; b < NB; b++) tasks.push(() => src.music(b));
+  const DL = Math.round(3 * STEP * SR), bl = new Float32Array(DL), br = new Float32Array(DL); let k = 0; const CHK = SR * 8;
+  for (let a = 0; a < NS; a += CHK) tasks.push(() => { const e = Math.min(NS, a + CHK); for (let i = a; i < e; i++) { const dl = bl[k], dr = br[k]; L[i] += dl * 0.5; R[i] += dr * 0.5; bl[k] = SND[i] + dr * 0.42; br[k] = dl; if (++k >= DL) k = 0; } });
+  tasks.push(() => { SND = null; DRY = true; for (let b = 0; b < NB; b++) src.drums(b); DRY = false; kicks.sort((a, b) => a[0] - b[0]);
+    kicks.forEach(([tk, depth], j) => { const i0 = Math.round(tk * SR), e = Math.min(NS, j + 1 < kicks.length ? Math.round(kicks[j + 1][0] * SR) : NS, (i0 + SR * 0.5) | 0);
+      for (let i = i0; i < e; i++) { const dt = (i - i0) / SR, gn = 1 - depth * Math.min(1, dt / 0.003) * Math.exp(-dt / 0.11); L[i] *= gn; R[i] *= gn; } }); });
+  for (let b = 0; b < NB; b++) tasks.push(() => src.drums(b));
+  tasks.push(() => { let pk = 0; for (let i = 0; i < NS; i++) { const a = Math.abs(L[i]), b = Math.abs(R[i]); if (a > pk) pk = a; if (b > pk) pk = b; }
+    const sc = 1.5 / (pk || 1); for (let i = 0; i < NS; i++) { L[i] = Math.tanh(L[i] * sc); R[i] = Math.tanh(R[i] * sc); } });
+  let i = 0; const run = () => { const t = performance.now(); while (i < tasks.length && performance.now() - t < 14) tasks[i++]();
+    if (i < tasks.length) { onProg(Math.round(i / tasks.length * 100)); setTimeout(run, 0); } else { const r = buf || { L, R, NS }; L = R = SND = null; res(r); } };
+  run(); }); }
 
 /* =====================================================================
    SETTINGS
    ===================================================================== */
 const settings = { speed: 6, offset: 0, tilt: 6, auto: false };
-let best = 0;
-try { Object.assign(settings, JSON.parse(localStorage.getItem('tf.settings') || '{}')); best = +localStorage.getItem('tf.best.rg') || 0; } catch (e) {}
+const bests = {}; let sel = 0; SONGS.forEach(s => bests[s.id] = 0);
+try { Object.assign(settings, JSON.parse(localStorage.getItem('tf.settings') || '{}')); SONGS.forEach(s => bests[s.id] = +localStorage.getItem('tf.best.' + s.id) || 0); sel = Math.max(0, SONGS.findIndex(s => s.id === localStorage.getItem('tf.sel'))); } catch (e) {}
 settings.auto = false;
 function saveSettings() { try { localStorage.setItem('tf.settings', JSON.stringify({ speed: settings.speed, offset: settings.offset, tilt: settings.tilt })); } catch (e) {} }
 function showSettings() {
   document.querySelectorAll('output[data-o]').forEach(o => { const k = o.dataset.o; o.textContent = k === 'speed' ? settings.speed.toFixed(1) : k === 'tilt' ? settings.tilt : (settings.offset > 0 ? '+' : '') + settings.offset + 'ms'; });
   $('#autoBtn').textContent = settings.auto ? 'ON' : 'OFF'; $('#autoBtn').classList.toggle('on', settings.auto);
-  $('#best').innerHTML = best ? `BEST <b>${String(best).padStart(7, '0')}</b>` : 'BEST —';
+  $('#songs').innerHTML = SONGS.map((s, i) => `<button type="button" class="sg${i === sel ? ' on' : ''}" data-i="${i}">${s.cover ? `<img class="art" src="${s.cover}" alt="">` : `<span class="art" style="background:${s.hue}">${s.title.split(' ').map(w => w[0]).join('')}</span>`}<span class="tt"><b>${s.title}</b><small>${s.bpm} BPM · ${Math.floor(s.secs / 60)}:${String(Math.floor(s.secs % 60)).padStart(2, '0')} · ${s.total} NOTES</small></span><span class="rt"><i>LV ${s.lv}</i><br>${bests[s.id] ? `<em>${String(bests[s.id]).padStart(7, '0')}</em>` : '—'}</span></button>`).join('');
   setTilt();
 }
 document.querySelectorAll('.sb').forEach(b => b.addEventListener('click', () => {
@@ -187,6 +692,7 @@ document.querySelectorAll('.sb').forEach(b => b.addEventListener('click', () => 
   saveSettings(); showSettings();
 }));
 $('#autoBtn').addEventListener('click', () => { settings.auto = !settings.auto; showSettings(); });
+$('#songs').addEventListener('click', e => { const b = e.target.closest('.sg'); if (!b || busy) return; sel = +b.dataset.i; try { localStorage.setItem('tf.sel', SONGS[sel].id); } catch (er) {} showSettings(); });
 
 /* =====================================================================
    STAGE / PROJECTION
@@ -212,18 +718,22 @@ function quad(u0, u1, d0, d1) { const s0 = SC(d0), s1 = SC(d1), y0 = PYd(d0, s0)
 /* =====================================================================
    AUDIO
    ===================================================================== */
-let actx = null, abuf = null, asrc = null, tStart = 0, clkOff = null, lat = 0, rawSong = null;
-const AC = window.AudioContext || window.webkitAudioContext, OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+let actx = null, asrc = null, tStart = 0, clkOff = null, lat = 0, busy = false, cache = { id: null, buf: null };
+const AC = window.AudioContext || window.webkitAudioContext;
 const decode = (c, buf) => new Promise((res, rej) => { try { const p = c.decodeAudioData(buf, res, rej); if (p && p.catch) p.catch(rej); } catch (e) { rej(e); } });
 const startBtn = $('#startBtn');
-function ready() { startBtn.disabled = false; startBtn.textContent = 'START'; }
-fetch('song.mp3').then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); }).then(async buf => {
-  rawSong = buf;
-  try { abuf = await decode(new OAC(2, 2, 48000), buf.slice(0)); } catch (e) { abuf = null; }
-  ready();
-}).catch(() => { startBtn.textContent = '곡을 불러오지 못했어요'; });
 function songClock() { const p = performance.now() / 1000, d = actx.currentTime - p; if (clkOff === null || Math.abs(d - clkOff) > 0.06) clkOff = d; else clkOff += (d - clkOff) * 0.03; return p + clkOff - tStart - lat; }
 const now = () => songClock() - settings.offset / 1000;
+async function loadSong(s) {
+  if (cache.id === s.id) return true;
+  busy = true; startBtn.disabled = true; cache = { id: null, buf: null };
+  try {
+    if (s.file) { startBtn.textContent = '곡 불러오는 중…'; const r = await fetch(s.file); if (!r.ok) throw new Error(r.status); cache.buf = await decode(actx, await r.arrayBuffer()); }
+    else { startBtn.textContent = '곡 합성 중… 0%'; const r = await synthSong(s.src, p => { startBtn.textContent = `곡 합성 중… ${p}%`; });
+      if (r instanceof AudioBuffer) cache.buf = r; else { cache.buf = actx.createBuffer(2, r.NS, SR); cache.buf.copyToChannel(r.L, 0); cache.buf.copyToChannel(r.R, 1); } }
+    cache.id = s.id; busy = false; startBtn.disabled = false; startBtn.textContent = 'START'; return true;
+  } catch (e) { busy = false; startBtn.disabled = false; startBtn.textContent = '곡을 준비하지 못했어요 · 다시 시도'; return false; }
+}
 
 /* =====================================================================
    GAME STATE
@@ -236,7 +746,7 @@ function resetRun() {
   head = 0; counts = [0, 0, 0, 0]; combo = 0; maxCombo = 0; sum = 0; fast = 0; slow = 0; fx = []; jText = null; comboPop = -1e9; errs = []; mile = null; touches.clear();
   notes.forEach(n => { n.done = false; n.hd = false; n.lastHeld = -9; n.ti = 0; n.held = false; });
 }
-resetRun();
+prep(SONGS[sel]); resetRun();
 function judge(j, u, w, err, light) {
   counts[j]++; sum += JW[j];
   const tm = performance.now();
@@ -395,7 +905,7 @@ function drawHud(t) {
   for (let i = 1; i < 4; i++) { const s = (i === 1 ? 'G' : i === 2 ? 'O' : 'M') + counts[i]; g.fillStyle = counts[i] ? JC[i] : '#444b5e'; g.fillText(s, x, 9 + 54 * k); x += g.measureText(s).width + 6 * k; }
   // title + progress
   g.textAlign = 'center'; const pw = Math.min(260 * k, W * 0.3), py = 16 * k, pr = Math.max(0, Math.min(1, t / LAST_T));
-  g.fillStyle = '#8a91a8'; g.font = FONT('700', 10 * k); g.fillText('REALITY GLITCH' + (settings.auto ? '  ·  AUTO' : ''), CX, py);
+  g.fillStyle = '#8a91a8'; g.font = FONT('700', 10 * k); g.fillText(cur.title.toUpperCase() + (settings.auto ? '  ·  AUTO' : ''), CX, py);
   g.fillStyle = 'rgba(238,241,250,.14)'; g.fillRect(CX - pw / 2, py + 6 * k, pw, 2.5); g.fillStyle = '#ffab5c'; g.fillRect(CX - pw / 2, py + 6 * k, pw * pr, 2.5);
   g.fillStyle = '#eef1fa'; g.fillRect(CX - pw / 2 + pw * pr - 1, py + 3 * k, 2, 8.5 * k);
   const rem = Math.max(0, LAST_T - Math.max(0, t)); g.fillStyle = '#5d657b'; g.font = FONT('500', 9 * k); g.textAlign = 'left'; g.fillText(`${Math.floor(rem / 60)}:${String(Math.floor(rem % 60)).padStart(2, '0')}`, CX + pw / 2 + 8 * k, py + 10 * k);
@@ -442,13 +952,13 @@ function frame() {
 function show(id) { ['#menu', '#pause', '#result'].forEach(s => $(s).hidden = s !== id); $('#pauseBtn').hidden = id !== null; }
 function stopSrc() { if (asrc) { try { asrc.stop(); } catch (e) {} asrc = null; } }
 async function startRun() {
-  if (!rawSong) return;
+  if (busy) return; const s = SONGS[sel];
   if (!actx) actx = new AC({ latencyHint: 'interactive' });
   actx.resume();
-  if (!abuf) { startBtn.disabled = true; startBtn.textContent = '곡 준비 중…'; try { abuf = await decode(actx, rawSong.slice(0)); } catch (e) { startBtn.textContent = '이 브라우저에서 곡을 열 수 없어요'; return; } ready(); }
-  stopSrc(); resetRun();
+  if (!(await loadSong(s))) return;
+  stopSrc(); prep(s); resetRun();
   lat = actx.outputLatency || actx.baseLatency || 0; clkOff = null;
-  asrc = actx.createBufferSource(); asrc.buffer = abuf; asrc.connect(actx.destination);
+  asrc = actx.createBufferSource(); asrc.buffer = cache.buf; asrc.connect(actx.destination);
   tStart = actx.currentTime + 2.2; asrc.start(tStart); runStart = performance.now(); lastT = -2.2;
   show(null); state = 'play';
   try { navigator.wakeLock && navigator.wakeLock.request('screen').catch(() => {}); } catch (e) {}
@@ -460,7 +970,7 @@ function quit() { stopSrc(); if (actx) actx.resume(); state = 'menu'; showSettin
 function finish() {
   state = 'result'; stopSrc();
   const sc = Math.round(sum / TOTAL * 1e6), rank = sc >= 990000 ? 'S+' : sc >= 950000 ? 'S' : sc >= 900000 ? 'A' : sc >= 800000 ? 'B' : sc >= 700000 ? 'C' : 'D';
-  const isBest = !settings.auto && sc > best; if (isBest) { best = sc; try { localStorage.setItem('tf.best.rg', sc); } catch (e) {} }
+  const isBest = !settings.auto && sc > bests[cur.id]; if (isBest) { bests[cur.id] = sc; try { localStorage.setItem('tf.best.' + cur.id, sc); } catch (e) {} }
   $('#rRank').textContent = rank; $('#rScore').textContent = String(sc).padStart(7, '0'); $('#rAcc').textContent = `ACCURACY ${(sum / TOTAL * 100).toFixed(2)}%`;
   const tags = []; if (settings.auto) tags.push('<span class="tag">AUTOPLAY</span>'); else { if (counts[3] === 0) tags.push(`<span class="tag">${counts[1] + counts[2] === 0 ? 'ALL PERFECT' : 'FULL COMBO'}</span>`); if (isBest) tags.push('<span class="tag new">NEW BEST</span>'); }
   $('#rTag').innerHTML = tags.join(' ');
@@ -479,7 +989,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) pause
 show('#menu');
 if (document.fonts && document.fonts.load) document.fonts.load('italic 700 30px "Chakra Petch"').catch(() => {});
 frame();
-window.__tf = { notes, TOTAL, STEP, T0, settings, showSettings, get state() { return state; }, get counts() { return counts; }, get ready() { return !!rawSong; }, press, now: () => now(),
-  seek(sec) { stopSrc(); asrc = actx.createBufferSource(); asrc.buffer = abuf; asrc.connect(actx.destination); tStart = actx.currentTime - sec; asrc.start(0, sec); clkOff = null; resetRun(); notes.forEach(n => { if ((n.long ? n.t2 : n.t) < sec) { n.done = true; n.hd = true; } }); } };
+window.__tf = { SONGS, settings, showSettings, get notes() { return notes; }, get TOTAL() { return TOTAL; }, get LAST() { return LAST_T; }, get state() { return state; }, get counts() { return counts; }, get busy() { return busy; }, get buf() { return cache.buf; }, press, now: () => now(),
+  seek(sec) { stopSrc(); asrc = actx.createBufferSource(); asrc.buffer = cache.buf; asrc.connect(actx.destination); tStart = actx.currentTime - sec; asrc.start(0, sec); clkOff = null; resetRun(); notes.forEach(n => { if ((n.long ? n.t2 : n.t) < sec) { n.done = true; n.hd = true; } }); } };
 })();
 </script>
