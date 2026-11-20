@@ -1,0 +1,485 @@
+<meta charset="utf-8">
+<title>Thumbfall</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,500;0,700;1,700&display=swap">
+<style>
+/* Layout: one landscape stage (#root) that is CSS-rotated when the viewport is portrait; canvas playfield + DOM overlays.
+   Palette follows the track's cover art: cold steel blue with a warm tungsten glow. */
+:root{
+  --bg:#06070c; --panel:#0f121b; --panel2:#161a27; --line:#262c3d; --ink:#eef1fa; --dim:#8a91a8;
+  --perfect:#ffe2a0; --good:#6ef0c6; --ok:#7fa8ff; --miss:#ff4d6a; --accent:#8fd8ff; --warm:#ffab5c;
+  --disp:'Chakra Petch','Pretendard','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',system-ui,sans-serif;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);overflow:hidden;overscroll-behavior:none;touch-action:none;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;font-family:var(--disp)}
+#root{position:fixed;left:0;top:0;transform-origin:0 0;overflow:hidden;background:var(--bg)}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#pauseBtn{position:absolute;top:10px;right:14px;width:42px;height:34px;border:1px solid var(--line);border-radius:6px;background:rgba(15,18,27,.72);
+  color:var(--ink);font:700 13px var(--disp);letter-spacing:.12em}
+.ov{position:absolute;inset:0;display:flex;background:rgba(6,7,12,.88);overflow:auto;padding:12px 20px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#menu{background:linear-gradient(100deg,rgba(6,7,12,.97) 30%,rgba(6,7,12,.82)),var(--bg)}
+.wrap{margin:auto;width:100%;max-width:860px;display:grid;grid-template-columns:1fr 1.05fr;gap:14px 30px;align-items:center}
+.brand{font:italic 700 15px/1 var(--disp);letter-spacing:.34em;color:var(--dim);margin:0 0 12px}
+.brand b{color:var(--accent)}
+.song{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}
+.cover{width:clamp(92px,26vmin,132px);aspect-ratio:1;object-fit:cover;border:1px solid var(--line);box-shadow:0 0 0 4px #0b0d14,0 12px 40px rgba(255,171,92,.18);background:var(--panel)}
+.song h1{font:italic 700 clamp(24px,5vmax,40px)/1.02 var(--disp);margin:0;letter-spacing:.01em;text-wrap:balance}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{padding:3px 8px;border:1px solid var(--line);font:700 11px var(--disp);letter-spacing:.1em;color:var(--dim);font-variant-numeric:tabular-nums}
+.chip.lv{background:var(--miss);border-color:var(--miss);color:#fff}
+.best{margin-top:10px;font:700 12px var(--disp);color:var(--dim);letter-spacing:.08em;font-variant-numeric:tabular-nums}
+.best b{color:var(--perfect);font-size:15px}
+.how{color:var(--dim);font-size:12px;line-height:1.6;margin:12px 0 0}
+.how i{font-style:normal;color:var(--ink)}
+h2{font:italic 700 28px/1 var(--disp);margin:0 0 4px;letter-spacing:.06em}
+.sub{color:var(--dim);font-size:12px;line-height:1.6;margin:6px 0 0}
+.set{display:flex;flex-direction:column;gap:7px}
+.row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;padding:6px 8px 6px 12px;background:var(--panel);border:1px solid var(--line)}
+.row label{font-size:11px;color:var(--dim);line-height:1.35}
+.row label b{display:block;color:var(--ink);font-size:14px;font-weight:700}
+.step{display:flex;align-items:center;gap:4px}
+.step output{min-width:62px;text-align:center;font:700 17px var(--disp);font-variant-numeric:tabular-nums}
+.sb{width:38px;height:36px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font:700 19px var(--disp);border-radius:4px}
+.sb:active{background:var(--accent);color:#000}
+.tg{min-width:74px;height:36px;border:1px solid var(--line);background:var(--panel2);color:var(--dim);font:700 13px var(--disp);border-radius:4px;letter-spacing:.1em}
+.tg.on{background:var(--good);color:#04130d;border-color:var(--good)}
+.go{height:50px;border:0;background:var(--ink);color:#06070c;font:italic 700 21px var(--disp);letter-spacing:.16em;border-radius:4px;position:relative;overflow:hidden}
+.go:not(:disabled):active{background:var(--warm)}
+.go:disabled{background:#232838;color:var(--dim);font-size:14px;letter-spacing:.04em;font-style:normal}
+.go.alt{background:transparent;color:var(--ink);border:1px solid var(--line);height:42px;font-size:15px}
+#count{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:italic 700 110px var(--disp);color:var(--ink);pointer-events:none;text-shadow:0 0 30px rgba(143,216,255,.6)}
+.res{text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px}
+.rank{font:italic 700 clamp(72px,24vmin,124px)/.9 var(--disp);color:var(--perfect);text-shadow:0 0 44px rgba(255,226,160,.4)}
+.score{font:700 32px var(--disp);font-variant-numeric:tabular-nums;letter-spacing:.05em}
+.acc{font:700 13px var(--disp);color:var(--dim);letter-spacing:.1em;font-variant-numeric:tabular-nums}
+.tag{display:inline-block;margin-top:6px;padding:2px 10px;border:1px solid var(--perfect);color:var(--perfect);font:700 12px var(--disp);letter-spacing:.16em}
+.tag.new{border-color:var(--warm);color:var(--warm)}
+.jt{display:grid;grid-template-columns:auto 1fr auto;gap:6px 12px;align-items:center;font:700 15px var(--disp);font-variant-numeric:tabular-nums;padding:10px 14px;background:var(--panel);border:1px solid var(--line)}
+.jt .n{letter-spacing:.1em}
+.jt .bar{height:5px;background:var(--panel2);position:relative}
+.jt .bar i{position:absolute;inset:0 auto 0 0;background:currentColor}
+.jt .s{color:var(--dim);font-weight:500;font-size:12px;grid-column:1/3}
+.jt .sv{color:var(--dim);font-weight:500;font-size:12px;text-align:right}
+@media (max-height:350px){.how{display:none}.row{padding-block:4px}}
+</style>
+
+<div id="root">
+  <canvas id="cv"></canvas>
+  <button id="pauseBtn" type="button" aria-label="일시정지" hidden>II</button>
+
+  <section id="menu" class="ov">
+    <div class="wrap">
+      <div>
+        <p class="brand">THUMB<b>FALL</b></p>
+        <div class="song">
+          <img class="cover" src="cover.jpg" alt="Reality Glitch 앨범 커버">
+          <div>
+            <h1>Reality Glitch</h1>
+            <div class="meta"><span class="chip">202 BPM</span><span class="chip">3:14</span><span class="chip" id="noteCount">–</span><span class="chip lv">EXTREME 15</span></div>
+            <div class="best" id="best"></div>
+          </div>
+        </div>
+        <p class="how">폰을 가로로 잡고 <i>엄지 두 개</i>로 칩니다. 노트가 판정선에 닿는 순간 그 위치를 누르고, <i>초록 롱노트</i>는 끝까지 누르고, <i>보라 슬라이드</i>는 손가락으로 따라가세요.</p>
+      </div>
+      <div class="set">
+        <div class="row"><label><b>노트 속도</b>높을수록 빨리 내려옴</label>
+          <div class="step"><button class="sb" data-k="speed" data-d="-0.5" type="button">−</button><output data-o="speed"></output><button class="sb" data-k="speed" data-d="0.5" type="button">+</button></div></div>
+        <div class="row"><label><b>경사</b>0은 평면, 높을수록 멀리서 좁게</label>
+          <div class="step"><button class="sb" data-k="tilt" data-d="-1" type="button">−</button><output data-o="tilt"></output><button class="sb" data-k="tilt" data-d="1" type="button">+</button></div></div>
+        <div class="row"><label><b>판정 오프셋</b>노트가 빨리 오면 +, 늦게 오면 −</label>
+          <div class="step"><button class="sb" data-k="offset" data-d="-5" type="button">−</button><output data-o="offset"></output><button class="sb" data-k="offset" data-d="5" type="button">+</button></div></div>
+        <div class="row"><label><b>오토플레이</b>채보 감상 · 오프셋 맞추기용</label>
+          <button class="tg" id="autoBtn" type="button">OFF</button></div>
+        <button class="go" id="startBtn" type="button" disabled>곡 불러오는 중…</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="pause" class="ov" hidden>
+    <div class="wrap">
+      <div><h2>PAUSED</h2><p class="sub">설정을 바꾼 뒤 이어서 할 수 있어요.</p>
+        <div class="set" style="margin-top:10px">
+          <div class="row"><label><b>노트 속도</b></label>
+            <div class="step"><button class="sb" data-k="speed" data-d="-0.5" type="button">−</button><output data-o="speed"></output><button class="sb" data-k="speed" data-d="0.5" type="button">+</button></div></div>
+          <div class="row"><label><b>경사</b></label>
+            <div class="step"><button class="sb" data-k="tilt" data-d="-1" type="button">−</button><output data-o="tilt"></output><button class="sb" data-k="tilt" data-d="1" type="button">+</button></div></div>
+          <div class="row"><label><b>판정 오프셋</b></label>
+            <div class="step"><button class="sb" data-k="offset" data-d="-5" type="button">−</button><output data-o="offset"></output><button class="sb" data-k="offset" data-d="5" type="button">+</button></div></div>
+        </div></div>
+      <div class="set">
+        <button class="go" id="resumeBtn" type="button">RESUME</button>
+        <button class="go alt" id="retryBtn" type="button">처음부터</button>
+        <button class="go alt" id="quitBtn" type="button">메뉴로</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="result" class="ov" hidden>
+    <div class="wrap">
+      <div class="res">
+        <div class="rank" id="rRank">S</div>
+        <div class="score" id="rScore">0</div>
+        <div class="acc" id="rAcc"></div>
+        <div id="rTag"></div>
+      </div>
+      <div class="set">
+        <div class="jt" id="rTable"></div>
+        <button class="go" id="againBtn" type="button">RETRY</button>
+        <button class="go alt" id="menuBtn" type="button">메뉴로</button>
+      </div>
+    </div>
+  </section>
+  <div id="count" hidden></div>
+</div>
+
+<script id="chartData" type="application/json">__CHART__</script>
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+
+/* =====================================================================
+   CHART — generated offline from an onset/beat analysis of the track (tools/gen.py)
+   ===================================================================== */
+const CH = JSON.parse($('#chartData').textContent), STEP = CH.step, BEAT = STEP * 4, T0 = CH.t0;
+const gt = g => T0 + g * STEP;
+const notes = CH.notes.map(n => n.long
+  ? { long: true, slide: !!n.slide, t: gt(n.g), t2: gt(n.path[n.path.length - 1][0]), path: n.path.map(([g, x]) => [gt(g), x]), x: n.path[0][1], w: n.w }
+  : { long: false, t: gt(n.g), x: n.x, w: n.w });
+notes.sort((a, b) => a.t - b.t || a.x - b.x);
+let TOTAL = 0;
+notes.forEach((n, i) => {
+  n.i = i;
+  if (n.long) { n.ticks = []; for (let tt = n.t + 2 * STEP; tt < n.t2 - STEP * 0.5; tt += 2 * STEP) n.ticks.push(tt); TOTAL += 2 + n.ticks.length; } else TOTAL += 1;
+  const prev = notes[i - 1]; if (prev && Math.abs(prev.t - n.t) < 1e-4) { n.pair = prev; prev.pair = n; }
+});
+const LAST_T = notes.reduce((m, n) => Math.max(m, n.long ? n.t2 : n.t), 0);
+$('#noteCount').textContent = TOTAL + ' NOTES';
+function pathX(n, t) {
+  const P = n.path; if (t <= P[0][0]) return P[0][1];
+  for (let i = 1; i < P.length; i++) if (t <= P[i][0]) { const f = (t - P[i - 1][0]) / (P[i][0] - P[i - 1][0]); return P[i - 1][1] + (P[i][1] - P[i - 1][1]) * (0.5 - 0.5 * Math.cos(Math.PI * f)); }
+  return P[P.length - 1][1];
+}
+
+/* =====================================================================
+   SETTINGS
+   ===================================================================== */
+const settings = { speed: 6, offset: 0, tilt: 6, auto: false };
+let best = 0;
+try { Object.assign(settings, JSON.parse(localStorage.getItem('tf.settings') || '{}')); best = +localStorage.getItem('tf.best.rg') || 0; } catch (e) {}
+settings.auto = false;
+function saveSettings() { try { localStorage.setItem('tf.settings', JSON.stringify({ speed: settings.speed, offset: settings.offset, tilt: settings.tilt })); } catch (e) {} }
+function showSettings() {
+  document.querySelectorAll('output[data-o]').forEach(o => { const k = o.dataset.o; o.textContent = k === 'speed' ? settings.speed.toFixed(1) : k === 'tilt' ? settings.tilt : (settings.offset > 0 ? '+' : '') + settings.offset + 'ms'; });
+  $('#autoBtn').textContent = settings.auto ? 'ON' : 'OFF'; $('#autoBtn').classList.toggle('on', settings.auto);
+  $('#best').innerHTML = best ? `BEST <b>${String(best).padStart(7, '0')}</b>` : 'BEST —';
+  setTilt();
+}
+document.querySelectorAll('.sb').forEach(b => b.addEventListener('click', () => {
+  const k = b.dataset.k, d = +b.dataset.d;
+  if (k === 'speed') settings.speed = Math.max(2, Math.min(12, settings.speed + d));
+  else if (k === 'tilt') settings.tilt = Math.max(0, Math.min(10, settings.tilt + d));
+  else settings.offset = Math.max(-300, Math.min(300, settings.offset + d));
+  saveSettings(); showSettings();
+}));
+$('#autoBtn').addEventListener('click', () => { settings.auto = !settings.auto; showSettings(); });
+
+/* =====================================================================
+   STAGE / PROJECTION
+   Lane space: u = 0..16 across, d = 0 at the judgment line .. 1 at the far end.
+   ===================================================================== */
+const root = $('#root'), cv = $('#cv'), g = cv.getContext('2d');
+let W = 800, H = 400, portrait = false, DPR = 1, CX, FW, JY, YF, VY, Z = 2.7, K = 1;
+function setTilt() { Z = settings.tilt * 0.45; const sF = 1 / (1 + Z); VY = Z > 0.01 ? (YF - JY * sF) / (1 - sF) : 0; }
+function layout() {
+  const vw = window.innerWidth, vh = window.innerHeight; portrait = vh > vw; W = portrait ? vh : vw; H = portrait ? vw : vh;
+  root.style.width = W + 'px'; root.style.height = H + 'px'; root.style.transform = portrait ? `rotate(90deg) translateY(-${H}px)` : 'none';
+  DPR = Math.min(window.devicePixelRatio || 1, 2); cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  CX = W / 2; FW = Math.min(W * 0.9, H * 2.3); JY = H * 0.82; YF = H * 0.085; K = H / 400; setTilt();
+}
+const SC = d => Z > 0.01 ? 1 / (1 + Math.max(d, -0.55 / Z) * Z) : 1;
+const PYd = (d, s) => Z > 0.01 ? VY + (JY - VY) * s : JY - (JY - YF) * d;
+const PX = (u, s) => CX + (u - 8) / 16 * FW * s;
+const toLocal = (x, y) => portrait ? [y, H - x] : [x, y];
+const toU = lx => ((lx - CX) / FW + 0.5) * 16;
+window.addEventListener('resize', layout); layout(); showSettings();
+function quad(u0, u1, d0, d1) { const s0 = SC(d0), s1 = SC(d1), y0 = PYd(d0, s0), y1 = PYd(d1, s1); g.beginPath(); g.moveTo(PX(u0, s0), y0); g.lineTo(PX(u1, s0), y0); g.lineTo(PX(u1, s1), y1); g.lineTo(PX(u0, s1), y1); g.closePath(); return [y0, y1]; }
+
+/* =====================================================================
+   AUDIO
+   ===================================================================== */
+let actx = null, abuf = null, asrc = null, tStart = 0, clkOff = null, lat = 0, rawSong = null;
+const AC = window.AudioContext || window.webkitAudioContext, OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+const decode = (c, buf) => new Promise((res, rej) => { try { const p = c.decodeAudioData(buf, res, rej); if (p && p.catch) p.catch(rej); } catch (e) { rej(e); } });
+const startBtn = $('#startBtn');
+function ready() { startBtn.disabled = false; startBtn.textContent = 'START'; }
+fetch('song.mp3').then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); }).then(async buf => {
+  rawSong = buf;
+  try { abuf = await decode(new OAC(2, 2, 48000), buf.slice(0)); } catch (e) { abuf = null; }
+  ready();
+}).catch(() => { startBtn.textContent = '곡을 불러오지 못했어요'; });
+function songClock() { const p = performance.now() / 1000, d = actx.currentTime - p; if (clkOff === null || Math.abs(d - clkOff) > 0.06) clkOff = d; else clkOff += (d - clkOff) * 0.03; return p + clkOff - tStart - lat; }
+const now = () => songClock() - settings.offset / 1000;
+
+/* =====================================================================
+   GAME STATE
+   ===================================================================== */
+const W_P = 0.042, W_G = 0.084, W_O = 0.125, GRACE = 0.11, MARGIN = 1.25, HMARGIN = 1.7;
+const JN = ['PERFECT', 'GOOD', 'OK', 'MISS'], JC = ['#ffe2a0', '#6ef0c6', '#7fa8ff', '#ff4d6a'], JW = [1, 0.7, 0.4, 0];
+let state = 'menu', head = 0, counts, combo, maxCombo, sum, fast, slow, fx, jText, comboPop, lastT = -9, errs, mile, runStart = 0;
+const touches = new Map();
+function resetRun() {
+  head = 0; counts = [0, 0, 0, 0]; combo = 0; maxCombo = 0; sum = 0; fast = 0; slow = 0; fx = []; jText = null; comboPop = -1e9; errs = []; mile = null; touches.clear();
+  notes.forEach(n => { n.done = false; n.hd = false; n.lastHeld = -9; n.ti = 0; n.held = false; });
+}
+resetRun();
+function judge(j, u, w, err, light) {
+  counts[j]++; sum += JW[j];
+  const tm = performance.now();
+  if (j === 3) combo = 0; else { combo++; if (combo > maxCombo) maxCombo = combo; comboPop = tm; if (combo % 100 === 0) mile = { n: combo, t: tm }; }
+  if (j === 1 || j === 2) { if (err < 0) fast++; else slow++; }
+  if (!light && j < 3) { errs.push({ e: err, j, t: tm }); if (errs.length > 24) errs.shift(); }
+  fx.push({ j, u, w, t: tm, light, sp: j === 0 && !light ? Array.from({ length: 5 }, (_, i) => ({ du: (i - 2) * 0.5 + (Math.random() - 0.5) * 0.4, v: 0.5 + Math.random() * 0.7, h: 0.4 + Math.random() })) : null });
+  if (fx.length > 70) fx.shift();
+  jText = { j, t: tm, el: j === 1 || j === 2 ? (err < 0 ? 'FAST' : 'SLOW') : '' };
+}
+function press(u, t) {
+  let bn = null;
+  for (let i = head; i < notes.length; i++) { const n = notes[i]; if (n.t > t + W_O) break; if (n.long ? n.hd : n.done) continue; if (n.t < t - W_O) continue;
+    const dx = Math.abs(u - n.x) - n.w / 2; if (dx > MARGIN) continue;
+    if (!bn || n.t < bn.t - 1e-4 || (Math.abs(n.t - bn.t) < 1e-4 && Math.abs(u - n.x) < Math.abs(u - bn.x))) bn = n; }
+  if (!bn) return;
+  const err = t - bn.t, a = Math.abs(err), j = a <= W_P ? 0 : a <= W_G ? 1 : 2;
+  if (bn.long) { bn.hd = true; bn.lastHeld = Math.max(t, bn.t); } else bn.done = true;
+  judge(j, bn.x, bn.w, err, false);
+}
+function update(t) {
+  const auto = settings.auto;
+  while (head < notes.length && notes[head].done) head++;
+  for (let i = head; i < notes.length; i++) { const n = notes[i]; if (n.t > t + 0.01) break; if (n.done) continue;
+    if (!n.long) { if (auto && t >= n.t) { n.done = true; judge(0, n.x, n.w, 0, false); } else if (t > n.t + W_O) { n.done = true; judge(3, n.x, n.w, 0, false); } continue; }
+    if (!n.hd) { if (auto && t >= n.t) { n.hd = true; n.lastHeld = n.t; judge(0, n.x, n.w, 0, false); } else if (t > n.t + W_O) { n.hd = true; judge(3, n.x, n.w, 0, false); } }
+    if (t >= n.t) {
+      const x = pathX(n, Math.min(t, n.t2)); let held = auto;
+      if (!held && n.hd) for (const u of touches.values()) if (Math.abs(u - x) <= n.w / 2 + HMARGIN) { held = true; break; }
+      if (held) n.lastHeld = Math.min(t, n.t2);
+      n.held = held || (t - n.lastHeld <= GRACE && n.lastHeld > 0);
+      while (n.ti < n.ticks.length && t >= n.ticks[n.ti]) { const tt = n.ticks[n.ti++]; judge(tt - n.lastHeld <= GRACE ? 0 : 3, pathX(n, tt), n.w, 0, true); }
+      if (t >= n.t2) { n.done = true; judge(n.t2 - n.lastHeld <= GRACE ? 0 : 3, pathX(n, n.t2), n.w, 0, false); }
+    }
+  }
+}
+
+/* =====================================================================
+   INPUT
+   ===================================================================== */
+cv.addEventListener('pointerdown', e => { e.preventDefault(); if (state !== 'play') return; const u = toU(toLocal(e.clientX, e.clientY)[0]); touches.set(e.pointerId, u); try { cv.setPointerCapture(e.pointerId); } catch (er) {} if (!settings.auto) press(u, now()); });
+cv.addEventListener('pointermove', e => { if (touches.has(e.pointerId)) touches.set(e.pointerId, toU(toLocal(e.clientX, e.clientY)[0])); });
+const pUp = e => touches.delete(e.pointerId);
+cv.addEventListener('pointerup', pUp); cv.addEventListener('pointercancel', pUp);
+document.addEventListener('contextmenu', e => e.preventDefault());
+
+/* =====================================================================
+   RENDER
+   ===================================================================== */
+const ease = p => 1 - Math.pow(1 - p, 3);
+const FONT = (st, px) => `${st} ${px}px "Chakra Petch",sans-serif`;
+function rr(x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+const dust = Array.from({ length: 46 }, (_, i) => ({ side: i % 2 ? 1 : -1, off: 0.4 + Math.random() * 3.2, ph: Math.random(), sp: 0.25 + Math.random() * 0.5, sz: 0.6 + Math.random() * 1.4 }));
+let bottomS = 1;
+function drawStage(t, pulse) {
+  g.fillStyle = '#06070c'; g.fillRect(0, 0, W, H);
+  const bg = g.createRadialGradient(CX, YF, 0, CX, YF, W * 0.7); bg.addColorStop(0, `rgba(255,171,92,${0.07 + pulse * 0.05})`); bg.addColorStop(0.5, 'rgba(60,90,140,.05)'); bg.addColorStop(1, 'rgba(6,7,12,0)');
+  g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  const sF = SC(1), yF = PYd(1, sF);
+  bottomS = Z > 0.01 ? (H - VY) / (JY - VY) : 1;
+  const lane = () => { g.beginPath(); g.moveTo(PX(0, sF), yF); g.lineTo(PX(16, sF), yF); g.lineTo(PX(16, bottomS), H); g.lineTo(PX(0, bottomS), H); g.closePath(); };
+  const lg = g.createLinearGradient(0, yF, 0, H); lg.addColorStop(0, '#080a11'); lg.addColorStop(0.75, '#10141f'); lg.addColorStop(1, '#161b2a');
+  g.fillStyle = lg; lane(); g.fill();
+  // guides
+  g.lineWidth = 1; g.strokeStyle = 'rgba(143,216,255,.055)';
+  for (let u = 2; u < 16; u += 2) { g.beginPath(); g.moveTo(PX(u, sF), yF); g.lineTo(PX(u, bottomS), H); g.stroke(); }
+  g.strokeStyle = 'rgba(143,216,255,.13)'; g.beginPath(); g.moveTo(PX(8, sF), yF); g.lineTo(PX(8, bottomS), H); g.stroke();
+  // rails
+  for (const u of [0, 16]) { const rg = g.createLinearGradient(0, yF, 0, H); rg.addColorStop(0, 'rgba(143,216,255,0)'); rg.addColorStop(0.35, `rgba(143,216,255,${0.35 + pulse * 0.4})`); rg.addColorStop(1, `rgba(255,171,92,${0.5 + pulse * 0.4})`);
+    g.strokeStyle = rg; g.lineWidth = 2; g.beginPath(); g.moveTo(PX(u, sF), yF); g.lineTo(PX(u, bottomS), H); g.stroke(); }
+  // drifting dust outside the rails
+  const tm = performance.now() / 1000;
+  for (const p of dust) { const d = 1 - ((tm * p.sp * 0.35 + p.ph) % 1.15), s = SC(d), y = PYd(d, s), x = PX(p.side > 0 ? 16 + p.off : -p.off, s); if (x < 0 || x > W) continue;
+    g.fillStyle = `rgba(200,225,255,${0.28 * Math.min(1, (1 - d) * 3) * Math.min(1, s)})`; const z = p.sz * s * K; g.fillRect(x, y, z, z * 3); }
+}
+function drawBeatLines(t, LA) {
+  const b0 = Math.ceil((Math.max(T0, t) - T0) / BEAT);
+  for (let b = b0; ; b++) { const tt = T0 + b * BEAT; if (tt >= t + LA || tt > LAST_T + 1) break; const d = (tt - t) / LA, s = SC(d), y = PYd(d, s), a = Math.min(1, (1 - d) * 2.5);
+    g.strokeStyle = b % 4 === 0 ? `rgba(238,241,250,${0.2 * a})` : `rgba(238,241,250,${0.06 * a})`; g.lineWidth = b % 4 === 0 ? 1.5 : 1;
+    g.beginPath(); g.moveTo(PX(0, s), y); g.lineTo(PX(16, s), y); g.stroke(); }
+}
+function bar(u, w, d, col, edge, alpha) {
+  const s = SC(d), x0 = PX(u - w / 2, s), x1 = PX(u + w / 2, s), y = PYd(d, s), h = Math.max(3, H * 0.04 * s);
+  g.globalAlpha = alpha; g.fillStyle = edge; rr(x0, y - h / 2, x1 - x0, h, h * 0.32); g.fill();
+  const ins = Math.max(1.5, h * 0.2); g.fillStyle = col; rr(x0 + ins, y - h / 2 + ins, x1 - x0 - ins * 2, Math.max(0.5, h - ins * 2), h * 0.2); g.fill();
+  g.fillStyle = 'rgba(255,255,255,.55)'; g.fillRect(x0 + ins * 2, y - h / 2 + ins, Math.max(0, x1 - x0 - ins * 4), Math.max(0.5, h * 0.12)); g.globalAlpha = 1;
+}
+function drawNotes(t, LA) {
+  let end = head; while (end < notes.length && notes[end].t < t + LA) end++;
+  const fade = d => Math.max(0, Math.min(1, (1 - d) / 0.14));
+  g.lineWidth = 2;
+  for (let i = head; i < end; i++) { const n = notes[i], p = n.pair; if (!p || p.i < n.i || (n.long ? n.hd : n.done) || (p.long ? p.hd : p.done)) continue;
+    const d = (n.t - t) / LA; if (d < -0.1 || d > 1) continue; const s = SC(d), y = PYd(d, s); g.strokeStyle = `rgba(255,205,110,${0.75 * fade(d)})`; g.beginPath(); g.moveTo(PX(n.x, s), y); g.lineTo(PX(p.x, s), y); g.stroke(); }
+  for (let i = end - 1; i >= head; i--) { const n = notes[i]; if (n.done) continue;
+    if (n.long) {
+      const ta = n.hd ? Math.max(t, n.t) : n.t, tb = Math.min(n.t2, t + LA);
+      if (tb > ta) { const dropped = n.hd && t > n.t && !n.held, col = n.slide ? '197,139,255' : '87,230,180', pl = [], pr = [];
+        for (let tt = ta; ; tt += STEP / 2) { if (tt > tb) tt = tb; const d = (tt - t) / LA, s = SC(d), u = pathX(n, tt), y = PYd(d, s); pl.push([PX(u - n.w / 2, s), y]); pr.push([PX(u + n.w / 2, s), y]); if (tt >= tb) break; }
+        g.beginPath(); pl.forEach((p, k) => k ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); for (let k = pr.length - 1; k >= 0; k--) g.lineTo(pr[k][0], pr[k][1]); g.closePath();
+        g.fillStyle = `rgba(${col},${dropped ? 0.1 : n.held && t > n.t ? 0.6 : 0.36})`; g.fill();
+        g.strokeStyle = `rgba(${col},${dropped ? 0.28 : 0.95})`; g.lineWidth = 2;
+        g.beginPath(); pl.forEach((p, k) => k ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.stroke(); g.beginPath(); pr.forEach((p, k) => k ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.stroke();
+        g.fillStyle = `rgba(255,255,255,${dropped ? 0.2 : 0.85})`;
+        for (let k = n.ti; k < n.ticks.length; k++) { const tt = n.ticks[k]; if (tt > t + LA) break; const d = (tt - t) / LA, s = SC(d), x = PX(pathX(n, tt), s), y = PYd(d, s), r = Math.max(2, H * 0.013 * s); g.beginPath(); g.moveTo(x, y - r); g.lineTo(x + r * 1.7, y); g.lineTo(x, y + r); g.lineTo(x - r * 1.7, y); g.closePath(); g.fill(); }
+        if (n.t2 <= t + LA) bar(pathX(n, n.t2), n.w, (n.t2 - t) / LA, `rgba(${col},1)`, '#0a0c13', dropped ? 0.3 : 0.9);
+      }
+      if (!n.hd) { const d = (n.t - t) / LA; if (d <= 1) bar(n.x, n.w, d, n.slide ? '#ead3ff' : '#c2ffe9', n.slide ? '#8a3dff' : '#12b884', fade(d)); }
+    } else { const d = (n.t - t) / LA; if (d > 1) continue;
+      const big = n.w >= 4.5, tiny = n.w < 2.3;
+      bar(n.x, n.w, d, big ? '#fff3dc' : '#f6f8ff', big ? '#ff9a3d' : n.pair ? '#ffb938' : tiny ? '#5b8cff' : '#3aa8e8', fade(d)); }
+  }
+}
+function drawJudgeLine(t, pulse) {
+  const x0 = PX(0, 1), x1 = PX(16, 1);
+  g.fillStyle = `rgba(143,216,255,${0.08 + pulse * 0.1})`; quad(0, 16, -0.03, 0.035); g.fill();
+  g.fillStyle = '#eef1fa'; g.fillRect(x0, JY - 1.5, x1 - x0, 3);
+  g.fillStyle = '#ffab5c'; g.fillRect(x0 - 5, JY - 7, 5, 14); g.fillRect(x1, JY - 7, 5, 14);
+  g.globalCompositeOperation = 'lighter';
+  for (const u of touches.values()) { const [y0, y1] = quad(u - 1.2, u + 1.2, 0, 0.22); const gr = g.createLinearGradient(0, y0, 0, y1); gr.addColorStop(0, 'rgba(143,216,255,.28)'); gr.addColorStop(1, 'rgba(143,216,255,0)'); g.fillStyle = gr; g.fill(); }
+  for (let i = head; i < notes.length && notes[i].t <= t; i++) { const n = notes[i]; if (!n.long || n.done || !n.held) continue; const u = pathX(n, t), col = n.slide ? '197,139,255' : '87,230,180', k = 0.75 + 0.25 * Math.sin(performance.now() / 45);
+    const [y0, y1] = quad(u - n.w / 2, u + n.w / 2, 0, 0.3); const gr = g.createLinearGradient(0, y0, 0, y1); gr.addColorStop(0, `rgba(${col},${0.4 * k})`); gr.addColorStop(1, `rgba(${col},0)`); g.fillStyle = gr; g.fill();
+    g.fillStyle = `rgba(255,255,255,${0.9 * k})`; g.fillRect(PX(u - n.w / 2, 1), JY - 3, FW / 16 * n.w, 6); }
+  g.globalCompositeOperation = 'source-over';
+}
+// All hit effects are drawn on the lane plane so they follow the slope.
+function ring(u, ru, rd, dc) { g.beginPath(); for (let k = 0; k <= 28; k++) { const a = k / 28 * Math.PI * 2, d = dc + Math.sin(a) * rd, s = SC(d), x = PX(u + Math.cos(a) * ru, s), y = PYd(d, s); k ? g.lineTo(x, y) : g.moveTo(x, y); } g.closePath(); }
+function drawFx() {
+  const tm = performance.now(); g.globalCompositeOperation = 'lighter';
+  for (const f of fx) { const a = tm - f.t, dur = f.light ? 180 : 340; if (a > dur) continue; const p = a / dur, q = 1 - p, col = JC[f.j], hw = f.w / 2;
+    if (f.j === 3) { g.globalAlpha = q * 0.75; g.fillStyle = col; quad(f.u - hw, f.u + hw, -0.02 - p * 0.03, 0.012 - p * 0.03); g.fill(); continue; }
+    const k = f.light ? 0.55 : 1;
+    if (f.j < 2) { // light running up the lane
+      const len = (f.j === 0 ? 0.42 : 0.26) * k, shr = 1 - 0.5 * p, [y0, y1] = quad(f.u - hw * shr, f.u + hw * shr, 0, len);
+      const gr = g.createLinearGradient(0, y0, 0, y1); gr.addColorStop(0, col); gr.addColorStop(1, 'rgba(255,255,255,0)');
+      g.globalAlpha = q * q * (f.j === 0 ? 0.5 : 0.34) * k; g.fillStyle = gr; g.fill();
+      g.globalAlpha = q * 0.85 * k; g.fillStyle = '#fff'; quad(f.u - 0.05, f.u + 0.05, 0, len * (0.55 + 0.45 * ease(p))); g.fill(); }
+    // slash along the judgment line
+    const lw = hw * (1 + (f.j === 0 ? 0.45 : 0.25) * ease(p)); g.globalAlpha = q * (f.j === 2 ? 0.6 : 0.85) * k; g.fillStyle = f.j === 0 ? '#fff' : col; quad(f.u - lw, f.u + lw, -0.003 - 0.007 * q, 0.003 + 0.007 * q); g.fill();
+    if (!f.light && f.j < 2) { // ground rings
+      const e = ease(p), ru = hw * (0.6 + (f.j === 0 ? 0.75 : 0.45) * e), rd = ru * 0.021;
+      g.globalAlpha = q * 0.9; g.strokeStyle = col; g.lineWidth = (0.8 + 1.8 * q) * K; ring(f.u, ru, rd, 0); g.stroke();
+      if (f.j === 0) { g.globalAlpha = q * q * 0.5; g.lineWidth = K; ring(f.u, ru * 1.35, rd * 1.35, 0); g.stroke(); } }
+    if (f.sp) { g.fillStyle = '#fff'; for (const s of f.sp) { const e = ease(p), d = s.v * 0.26 * e, sc = SC(d), x = PX(f.u + s.du * (1 + e), sc), y = PYd(d, sc) - s.h * 26 * K * Math.sin(Math.PI * Math.min(1, p * 1.15)) * sc, sz = (4.5 * q + 1) * K * sc; g.globalAlpha = q; g.fillRect(x - sz / 2, y - sz / 2, sz, sz); } }
+  }
+  g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+}
+function drawHud(t) {
+  const tm = performance.now(), sc = Math.round(sum / TOTAL * 1e6), k = K, done = counts[0] + counts[1] + counts[2] + counts[3];
+  g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+  // score block
+  g.fillStyle = 'rgba(15,18,27,.72)'; rr(12, 9, 158 * k, 62 * k, 6); g.fill(); g.fillStyle = '#ffab5c'; g.fillRect(12, 9 + 8 * k, 2.5, 46 * k);
+  g.fillStyle = '#8a91a8'; g.font = FONT('700', 10 * k); g.fillText('SCORE', 24, 9 + 17 * k);
+  g.fillStyle = '#eef1fa'; g.font = FONT('700', 23 * k); g.fillText(String(sc).padStart(7, '0'), 24, 9 + 39 * k);
+  g.font = FONT('700', 10 * k); let x = 24; const acc = (done ? sum / done * 100 : 100).toFixed(2) + '%';
+  g.fillStyle = '#8fd8ff'; g.fillText(acc, x, 9 + 54 * k); x += g.measureText(acc).width + 8 * k;
+  for (let i = 1; i < 4; i++) { const s = (i === 1 ? 'G' : i === 2 ? 'O' : 'M') + counts[i]; g.fillStyle = counts[i] ? JC[i] : '#444b5e'; g.fillText(s, x, 9 + 54 * k); x += g.measureText(s).width + 6 * k; }
+  // title + progress
+  g.textAlign = 'center'; const pw = Math.min(260 * k, W * 0.3), py = 16 * k, pr = Math.max(0, Math.min(1, t / LAST_T));
+  g.fillStyle = '#8a91a8'; g.font = FONT('700', 10 * k); g.fillText('REALITY GLITCH' + (settings.auto ? '  ·  AUTO' : ''), CX, py);
+  g.fillStyle = 'rgba(238,241,250,.14)'; g.fillRect(CX - pw / 2, py + 6 * k, pw, 2.5); g.fillStyle = '#ffab5c'; g.fillRect(CX - pw / 2, py + 6 * k, pw * pr, 2.5);
+  g.fillStyle = '#eef1fa'; g.fillRect(CX - pw / 2 + pw * pr - 1, py + 3 * k, 2, 8.5 * k);
+  const rem = Math.max(0, LAST_T - Math.max(0, t)); g.fillStyle = '#5d657b'; g.font = FONT('500', 9 * k); g.textAlign = 'left'; g.fillText(`${Math.floor(rem / 60)}:${String(Math.floor(rem % 60)).padStart(2, '0')}`, CX + pw / 2 + 8 * k, py + 10 * k);
+  g.textAlign = 'center';
+  // combo
+  if (combo >= 3) { const cp = Math.min(1, (tm - comboPop) / 110), s = 1 + 0.2 * (1 - ease(cp)), cy = H * 0.235;
+    g.fillStyle = 'rgba(238,241,250,.5)'; g.font = FONT('700', 10 * k); g.fillText(counts[3] === 0 ? (counts[1] + counts[2] === 0 ? 'ALL PERFECT' : 'FULL COMBO') : 'COMBO', CX, cy);
+    g.fillStyle = 'rgba(238,241,250,.94)'; g.font = FONT('italic 700', 44 * k * s); g.fillText(combo, CX, cy + 42 * k); }
+  if (mile) { const a = tm - mile.t; if (a < 900) { const p = a / 900; g.globalAlpha = (1 - p) * 0.9; g.strokeStyle = '#ffab5c'; g.lineWidth = 2; const w2 = (70 + 160 * ease(p)) * k; g.strokeRect(CX - w2, H * 0.235 + 4 * k, w2 * 2, 46 * k); g.globalAlpha = 1; } else mile = null; }
+  // judgment
+  if (jText) { const a = tm - jText.t; if (a < 460) { const s = 1 + 0.4 * (1 - ease(Math.min(1, a / 90))), al = a < 300 ? 1 : 1 - (a - 300) / 160, y = H * 0.53;
+      g.globalAlpha = al; g.shadowColor = JC[jText.j]; g.shadowBlur = 18 * k; g.fillStyle = JC[jText.j]; g.font = FONT('italic 700', 29 * k * s); g.fillText(JN[jText.j], CX, y);
+      g.shadowBlur = 0; g.fillStyle = '#fff'; g.globalAlpha = al * 0.55 * (1 - Math.min(1, a / 140)); g.fillText(JN[jText.j], CX, y);
+      const lw = 86 * k * (0.6 + 0.9 * ease(Math.min(1, a / 200))); g.globalAlpha = al * 0.8; g.fillStyle = JC[jText.j]; g.fillRect(CX - lw, y + 9 * k, lw * 2, 1.5);
+      if (jText.el) { g.globalAlpha = al; g.font = FONT('700', 11 * k); g.fillStyle = jText.el === 'FAST' ? '#7fa8ff' : '#ff9d6e'; g.fillText(jText.el, CX, y + 25 * k); }
+      g.globalAlpha = 1; } }
+  // timing meter
+  const mw = 150 * k, my = H - 15 * k;
+  g.fillStyle = 'rgba(15,18,27,.7)'; rr(CX - mw / 2 - 8 * k, my - 9 * k, mw + 16 * k, 18 * k, 4); g.fill();
+  [[W_O, '#7fa8ff'], [W_G, '#6ef0c6'], [W_P, '#ffe2a0']].forEach(([w, c]) => { g.globalAlpha = 0.28; g.fillStyle = c; g.fillRect(CX - mw / 2 * (w / W_O), my - 1.5, mw * (w / W_O), 3); }); g.globalAlpha = 1;
+  g.fillStyle = '#eef1fa'; g.fillRect(CX - 0.75, my - 6 * k, 1.5, 12 * k);
+  for (const e of errs) { const a = tm - e.t; if (a > 2500) continue; g.globalAlpha = 1 - a / 2500; g.fillStyle = JC[e.j]; g.fillRect(CX + e.e / W_O * mw / 2 - 1.25, my - 5 * k, 2.5, 10 * k); } g.globalAlpha = 1;
+  g.fillStyle = '#5d657b'; g.font = FONT('700', 8 * k); g.textAlign = 'right'; g.fillText('FAST', CX - mw / 2 - 12 * k, my + 3 * k); g.textAlign = 'left'; g.fillText('SLOW', CX + mw / 2 + 12 * k, my + 3 * k);
+  // ready
+  if (t < T0 - 0.2) { const a = (performance.now() - runStart) / 1000; g.textAlign = 'center'; g.globalAlpha = Math.min(1, a * 3) * Math.min(1, Math.max(0, (T0 - 0.2 - t) * 2)); g.fillStyle = '#eef1fa'; g.font = FONT('italic 700', 34 * k); g.fillText('READY', CX, H * 0.42); g.globalAlpha = 1; }
+}
+function frame() {
+  requestAnimationFrame(frame);
+  g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const LA = 6.6 / settings.speed;
+  let t = lastT;
+  if (state === 'play') { t = lastT = now(); update(t); if (t > LAST_T + 2) finish(); }
+  else if (state === 'menu' || state === 'result') t = -9;
+  const live = state !== 'menu' && state !== 'result', pulse = live && t > T0 ? Math.exp(-(((t - T0) / BEAT) % 1) * 5) : 0;
+  drawStage(t, pulse);
+  if (live) { drawBeatLines(t, LA); drawNotes(t, LA); }
+  drawJudgeLine(t, pulse);
+  if (live) { drawFx(); drawHud(t); }
+}
+
+/* =====================================================================
+   FLOW
+   ===================================================================== */
+function show(id) { ['#menu', '#pause', '#result'].forEach(s => $(s).hidden = s !== id); $('#pauseBtn').hidden = id !== null; }
+function stopSrc() { if (asrc) { try { asrc.stop(); } catch (e) {} asrc = null; } }
+async function startRun() {
+  if (!rawSong) return;
+  if (!actx) actx = new AC({ latencyHint: 'interactive' });
+  actx.resume();
+  if (!abuf) { startBtn.disabled = true; startBtn.textContent = '곡 준비 중…'; try { abuf = await decode(actx, rawSong.slice(0)); } catch (e) { startBtn.textContent = '이 브라우저에서 곡을 열 수 없어요'; return; } ready(); }
+  stopSrc(); resetRun();
+  lat = actx.outputLatency || actx.baseLatency || 0; clkOff = null;
+  asrc = actx.createBufferSource(); asrc.buffer = abuf; asrc.connect(actx.destination);
+  tStart = actx.currentTime + 2.2; asrc.start(tStart); runStart = performance.now(); lastT = -2.2;
+  show(null); state = 'play';
+  try { navigator.wakeLock && navigator.wakeLock.request('screen').catch(() => {}); } catch (e) {}
+}
+function pauseRun() { if (state !== 'play') return; state = 'pause'; actx.suspend(); touches.clear(); show('#pause'); }
+function resumeRun() { show(null); state = 'count'; const c = $('#count'); c.hidden = false; let k = 3; c.textContent = k;
+  const iv = setInterval(() => { k--; if (k > 0) c.textContent = k; else { clearInterval(iv); c.hidden = true; if (state !== 'count') return; clkOff = null; actx.resume().then(() => { clkOff = null; state = 'play'; }); } }, 600); }
+function quit() { stopSrc(); if (actx) actx.resume(); state = 'menu'; showSettings(); show('#menu'); }
+function finish() {
+  state = 'result'; stopSrc();
+  const sc = Math.round(sum / TOTAL * 1e6), rank = sc >= 990000 ? 'S+' : sc >= 950000 ? 'S' : sc >= 900000 ? 'A' : sc >= 800000 ? 'B' : sc >= 700000 ? 'C' : 'D';
+  const isBest = !settings.auto && sc > best; if (isBest) { best = sc; try { localStorage.setItem('tf.best.rg', sc); } catch (e) {} }
+  $('#rRank').textContent = rank; $('#rScore').textContent = String(sc).padStart(7, '0'); $('#rAcc').textContent = `ACCURACY ${(sum / TOTAL * 100).toFixed(2)}%`;
+  const tags = []; if (settings.auto) tags.push('<span class="tag">AUTOPLAY</span>'); else { if (counts[3] === 0) tags.push(`<span class="tag">${counts[1] + counts[2] === 0 ? 'ALL PERFECT' : 'FULL COMBO'}</span>`); if (isBest) tags.push('<span class="tag new">NEW BEST</span>'); }
+  $('#rTag').innerHTML = tags.join(' ');
+  $('#rTable').innerHTML = JN.map((n, i) => `<span class="n" style="color:${JC[i]}">${n}</span><span class="bar" style="color:${JC[i]}"><i style="width:${(counts[i] / TOTAL * 100).toFixed(1)}%"></i></span><span>${counts[i]}</span>`).join('') +
+    `<span class="s">MAX COMBO</span><span class="sv">${maxCombo}</span><span class="s">FAST / SLOW</span><span class="sv">${fast} / ${slow}</span>`;
+  show('#result');
+}
+startBtn.addEventListener('click', startRun);
+$('#pauseBtn').addEventListener('click', pauseRun);
+$('#resumeBtn').addEventListener('click', resumeRun);
+$('#retryBtn').addEventListener('click', startRun);
+$('#quitBtn').addEventListener('click', quit);
+$('#againBtn').addEventListener('click', startRun);
+$('#menuBtn').addEventListener('click', quit);
+document.addEventListener('visibilitychange', () => { if (document.hidden) pauseRun(); });
+show('#menu');
+if (document.fonts && document.fonts.load) document.fonts.load('italic 700 30px "Chakra Petch"').catch(() => {});
+frame();
+window.__tf = { notes, TOTAL, STEP, T0, settings, showSettings, get state() { return state; }, get counts() { return counts; }, get ready() { return !!rawSong; }, press, now: () => now(),
+  seek(sec) { stopSrc(); asrc = actx.createBufferSource(); asrc.buffer = abuf; asrc.connect(actx.destination); tStart = actx.currentTime - sec; asrc.start(0, sec); clkOff = null; resetRun(); notes.forEach(n => { if ((n.long ? n.t2 : n.t) < sec) { n.done = true; n.hd = true; } }); } };
+})();
+</script>
