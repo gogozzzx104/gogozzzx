@@ -1,6 +1,6 @@
 // Balance simulator: a simple bot plays and buys the cheapest upgrade it can afford.  node tools/sim.js [maxRuns]
 const C = require('../core.js');
-function play(s, meter) { const r = C.newRun(C.stats(s), meter); let guard = 0;
+function play(s, meter) { const r = C.newRun(C.stats(s), meter, 1); let guard = 0;
   while (!r.over && guard++ < 1300) { const alt = r.y - C.ground(r.x), sp = Math.hypot(r.vx, r.vy);
     C.step(r, 1 / 12, { boost: r.tr > 0.2, skill: (alt < 1.5 && sp > 2 && r.spring > 0 && r.tr > 0.6) || (r.dash > 0 && r.vy < 0 && alt > 3) }); }
   return r; }

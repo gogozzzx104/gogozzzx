@@ -75,7 +75,7 @@ button{font-family:var(--disp);touch-action:manipulation}
 .node.cap.lock{border-color:var(--lock)}
 .note{grid-column:1/-1;font-size:11.5px;color:var(--dim);line-height:1.5;margin:0}
 .note b{color:var(--ink)}
-#toast{position:absolute;left:50%;top:16%;transform:translateX(-50%);font:30px var(--disp);color:#fff;text-shadow:0 3px 0 var(--ink),0 0 12px rgba(0,0,0,.4);pointer-events:none;opacity:0;transition:opacity .3s;white-space:nowrap;text-align:center}
+#toast{position:absolute;left:50%;top:33%;transform:translateX(-50%);font:30px var(--disp);color:#fff;text-shadow:0 3px 0 var(--ink),0 0 12px rgba(0,0,0,.4);pointer-events:none;opacity:0;transition:opacity .3s;white-space:nowrap;text-align:center}
 #toast.show{opacity:1}
 </style>
 
@@ -139,17 +139,34 @@ let state = 'aim', st = C.stats(S), run = null, meterT = 0, parts = [], pops = [
 const cam = { x: 0, y: 0, vw: 34 };
 const boostBtn = $('#boostBtn'), skillBtn = $('#skillBtn');
 function toast(t, ms = 1600) { const el = $('#toast'); el.innerHTML = t; el.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(() => el.classList.remove('show'), ms); }
-function toAim() { st = C.stats(S); run = null; state = 'aim'; meterT = 0; parts = []; pops = []; spinDir = 0; bgScroll = 0; resetDoll(); cam.x = 0; cam.y = 0; cam.vw = 34; rot = -st.angle; $('#result').hidden = true; $('#shop').hidden = true; boostBtn.hidden = skillBtn.hidden = true; $('#topbar').hidden = false; }
-const meterVal = () => { const p = (meterT / st.meter) % 2; return p < 1 ? p : 2 - p; };
+function toAim() { st = C.stats(S); run = null; state = 'aim'; meterT = 0; parts = []; pops = []; spinDir = 0; bgScroll = 0; resetDoll(); humStop(); charge = 0; rampU = 0.5; cam.x = 0; cam.y = 0; cam.vw = 34; rot = -st.angle; $('#result').hidden = true; $('#shop').hidden = true; boostBtn.hidden = skillBtn.hidden = true; $('#topbar').hidden = false; }
+// Launch = hold to stretch the band (the gauge slows as tension builds and slips if you over-pull), let go inside the
+// white band for a perfect, then tap once more as the cart reaches the ramp edge for a kick.
+let charge = 0, slipT = 0, pushT = 0, pushFrom = 0.5, pushM = 0, kick = 1, kicked = false, kickMsg = '', rampU = 0.5, hum = null, lastTick = 0;
+const PUSH_T = 0.5, KICK_AT = PUSH_T - 0.06;
+function humStart() { const a = snd(); if (!a) return; const o = a.createOscillator(), v = a.createGain(); o.type = 'triangle'; o.frequency.value = 110; v.gain.value = 0.05; o.connect(v); v.connect(a.destination); o.start(); hum = { o, v }; }
+function humStop() { if (!hum) return; try { hum.v.gain.setTargetAtTime(0.0001, actx.currentTime, 0.03); hum.o.stop(actx.currentTime + 0.15); } catch (e) {} hum = null; }
+const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
+function startCharge() { state = 'charge'; charge = 0; slipT = 0; lastTick = 0; humStart(); }
+function chargeStep(dt) {
+  const R = 1.6 / st.meter; charge += R * 1.5 * Math.pow(Math.max(0.02, 1.06 - charge), 0.7) * dt; slipT = Math.max(0, slipT - dt);
+  if (charge >= 1) { charge = 0.45; slipT = 0.35; shake = 8; dollJolt = 8; toast('미끄러졌다! 다시 당기는 중…', 700); buzz(40); SFX.bonk(); }
+  const tick = Math.floor(charge * 12); if (tick !== lastTick) { lastTick = tick; buzz(6); }
+  if (hum) hum.o.frequency.value = 110 + charge * charge * 620;
+  rampU = 0.5 - 0.42 * charge; shake = Math.max(shake, charge * charge * 2.2);
+}
+function release() { humStop(); pushM = charge; pushFrom = rampU; pushT = 0; kick = 1; kicked = false; kickMsg = ''; state = 'push'; tone(160, 520, 0.3, 0.16, 'sawtooth'); if (pushM >= 1 - st.window) { toast('퍼펙트 차지!', 700); SFX.perfect(); buzz(20); } }
+function tryKick() { if (kicked) return; kicked = true; const d = Math.abs(pushT - KICK_AT); if (d < 0.045) { kick = 1.06; kickMsg = '퍼펙트 킥'; } else if (d < 0.1) { kick = 1.03; kickMsg = '굿 킥'; } else kickMsg = '헛발'; }
 function launch() {
-  const m = meterVal(); run = C.newRun(st, m); state = 'fly'; lastZone = 0; shake = Math.min(14, 4 + run.v0 * 0.05); SFX.launch(); if (run.perfect) { toast('퍼펙트 발사!'); SFX.perfect(); }
+  run = C.newRun(st, pushM, kick); state = 'fly'; lastZone = 0; shake = Math.min(14, 4 + run.v0 * 0.05) + (kick > 1 ? 3 : 0); dollJolt = 10; SFX.launch(); buzz(kick > 1.05 ? 60 : 25);
+  toast(run.perfect && kick > 1.05 ? '더블 퍼펙트!!' : run.perfect ? (kickMsg ? '퍼펙트 발사 · ' + kickMsg : '퍼펙트 발사!') : kickMsg || '발사!', 1100); if (kick > 1.05) SFX.perfect();
   boostBtn.hidden = !st.thrust; skillBtn.hidden = !(st.springN || st.dashN); $('#topbar').hidden = true;
-  for (let i = 0; i < 14; i++) parts.push({ x: 0, y: 0.5, vx: -2 - Math.random() * 6, vy: Math.random() * 5, t: 0, life: 0.6, c: '#fff', s: 1 });
+  for (let i = 0; i < 16; i++) parts.push({ x: 0, y: run.y, vx: -2 - Math.random() * 7, vy: (Math.random() - 0.3) * 6, t: 0, life: 0.6, c: '#fff', s: 1 });
 }
 function endRun() {
   pay = C.finish(run, S); save(); state = 'result'; boostBtn.hidden = skillBtn.hidden = true; $('#topbar').hidden = false;
   $('#rWhy').textContent = run.why; $('#rDist').innerHTML = fmtD(run.maxX);
-  const tags = []; for (const a of pay.ach) tags.push('업적: ' + a.name); if (pay.record) tags.push('신기록'); if (pay.newZone) tags.push(Z[pay.zone].name + ' 첫 도달'); if (run.perfect) tags.push('퍼펙트 발사');
+  const tags = []; for (const a of pay.ach) tags.push('업적: ' + a.name); if (pay.record) tags.push('신기록'); if (pay.newZone) tags.push(Z[pay.zone].name + ' 첫 도달'); if (run.perfect) tags.push('퍼펙트 발사'); if (run.kick > 1) tags.push(run.kick > 1.05 ? '퍼펙트 킥 +6%' : '굿 킥 +3%');
   $('#rTags').innerHTML = tags.map(t => `<span class="tagx">${t}</span>`).join('');
   const rows = [['거리 수익', fmt(pay.dist)], [`코인 · 상자 (${run.coins}개)`, fmt(pay.coins)]];
   if (pay.perfect) rows.push(['퍼펙트 발사', '+10%']); if (pay.style) rows.push([`묘기 (${Math.min(12, run.bounces)}회 튕김)`, '+' + (pay.style * 100).toFixed(1) + '%']); if (pay.alt) rows.push([`고도 수당 (${fmtD(run.maxAlt)})`, '+' + (pay.alt * 100).toFixed(1) + '%']); if (pay.trick) rows.push([`공중 묘기 (${run.tricks}바퀴)`, '+' + (pay.trick * 100).toFixed(0) + '%']);
@@ -160,8 +177,8 @@ function endRun() {
 
 /* ---------------- input ---------------- */
 const locX = e => portrait ? e.clientY : e.clientX, locY = e => portrait ? H - e.clientX : e.clientY;
-cv.addEventListener('pointerdown', e => { e.preventDefault(); snd(); if (state === 'aim') launch(); else if (state === 'fly') { spinDir = locX(e) < W / 2 ? 1 : -1; try { cv.setPointerCapture(e.pointerId); } catch (er) {} } });
-const spinOff = () => spinDir = 0; cv.addEventListener('pointerup', spinOff); cv.addEventListener('pointercancel', spinOff);
+cv.addEventListener('pointerdown', e => { e.preventDefault(); snd(); if (state === 'aim') { startCharge(); try { cv.setPointerCapture(e.pointerId); } catch (er) {} } else if (state === 'push') tryKick(); else if (state === 'fly') { spinDir = locX(e) < W / 2 ? 1 : -1; try { cv.setPointerCapture(e.pointerId); } catch (er) {} } });
+const spinOff = () => { spinDir = 0; if (state === 'charge') release(); }; cv.addEventListener('pointerup', spinOff); cv.addEventListener('pointercancel', spinOff);
 // Scrolling by drag, in stage coordinates, so it also works while the stage is rotated for a portrait-locked phone.
 function dragScroll(el) { let id = null, y0 = 0, s0 = 0, moved = false, vy = 0, ly = 0, lt = 0, raf = 0;
   el.addEventListener('pointerdown', e => { id = e.pointerId; y0 = ly = locY(e); s0 = el.scrollTop; moved = false; vy = 0; lt = e.timeStamp; cancelAnimationFrame(raf); });
@@ -172,8 +189,8 @@ function dragScroll(el) { let id = null, y0 = 0, s0 = 0, moved = false, vy = 0, 
 ['#sList', '#sTabs', '#result'].forEach(q => { $(q).style.touchAction = 'none'; dragScroll($(q)); });
 const hold = (el, on, off) => { el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); el.classList.add('down'); on(); try { el.setPointerCapture(e.pointerId); } catch (er) {} }); const up = () => { el.classList.remove('down'); off && off(); }; el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); };
 hold(boostBtn, () => boostHeld = true, () => boostHeld = false); hold(skillBtn, () => skillTap = true);
-addEventListener('keydown', e => { if (e.repeat) return; if (e.code === 'Space') { if (state === 'aim') launch(); else if (state === 'fly') boostHeld = true; else if (state === 'result') toAim(); } if (e.code === 'ShiftLeft' || e.code === 'KeyS') skillTap = true; if (e.code === 'KeyA' || e.code === 'ArrowLeft') spinDir = 1; if (e.code === 'KeyD' || e.code === 'ArrowRight') spinDir = -1; });
-addEventListener('keyup', e => { if (e.code === 'Space') boostHeld = false; if (['KeyA', 'KeyD', 'ArrowLeft', 'ArrowRight'].includes(e.code)) spinDir = 0; });
+addEventListener('keydown', e => { if (e.repeat) return; if (e.code === 'Space') { if (state === 'aim') startCharge(); else if (state === 'push') tryKick(); else if (state === 'fly') boostHeld = true; else if (state === 'result') toAim(); } if (e.code === 'ShiftLeft' || e.code === 'KeyS') skillTap = true; if (e.code === 'KeyA' || e.code === 'ArrowLeft') spinDir = 1; if (e.code === 'KeyD' || e.code === 'ArrowRight') spinDir = -1; });
+addEventListener('keyup', e => { if (e.code === 'Space') { boostHeld = false; if (state === 'charge') release(); } if (['KeyA', 'KeyD', 'ArrowLeft', 'ArrowRight'].includes(e.code)) spinDir = 0; });
 document.addEventListener('contextmenu', e => e.preventDefault());
 $('#rAgain').addEventListener('click', toAim); $('#rShop').addEventListener('click', openShop); $('#shopBtn').addEventListener('click', openShop); $('#sClose').addEventListener('click', toAim);
 
@@ -318,24 +335,26 @@ const DOLL = { chest: 0, head: 1, elL: 2, elR: 3, haR: 4, footL: 5, footR: 6 };
 function resetDoll() { doll.ready = false; }
 function dollStep(dt, ang, ax, ay, wind, jolt) {
   const c = Math.cos(ang), s = Math.sin(ang), L = (x, y) => [x * c - y * s, x * s + y * c];   // cart-local -> screen (unscaled)
-  const pel = L(-2, -15), han = L(-24, -31), knL = L(13, -25), knR = L(16, -24), up = L(0, -1);
-  if (!doll.ready) { const P = (x, y) => { const q = L(x, y); return { x: q[0], y: q[1], px: q[0], py: q[1] }; }; doll.p = [P(-3, -28), P(-3, -37), P(-12, -27), P(4, -30), P(8, -38), P(22, -18), P(25, -17)]; doll.ready = true; }
+  // seated in the basket: hips on the floor, knees hooked over the front rim, one hand on the side rail
+  const pel = L(3, -12), grip = L(-7, -24.5), knL = L(17.5, -25), knR = L(19, -24), rest = L(11, -25.5), spine = L(-1.5, -14), neck = L(0, -9.5);
+  if (!doll.ready) { const P = (x, y) => { const q = L(x, y); return { x: q[0], y: q[1], px: q[0], py: q[1] }; }; doll.p = [P(1.5, -26), P(1.5, -35.5), P(-6, -19), P(8, -19), P(11, -25.5), P(18, -14), P(20, -13)]; doll.ready = true; }
   const p = doll.p, n = 2, h = dt / n;
   for (let k = 0; k < n; k++) {
-    for (const q of p) { const vx = (q.x - q.px) * 0.985, vy = (q.y - q.py) * 0.985; q.px = q.x; q.py = q.y; q.x += vx + (ax - wind) * h * h + jolt * (Math.random() - 0.5) * 3; q.y += vy + (ay + 600) * h * h - jolt * Math.random() * 2; }
-    // posture: the torso tries to stay upright in the cart, loosely
-    const ch = p[0], hd = p[1]; ch.x += (pel[0] + up[0] * 13 - ch.x) * 0.10; ch.y += (pel[1] + up[1] * 13 - ch.y) * 0.10; hd.x += (ch.x + up[0] * 9 - hd.x) * 0.12; hd.y += (ch.y + up[1] * 9 - hd.y) * 0.12;
-    for (let it = 0; it < 4; it++) { const stick = (a, bx, by, len, pin) => { const dx = a.x - bx, dy = a.y - by, d = Math.hypot(dx, dy) || 1, f = (d - len) / d; if (pin) { a.x -= dx * f; a.y -= dy * f; return [0, 0]; } return [dx * f * 0.5, dy * f * 0.5]; };
-      const link = (a, b, len) => { const [fx, fy] = stick(a, b.x, b.y, len); a.x -= fx; a.y -= fy; b.x += fx; b.y += fy; };
-      stick(p[0], pel[0], pel[1], 13, true); link(p[1], p[0], 9); link(p[2], p[0], 8); stick(p[2], han[0], han[1], 9, true); link(p[3], p[0], 8); link(p[4], p[3], 8); stick(p[5], knL[0], knL[1], 10, true); stick(p[6], knR[0], knR[1], 10, true); }
+    for (const q of p) { const vx = (q.x - q.px) * 0.97, vy = (q.y - q.py) * 0.97; q.px = q.x; q.py = q.y; q.x += vx + (ax - wind) * h * h + jolt * (Math.random() - 0.5) * 3; q.y += vy + (ay + 600) * h * h - jolt * Math.random() * 2; }
+    // posture: sits upright with a slight lean back; the free hand likes to rest on the rim until a jolt throws it up
+    const ch = p[0], hd = p[1], hr = p[4]; ch.x += (pel[0] + spine[0] - ch.x) * 0.24; ch.y += (pel[1] + spine[1] - ch.y) * 0.24; hd.x += (ch.x + neck[0] - hd.x) * 0.22; hd.y += (ch.y + neck[1] - hd.y) * 0.22; hr.x += (rest[0] - hr.x) * 0.05; hr.y += (rest[1] - hr.y) * 0.05;
+    for (let it = 0; it < 4; it++) { const pin = (a, b, len) => { const dx = a.x - b[0], dy = a.y - b[1], d = Math.hypot(dx, dy) || 1, f = (d - len) / d; a.x -= dx * f; a.y -= dy * f; };
+      const link = (a, b, len) => { const dx = a.x - b.x, dy = a.y - b.y, d = Math.hypot(dx, dy) || 1, f = (d - len) / d * 0.5; a.x -= dx * f; a.y -= dy * f; b.x += dx * f; b.y += dy * f; };
+      pin(p[0], pel, 14.2); link(p[1], p[0], 9.5); link(p[2], p[0], 8); pin(p[2], grip, 8); link(p[3], p[0], 8); link(p[4], p[3], 8); pin(p[5], knL, 11); pin(p[6], knR, 11); }
   }
-  return { pel, han, knL, knR };
+  return { pel, grip, knL, knR };
 }
-function drawDoll(x, y, sc, pins) {
+// drawn in two passes so the rider sits inside the basket: body first, then the cart, then shins and the gripping hand on top
+function drawDoll(x, y, sc, pins, front) {
   const p = doll.p, X = v => x + v * sc, Y = v => y + v * sc; g.strokeStyle = '#2b2233'; g.lineCap = 'round'; g.lineJoin = 'round'; g.lineWidth = 3.2 * sc;
   const seg = (a, b) => { g.beginPath(); g.moveTo(X(a[0]), Y(a[1])); g.lineTo(X(b[0]), Y(b[1])); g.stroke(); }, q = i => [p[i].x, p[i].y];
-  seg(pins.pel, pins.knR); seg(pins.knR, q(6)); seg(pins.pel, pins.knL); seg(pins.knL, q(5));
-  seg(pins.pel, q(0)); seg(q(0), q(3)); seg(q(3), q(4)); seg(q(0), q(2)); seg(q(2), pins.han);
+  if (front) { seg(pins.knR, q(6)); seg(pins.knL, q(5)); g.fillStyle = '#2b2233'; g.beginPath(); g.arc(X(pins.grip[0]), Y(pins.grip[1]), 2.3 * sc, 0, 7); g.arc(X(p[4].x), Y(p[4].y), 2.1 * sc, 0, 7); g.fill(); g.lineCap = 'butt'; return; }
+  seg(pins.pel, pins.knR); seg(pins.pel, pins.knL); seg(pins.pel, q(0)); seg(q(0), q(2)); seg(q(2), pins.grip); seg(q(0), q(3)); seg(q(3), q(4));
   g.fillStyle = '#fff6e6'; g.lineWidth = 2.6 * sc; g.beginPath(); g.arc(X(p[1].x), Y(p[1].y), 5.6 * sc, 0, 7); g.fill(); g.stroke(); g.lineCap = 'butt';
 }
 function drawObj(o) {
@@ -361,7 +380,7 @@ function drawCart(x, y, ang, sc) {
   if (L('spring')) { g.beginPath(); g.moveTo(-4, 0); for (let i = 0; i < 4; i++) g.lineTo(-4 + (i % 2 ? -5 : 5), 2 + i * 2.2); g.stroke(); }
   if (L('float')) { g.fillStyle = '#ff8a1f'; g.beginPath(); g.ellipse(0, -3, 21, 5, 0, 0, 7); g.fill(); g.stroke(); }
   // basket
-  g.fillStyle = '#e9edf2'; g.beginPath(); g.moveTo(-17, -24); g.lineTo(17, -24); g.lineTo(13, -6); g.lineTo(-13, -6); g.closePath(); g.fill(); g.stroke();
+  g.fillStyle = 'rgba(233,237,242,.5)'; g.beginPath(); g.moveTo(-17, -24); g.lineTo(17, -24); g.lineTo(13, -6); g.lineTo(-13, -6); g.closePath(); g.fill(); g.stroke();
   g.lineWidth = 1.2; for (let i = -10; i <= 10; i += 5) { g.beginPath(); g.moveTo(i * 1.25, -24); g.lineTo(i, -6); g.stroke(); } g.beginPath(); g.moveTo(-15.5, -17); g.lineTo(15.5, -17); g.moveTo(-14, -11); g.lineTo(14, -11); g.stroke(); g.lineWidth = 2.5;
   g.beginPath(); g.moveTo(-17, -24); g.lineTo(-24, -31); g.stroke(); g.strokeStyle = '#f0452f'; g.lineWidth = 4; g.beginPath(); g.moveTo(-27, -31); g.lineTo(-21, -31); g.stroke(); g.strokeStyle = '#2b2233'; g.lineWidth = 2.5;
   g.beginPath(); g.moveTo(-12, -6); g.lineTo(-11, -1); g.moveTo(12, -6); g.lineTo(11, -1); g.stroke();
@@ -384,19 +403,28 @@ function hud(r) {
     if (nz) { const f = Math.min(1, (r.maxX - Z[z].at) / (nz.at - Z[z].at)); g.fillStyle = '#2b2233'; g.fillRect(bx - 2, 30, bw + 4, 10); g.fillStyle = '#fff6e6'; g.fillRect(bx, 32, bw, 6); g.fillStyle = '#12a594'; g.fillRect(bx, 32, bw * f, 6); g.font = `11px ${D}`; g.fillStyle = '#fff'; g.strokeStyle = '#2b2233'; g.lineWidth = 3; g.strokeText('다음: ' + nz.name + ' ' + fmtD(nz.at), W / 2, 54); g.fillText('다음: ' + nz.name + ' ' + fmtD(nz.at), W / 2, 54); }
     boostBtn.querySelector('small').textContent = r.fuel > 0 ? r.fuel.toFixed(1) + '초' : '연료 없음'; boostBtn.disabled = r.fuel <= 0;
     const grounded = alt < 1.5 + sp * 0.01; skillBtn.firstChild.textContent = grounded && r.spring > 0 ? '도약' : r.dash > 0 ? '대시' : '도약'; skillBtn.querySelector('small').textContent = `도약${r.spring} 대시${r.dash}`; skillBtn.disabled = !(r.spring > 0 || r.dash > 0);
-  } else if (state === 'aim') {
-    g.textAlign = 'center'; txt('화면을 눌러 밀기!', W / 2, H * 0.2, 28); txt(`보유 골드 ${fmt(S.gold)}   ·   최고 ${fmtD(S.best)}`, W / 2, H * 0.2 + 26, 14, '#fff6e6'); txt('공중에서 화면 왼쪽을 누르면 뒤로, 오른쪽을 누르면 앞으로 회전 · 바퀴로 착지하면 보너스', W / 2, H * 0.2 + 48, 12, '#fff6e6');
-    const bw = Math.min(420, W * 0.6), bx = W / 2 - bw / 2, by = H - 54, m = meterVal(), pw = st.window * bw;
-    g.fillStyle = '#2b2233'; g.fillRect(bx - 4, by - 4, bw + 8, 30); const gr = g.createLinearGradient(bx, 0, bx + bw, 0); gr.addColorStop(0, '#12a594'); gr.addColorStop(0.7, '#f5b014'); gr.addColorStop(1, '#f0452f'); g.fillStyle = gr; g.fillRect(bx, by, bw, 22);
-    g.fillStyle = '#fff'; g.fillRect(bx + bw - pw, by, pw, 22); g.fillStyle = '#f0452f'; g.font = `11px ${D}`; g.fillText('퍼펙트', bx + bw - pw / 2, by - 8);
-    g.fillStyle = '#2b2233'; g.beginPath(); g.moveTo(bx + bw * m, by + 24); g.lineTo(bx + bw * m - 9, by + 40); g.lineTo(bx + bw * m + 9, by + 40); g.fill(); g.fillRect(bx + bw * m - 2, by - 3, 4, 28);
+  } else if (state === 'aim' || state === 'charge' || state === 'push') {
+    g.textAlign = 'center'; txt(state === 'aim' ? '꾹 눌러서 당기기!' : state === 'charge' ? '흰 구간에서 손을 떼세요' : '발사대 끝에서 한 번 더 탭!', W / 2, H * 0.2, 28);
+    if (state === 'aim') { txt(`보유 골드 ${fmt(S.gold)}   ·   최고 ${fmtD(S.best)}`, W / 2, H * 0.2 + 26, 14, '#fff6e6'); txt('공중에서 화면 왼쪽을 누르면 뒤로, 오른쪽을 누르면 앞으로 회전 · 바퀴로 착지하면 보너스', W / 2, H * 0.2 + 48, 12, '#fff6e6'); }
+    const bw = Math.min(420, W * 0.6), bx = W / 2 - bw / 2, by = H - 54, pw = st.window * bw, tm = performance.now() / 1000, m = state === 'push' ? pushM : Math.min(1, Math.max(0, charge + Math.sin(tm * 46) * 0.007 * charge * charge)), inP = m >= 1 - st.window;
+    const jx = state === 'charge' ? (Math.random() - 0.5) * charge * charge * 5 : 0, jy = state === 'charge' ? (Math.random() - 0.5) * charge * charge * 4 : 0; g.save(); g.translate(jx, jy);
+    g.fillStyle = '#2b2233'; g.beginPath(); g.roundRect(bx - 5, by - 5, bw + 10, 32, 8); g.fill(); g.fillStyle = '#463c50'; g.fillRect(bx, by, bw, 22);
+    g.fillStyle = `rgba(255,255,255,${0.75 + 0.25 * Math.sin(tm * 9)})`; g.fillRect(bx + bw - pw, by, pw, 22);
+    const gr = g.createLinearGradient(bx, 0, bx + bw, 0); gr.addColorStop(0, '#12a594'); gr.addColorStop(0.7, '#f5b014'); gr.addColorStop(1, '#f0452f'); g.fillStyle = slipT > 0 ? '#7a6f80' : inP ? '#ffd24a' : gr; g.fillRect(bx, by, bw * m, 22);
+    g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(bx, by + 2, bw * m, 5); g.fillStyle = '#2b2233'; for (let k = 1; k < 12; k++) g.fillRect(bx + bw * k / 12 - 0.5, by + 16, 1, 6);
+    g.fillStyle = '#fff'; g.fillRect(bx + bw * m - 2.5, by - 4, 5, 30); g.strokeStyle = '#2b2233'; g.lineWidth = 2; g.strokeRect(bx + bw * m - 2.5, by - 4, 5, 30);
+    g.font = `12px ${D}`; g.fillStyle = '#fff'; g.strokeStyle = '#2b2233'; g.lineWidth = 3; g.strokeText('퍼펙트', bx + bw - pw / 2, by - 10); g.fillText('퍼펙트', bx + bw - pw / 2, by - 10);
+    if (inP && state === 'charge') { g.strokeStyle = `rgba(255,210,74,${0.6 + 0.4 * Math.sin(tm * 30)})`; g.lineWidth = 4; g.beginPath(); g.roundRect(bx - 8, by - 8, bw + 16, 38, 10); g.stroke(); }
+    g.restore();
   }
 }
 function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   g.setTransform(DPR, 0, 0, DPR, 0, 0);
-  if (state === 'aim') meterT += dt;
+  if (state === 'charge') chargeStep(dt);
+  if (state === 'push') { pushT += dt; const q = Math.min(1, pushT / PUSH_T); rampU = pushFrom + (1 - pushFrom) * q * q; if (pushT >= PUSH_T) launch(); }
+  if (state === 'aim') rampU += (0.5 - rampU) * Math.min(1, dt * 8);
   if (state === 'fly' && run) {
     C.step(run, dt, { boost: boostHeld, skill: skillTap, spin: spinDir }); skillTap = false;
     for (const e of run.ev) {
@@ -427,14 +455,26 @@ function frame(now) {
   // particles
   for (const p of parts) { p.t += dt; p.x += p.vx * dt * (cam.vw / 34); p.y += p.vy * dt * (cam.vw / 34); p.vy -= 12 * dt; g.globalAlpha = Math.max(0, 1 - p.t / p.life); g.fillStyle = p.c; g.fillRect(SX(p.x) - 3, SY(p.y) - 3, 6, 6); } g.globalAlpha = 1; parts = parts.filter(p => p.t < p.life);
   // ramp + cart
-  if (px < cam.vw) { const a = st.angle, len = 5; g.fillStyle = '#f5b014'; g.strokeStyle = '#2b2233'; g.lineWidth = 2.5; g.beginPath(); g.moveTo(SX(-len), SY(0)); g.lineTo(SX(0.5), SY(0)); g.lineTo(SX(0.5), SY(Math.tan(a) * len * 0.9)); g.closePath(); g.fill(); g.stroke(); }
-  const csc = Math.max(0.75, Math.min(1.6, ppm / 22)), tgt = r && (state === 'fly' || state === 'result') ? -r.ang : state === 'aim' ? -st.angle : 0; { let dr = tgt - rot; dr = Math.atan2(Math.sin(dr), Math.cos(dr)); rot += dr * Math.min(1, dt * 22); }
-  const cxp = SX(px), cyp = SY(py) - (state === 'aim' ? 6 : 4 * csc);
+  const onRamp = state === 'aim' || state === 'charge' || state === 'push', RA = st.angle, RL = C.RAMP, RH = RL * Math.tan(RA);
+  const csc = Math.max(0.75, Math.min(1.6, ppm / 22)), tgt = onRamp ? -RA : r && (state === 'fly' || state === 'result') ? -r.ang : 0; { let dr = tgt - rot; dr = Math.atan2(Math.sin(dr), Math.cos(dr)); rot += dr * Math.min(1, dt * 22); if (onRamp) rot = -RA; }
+  // on the ramp the wheels sit on the slope: offset the cart along the slope normal by the wheel radius
+  const rwx = -RL * (1 - rampU), rwy = RH * rampU, cxp = onRamp ? SX(rwx) - Math.sin(RA) * 3.8 * csc : SX(px), cyp = onRamp ? SY(rwy) - Math.cos(RA) * 3.8 * csc : SY(py) - 4 * csc;
+  if (px < cam.vw * 1.2) { // ramp: slope, struts, lip, and the launch band's anchor post
+    g.lineJoin = 'round'; g.strokeStyle = '#2b2233'; g.lineWidth = 2.5; g.fillStyle = '#c98b3c';
+    for (const f of [0.35, 0.7, 1]) { g.fillRect(SX(-RL * (1 - f)) - 3, SY(RH * f), 6, RH * f * ppm); g.strokeRect(SX(-RL * (1 - f)) - 3, SY(RH * f), 6, RH * f * ppm); }
+    g.fillStyle = '#f5b014'; g.beginPath(); g.moveTo(SX(-RL - 0.5), SY(0)); g.lineTo(SX(0), SY(RH)); g.lineTo(SX(0.12), SY(RH - 0.28)); g.lineTo(SX(-RL + 0.6), SY(0)); g.closePath(); g.fill(); g.stroke();
+    g.strokeStyle = '#f0452f'; g.lineWidth = 3; for (let k = 1; k < 6; k++) { const f = k / 6; g.beginPath(); g.moveTo(SX(-RL * (1 - f)), SY(RH * f) + 2); g.lineTo(SX(-RL * (1 - f)) + 9, SY(RH * f) + 2 - 9 * Math.tan(RA)); g.stroke(); }
+    const pxT = SX(0), pyT = SY(RH); g.strokeStyle = '#2b2233'; g.lineWidth = 2.5; g.fillStyle = '#7a6f80'; g.fillRect(pxT - 2, pyT - 26, 5, 28); g.strokeRect(pxT - 2, pyT - 26, 5, 28);
+    if (onRamp) { const st2 = 1 - rampU, bx2 = cxp - Math.cos(RA) * 20 * csc - Math.sin(RA) * 16 * csc, by2 = cyp + Math.sin(RA) * 20 * csc - Math.cos(RA) * 16 * csc;   // elastic band from the post to the cart's back
+      g.strokeStyle = state === 'charge' && charge >= 1 - st.window ? '#ffd24a' : '#f0452f'; g.lineWidth = Math.max(1.5, 6 - st2 * 5); g.beginPath(); g.moveTo(pxT, pyT - 22); g.lineTo(bx2, by2); g.stroke(); }
+    if (state === 'push') { const d = KICK_AT - pushT, rr = 15 + Math.max(-0.08, d) * 150; g.strokeStyle = '#fff'; g.lineWidth = 3; g.beginPath(); g.arc(pxT, pyT - 14, 15, 0, 7); g.stroke(); g.strokeStyle = kicked ? (kick > 1 ? '#ffd24a' : '#7a6f80') : '#f0452f'; g.lineWidth = 4; g.beginPath(); g.arc(pxT, pyT - 14, Math.max(2, rr), 0, 7); g.stroke(); }
+  }
   if (r && r.boosting && Math.random() < 0.7) parts.push({ x: px, y: py, vx: -6 - Math.random() * 6, vy: (Math.random() - 0.5) * 4, t: 0, life: 0.4, c: '#ffd24a', s: 1 });
   { // passenger reacts to the cart's acceleration, the wind and every bump
     const vx = r ? r.vx : 0, vy = r ? r.vy : 0, k = 60 / Math.max(1, r ? r.tw : 1), ax = Math.max(-2600, Math.min(2600, -(vx - pvx) / Math.max(dt, 0.008) * k)), ay = Math.max(-2600, Math.min(2600, (vy - pvy) / Math.max(dt, 0.008) * k)); pvx = vx; pvy = vy;
-    const pins = dollStep(Math.max(0.008, dt), rot, state === 'fly' ? ax : 0, state === 'fly' ? ay : 0, state === 'fly' ? Math.min(900, sp * 14) : 0, dollJolt); dollJolt *= 0.8;
-    drawCart(cxp, cyp, rot, csc); drawDoll(cxp, cyp, csc, pins); }
+    const fx2 = state === 'fly' ? ax : state === 'push' ? -2200 * Math.min(1, pushT / PUSH_T * 2) : state === 'charge' ? 260 * charge : 0;
+    const pins = dollStep(Math.max(0.008, dt), rot, fx2, state === 'fly' ? ay : 0, state === 'fly' ? Math.min(900, sp * 14) : 0, dollJolt + (state === 'charge' ? charge * charge * 1.2 : 0)); dollJolt *= 0.8;
+    drawDoll(cxp, cyp, csc, pins, false); drawCart(cxp, cyp, rot, csc); drawDoll(cxp, cyp, csc, pins, true); }
   g.textAlign = 'center'; g.font = `15px ${getComputedStyle(root).getPropertyValue('--disp')}`;
   for (const p of pops) { p.t += dt; g.globalAlpha = Math.max(0, 1 - p.t / 0.9); g.lineWidth = 3; g.strokeStyle = '#2b2233'; g.strokeText(p.txt, SX(p.x), SY(p.y) - p.t * 50); g.fillStyle = '#ffd24a'; g.fillText(p.txt, SX(p.x), SY(p.y) - p.t * 50); } g.globalAlpha = 1; pops = pops.filter(p => p.t < 0.9);
   g.restore();
@@ -442,6 +482,6 @@ function frame(now) {
   if (banner) { const a = (now - banner.t) / 1000; if (a > 2.2) banner = null; else { const D = getComputedStyle(root).getPropertyValue('--disp'), al = Math.min(1, a * 4) * Math.min(1, (2.2 - a) * 2); g.globalAlpha = al; g.fillStyle = '#f0452f'; g.fillRect(0, H * 0.3, W, 54); g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = `32px ${D}`; g.fillText(banner.txt + ' 진입!', W / 2, H * 0.3 + 38); g.globalAlpha = 1; } }
 }
 toAim(); requestAnimationFrame(frame);
-window.__cart = { C, get S() { return S; }, set S(v) { S = v; }, get run() { return run; }, get state() { return state; }, launch, toAim, openShop, save };
+window.__cart = { C, get S() { return S; }, set S(v) { S = v; }, get run() { return run; }, get state() { return state; }, launch, toAim, openShop, save, startCharge, release, tryKick, get charge() { return charge; } };
 })();
 </script>

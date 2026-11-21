@@ -151,9 +151,10 @@ const CORE = (() => {
   }
 
   // ---- one run ------------------------------------------------------------------------------------
-  function newRun(st, meter) {   // meter 0..1 from the launch gauge; >= 1-window counts as perfect
-    const perfect = meter >= 1 - st.window, m = perfect ? st.perfect : 0.55 + 0.45 * meter / (1 - st.window), v = st.power * m;
-    return { st, x: 0, y: 0.6, vx: v * Math.cos(st.angle), vy: v * Math.sin(st.angle), v0: v, perfect, fuel: st.fuel, spring: st.springN, dash: st.dashN, t: 0, tr: 0, air: true, rest: 0,
+  const RAMP = 4;   // launch ramp length in metres; the cart leaves from its top edge
+  function newRun(st, meter, kick) {   // meter 0..1 from the charge gauge (>= 1-window is perfect); kick = extra multiplier from the ramp-edge tap
+    const perfect = meter >= 1 - st.window, m = perfect ? st.perfect : 0.55 + 0.45 * meter / (1 - st.window), v = st.power * m * (kick || 1);
+    return { st, kick: kick || 1, x: 0, y: RAMP * Math.tan(st.angle) + 0.3, vx: v * Math.cos(st.angle), vy: v * Math.sin(st.angle), v0: v, perfect, fuel: st.fuel, spring: st.springN, dash: st.dashN, t: 0, tr: 0, air: true, rest: 0,
       maxX: 0, maxAlt: 0, maxV: v, bounces: 0, coins: 0, coinGold: 0, broke: 0, used: new Set(), cell: [-1, -1], over: false, why: '', ev: [], tw: 1, boosting: false,
       ang: st.angle, spin: 0, rotAcc: 0, tricks: 0, crashes: 0, usedBoost: false, doubled: false, risen: false, lastBounce: -9 };
   }
@@ -242,6 +243,6 @@ const CORE = (() => {
   function rebirth(s) { const gain = starsFor(s.bestLife); if (s.bestLife < ZONES[4].at) return 0; const seed = (s.perks.p_seed || 0) ? 100 * Math.pow(10, s.perks.p_seed) : 0;
     s.stars += gain; s.starsTotal += gain; s.rebirths++; s.gold = seed; s.lv = {}; s.bestLife = 0; s.zone = Math.min(s.zone, 2 * (s.perks.r_skip || 0)); checkAch(s, null); return gain; }
   function buyPerk(s, id) { const p = PK[id], l = s.perks[id] || 0; if (!p || l >= p.max || perkLock(s, id) || s.stars < perkCost(p, l)) return false; s.stars -= perkCost(p, l); s.perks[id] = l + 1; return true; }
-  return { CFG, total, ZONES, UPS, UP, BRANCH, PERKS, PK, PBRANCH, perkCost, perkLock, ACH, checkAch, achCount, zoneAt, lerpZ, ground, isWater, cellObj, CELL, newSave, lvl, cost, lockReason, canBuy, buy, stats, newRun, step, payout, finish, rebirth, buyPerk, starsFor };
+  return { RAMP, CFG, total, ZONES, UPS, UP, BRANCH, PERKS, PK, PBRANCH, perkCost, perkLock, ACH, checkAch, achCount, zoneAt, lerpZ, ground, isWater, cellObj, CELL, newSave, lvl, cost, lockReason, canBuy, buy, stats, newRun, step, payout, finish, rebirth, buyPerk, starsFor };
 })();
 if (typeof module !== 'undefined') module.exports = CORE;
