@@ -9,13 +9,21 @@ const CORE = (() => {
     { id: 'lot', name: '마트 주차장', at: 0, sc: 1, amp: 0, wl: 100, mu: 1, e: 1, loss: 1, g: 9.8, drag: 1, sky: ['#8fc4ff', '#dff1ff'], ground: '#55585f', deco: 'lot' },
     { id: 'city', name: '도심 도로', at: 200, sc: 1.5, amp: 2.6, wl: 170, sk: 0.3, mu: 0.9, e: 1.05, loss: 1, g: 9.8, drag: 1, sky: ['#7db2f0', '#f6e3c8'], ground: '#3d4048', deco: 'city' },
     { id: 'hill', name: '교외 언덕', at: 1000, sc: 3, amp: 14, wl: 320, sk: 0.35, la: 10, mu: 1.35, e: 0.95, loss: 1.1, g: 9.8, drag: 1, sky: ['#6fb7e8', '#eaf7d0'], ground: '#4f9a4a', deco: 'hill' },
-    { id: 'sand', name: '모래 사막', at: 4000, sc: 10, amp: 28, wl: 900, sk: 0.55, la: 30, mu: 3.2, e: 0.5, loss: 1.8, g: 9.8, drag: 1, sky: ['#f2b25c', '#ffe9b8'], ground: '#d9a653', deco: 'sand' },
-    { id: 'sea', name: '망망대해', at: 12000, sc: 30, amp: 70, wl: 2600, mu: 1, e: 1, loss: 1, g: 9.8, drag: 1, sky: ['#3d8fd6', '#bfe9ff'], ground: '#1f6fb5', deco: 'sea', water: true },
-    { id: 'ice', name: '만년 설산', at: 30000, sc: 100, amp: 170, wl: 3200, sk: 0.6, la: 260, mu: 0.12, e: 0.9, loss: 0.5, g: 9.8, drag: 1, sky: ['#9fc3e8', '#ffffff'], ground: '#e8f1fa', deco: 'ice' },
-    { id: 'lava', name: '용암 지대', at: 100000, sc: 300, amp: 250, wl: 6000, sk: 0.75, la: 420, mu: 1.2, e: 0.9, loss: 1, g: 9.8, drag: 1.2, sky: ['#3a1410', '#c2451e'], ground: '#33211f', deco: 'lava' },
-    { id: 'moon', name: '달 기지', at: 350000, sc: 500, amp: 330, wl: 9000, sk: -0.5, la: 520, mu: 0.8, e: 1.05, loss: 0.8, g: 1.62, drag: 0.25, sky: ['#05060d', '#141a33'], ground: '#9a9aa6', deco: 'moon' },
-    { id: 'star', name: '은하 고속도로', at: 3000000, sc: 1200, amp: 650, wl: 16000, sk: 0.35, la: 950, mu: 0.7, e: 1.05, loss: 0.7, g: 3.2, drag: 0.3, sky: ['#0a0220', '#3a0f66'], ground: '#5b2bd6', deco: 'star' },
+    { id: 'forest', name: '깊은 숲', at: 2500, sc: 5, amp: 18, wl: 420, sk: 0.4, la: 16, mu: 1.9, e: 0.85, loss: 1.3, g: 9.8, drag: 1, sky: ['#4f9c78', '#dcf2c4'], ground: '#2f6b3a', deco: 'forest' },
+    { id: 'sand', name: '모래 사막', at: 6000, sc: 12, amp: 28, wl: 900, sk: 0.55, la: 30, mu: 3.2, e: 0.5, loss: 1.8, g: 9.8, drag: 1, sky: ['#f2b25c', '#ffe9b8'], ground: '#d9a653', deco: 'sand' },
+    { id: 'canyon', name: '붉은 대협곡', at: 14000, sc: 22, amp: 70, wl: 1700, sk: 0.85, la: 110, mu: 1.1, e: 1, loss: 1, g: 9.8, drag: 1, sky: ['#e0843f', '#ffdcae'], ground: '#b5562f', deco: 'canyon' },
+    { id: 'sea', name: '망망대해', at: 25000, sc: 40, amp: 80, wl: 3200, mu: 1, e: 1, loss: 1, g: 9.8, drag: 1, sky: ['#3d8fd6', '#bfe9ff'], ground: '#1f6fb5', deco: 'sea', water: true },
+    { id: 'ice', name: '만년 설산', at: 60000, sc: 100, amp: 170, wl: 3600, sk: 0.6, la: 260, mu: 0.12, e: 0.9, loss: 0.5, g: 9.8, drag: 1, sky: ['#9fc3e8', '#ffffff'], ground: '#e8f1fa', deco: 'ice' },
+    { id: 'lava', name: '용암 지대', at: 150000, sc: 250, amp: 250, wl: 6000, sk: 0.75, la: 420, mu: 1.2, e: 0.9, loss: 1, g: 9.8, drag: 1.2, sky: ['#3a1410', '#c2451e'], ground: '#33211f', deco: 'lava' },
+    { id: 'cloud', name: '구름 왕국', at: 400000, sc: 400, amp: 300, wl: 8000, sk: 0.2, la: 520, mu: 0.5, e: 1.3, loss: 0.5, g: 7.4, drag: 0.8, sky: ['#ff9ec7', '#fff0c9'], ground: '#fff3fa', deco: 'cloud' },
+    { id: 'moon', name: '달 기지', at: 900000, sc: 600, amp: 330, wl: 9000, sk: -0.5, la: 520, mu: 0.8, e: 1.05, loss: 0.8, g: 1.62, drag: 0.25, sky: ['#05060d', '#141a33'], ground: '#9a9aa6', deco: 'moon' },
+    { id: 'rock', name: '소행성대', at: 2500000, sc: 900, amp: 700, wl: 12000, sk: -0.7, la: 650, mu: 1, e: 1, loss: 1, g: 0.9, drag: 0.15, sky: ['#070812', '#221a38'], ground: '#6b6258', deco: 'rock' },
+    { id: 'star', name: '은하 고속도로', at: 7000000, sc: 1500, amp: 650, wl: 18000, sk: 0.35, la: 950, mu: 0.7, e: 1.05, loss: 0.7, g: 3.2, drag: 0.3, sky: ['#0a0220', '#3a0f66'], ground: '#5b2bd6', deco: 'star' },
+    { id: 'hole', name: '블랙홀 가장자리', at: 20000000, sc: 2600, amp: 1500, wl: 42000, sk: 0.5, la: 2600, mu: 0.6, e: 0.95, loss: 0.9, g: 16, drag: 0.5, sky: ['#000000', '#3a0a16'], ground: '#1a1020', deco: 'hole' },
+    { id: 'end', name: '우주의 끝', at: 60000000, sc: 4200, amp: 2600, wl: 75000, sk: 0.3, la: 4200, mu: 0.5, e: 1.1, loss: 0.5, g: 2.2, drag: 0.2, sky: ['#b8e8ff', '#f6f0ff'], ground: '#2b2233', deco: 'end' },
   ];
+  const ZI = id => ZONES.findIndex(z => z.id === id);
+
   const zoneAt = x => { let z = 0; for (let i = 1; i < ZONES.length; i++) if (x >= ZONES[i].at) z = i; return z; };
   // smooth blend between neighbouring zones over the first 6% of the new zone (min 40 m)
   function blend(x) { const z = zoneAt(x); if (z === 0) return [0, 0, 0]; const w = Math.max(40, ZONES[z].at * 0.06), f = (x - ZONES[z].at) / w; return f >= 1 ? [z, z, 0] : [z - 1, z, f * f * (3 - 2 * f)]; }
@@ -29,41 +37,41 @@ const CORE = (() => {
 
   // ---- tech tree --------------------------------------------------------------------------------
   // br: branch, max, c0/cm: cost = c0 * cm^level, req: [id, level] pairs, zone: furthest zone that must have been reached
-  const U = (id, br, name, max, c0, cm, desc, req, zone) => ({ id, br, name, max, c0, cm, desc, req: req || [], zone: zone || 0 });
+  const U = (id, br, name, max, c0, cm, desc, req, zone) => ({ id, br, name, max, c0, cm, desc, req: req || [], zone: zone ? ZI(zone) : 0 });
   const UPS = [
     U('push', 'launch', '근력 훈련', 60, 8, 1.121, '미는 힘 +5%'),
     U('ramp', 'launch', '발사 경사로', 10, 25, 1.405, '발사 각도 +2.8°', [['push', 3]]),
     U('runup', 'launch', '도움닫기', 20, 120, 1.248, '발사 속도 +2.5%', [['push', 5]]),
     U('timing', 'launch', '타이밍 감각', 10, 400, 1.405, '퍼펙트 구간 확대, 퍼펙트 보너스 +2%', [['runup', 3]]),
-    U('sling', 'launch', '대형 새총', 25, 4e4, 1.27, '발사 속도 +5%', [['ramp', 5]], 3),
-    U('cannon', 'launch', '화약 대포', 25, 3e6, 1.292, '발사 속도 +5%', [['sling', 10]], 5),
-    U('rail', 'launch', '레일건', 30, 1e9, 1.315, '발사 속도 +4.5%', [['cannon', 10]], 7),
+    U('sling', 'launch', '대형 새총', 25, 4e4, 1.27, '발사 속도 +5%', [['ramp', 5]], 'sand'),
+    U('cannon', 'launch', '화약 대포', 25, 3e6, 1.292, '발사 속도 +5%', [['sling', 10]], 'ice'),
+    U('rail', 'launch', '레일건', 30, 1e9, 1.315, '발사 속도 +4.5%', [['cannon', 10]], 'moon'),
 
     U('wheel', 'body', '바퀴 윤활', 25, 10, 1.144, '굴러갈 때 마찰 -12%'),
     U('tire', 'body', '탄성 타이어', 20, 40, 1.202, '튕길 때 반발력 증가', [['wheel', 3]]),
     U('frame', 'body', '경량 프레임', 20, 200, 1.27, '착지 충격으로 잃는 속도 -14%', [['wheel', 5]]),
     U('aero', 'body', '공기역학 커버', 30, 500, 1.248, '공기 저항 -10%', [['frame', 3]]),
     U('bumper', 'body', '강화 범퍼', 10, 2000, 1.45, '장애물 충돌 손실 감소, Lv6부터 부수고 골드 획득', [['frame', 5]]),
-    U('wide', 'body', '광폭 타이어', 10, 3e4, 1.405, '모래·험지에서 잃는 속도 감소', [['tire', 5]], 3),
-    U('float', 'body', '부력 튜브', 10, 2e5, 1.45, '물에 가라앉지 않고 물수제비를 뜸', [], 4),
-    U('heat', 'body', '내열 코팅', 10, 2e8, 1.45, '용암 웅덩이 피해 감소', [], 6),
+    U('wide', 'body', '광폭 타이어', 10, 3e4, 1.405, '진흙·모래·험지에서 잃는 속도 감소', [['tire', 5]], 'forest'),
+    U('float', 'body', '부력 튜브', 10, 2e5, 1.45, '물에 가라앉지 않고 물수제비를 뜸', [], 'sea'),
+    U('heat', 'body', '내열 코팅', 10, 2e8, 1.45, '용암 웅덩이 피해 감소', [], 'lava'),
 
     U('rocket', 'gear', '로켓 부스터', 30, 800, 1.225, '부스트 추진력 증가 (BOOST 버튼)', [['push', 8]]),
     U('fuel', 'gear', '연료 탱크', 15, 3000, 1.315, '부스트 시간 +0.15초', [['rocket', 1]]),
     U('spring', 'gear', '스프링 점퍼', 20, 1500, 1.248, '땅에서 SKILL로 다시 도약 (4레벨마다 횟수 +1)', [['tire', 3]]),
-    U('wing', 'gear', '글라이더 날개', 20, 8000, 1.27, '공중에서 덜 떨어짐 (중력 -3.5%)', [['aero', 3]], 2),
+    U('wing', 'gear', '글라이더 날개', 20, 8000, 1.27, '공중에서 덜 떨어짐 (중력 -3.5%)', [['aero', 3]], 'hill'),
     U('dash', 'gear', '에어 대시', 15, 6e4, 1.315, '공중에서 SKILL로 급가속 (5레벨마다 횟수 +1)', [['wing', 3]]),
-    U('hover', 'gear', '호버 스커트', 15, 1e6, 1.36, '지면 마찰 추가 -20%', [['wheel', 15]], 4),
-    U('jet', 'gear', '제트 엔진', 20, 5e7, 1.315, '부스트 추진력 +4%', [['rocket', 15]], 5),
-    U('grav', 'gear', '반중력 코어', 15, 5e10, 1.405, '모든 구역의 중력 -3%', [['wing', 10]], 7),
+    U('hover', 'gear', '호버 스커트', 15, 1e6, 1.36, '지면 마찰 추가 -20%', [['wheel', 15]], 'sea'),
+    U('jet', 'gear', '제트 엔진', 20, 5e7, 1.315, '부스트 추진력 +4%', [['rocket', 15]], 'ice'),
+    U('grav', 'gear', '반중력 코어', 15, 5e10, 1.405, '모든 구역의 중력 -3%', [['wing', 10]], 'moon'),
 
     U('ad', 'money', '전단지 광고', 60, 12, 1.135, '거리당 골드 +9%'),
     U('coin', 'money', '코인 감정사', 30, 100, 1.202, '코인 가치 +15%', [['ad', 3]]),
     U('magnet', 'money', '코인 자석', 10, 500, 1.45, '코인을 끌어오는 범위 증가', [['coin', 3]]),
     U('style', 'money', '묘기 보너스', 20, 2000, 1.27, '튕길 때마다 골드 +0.25% (최대 12회)', [['ad', 8]]),
     U('alt', 'money', '고도 수당', 20, 1e4, 1.27, '최고 고도에 따라 골드 보너스', [['style', 3]]),
-    U('sponsor', 'money', '스폰서 계약', 20, 5e4, 1.36, '도달한 구역 하나당 골드 +5%', [['ad', 15]], 2),
-    U('crate', 'money', '보물 드론', 10, 1e6, 1.54, '하늘에 큰 골드 상자가 더 자주 등장', [['coin', 10]], 3),
+    U('sponsor', 'money', '스폰서 계약', 20, 5e4, 1.36, '도달한 구역 하나당 골드 +5%', [['ad', 15]], 'hill'),
+    U('crate', 'money', '보물 드론', 10, 1e6, 1.54, '하늘에 큰 골드 상자가 더 자주 등장', [['coin', 10]], 'sand'),
   ];
   const UP = Object.fromEntries(UPS.map(u => [u.id, u]));
   const BRANCH = [['launch', '발사'], ['body', '차체'], ['gear', '장치'], ['money', '수익']];
@@ -103,20 +111,21 @@ const CORE = (() => {
     A('a_flip1', '첫 공중제비', '묘기 착지 1회', (s, r) => r && r.tricks >= 1), A('a_flip5', '서커스 단원', '한 판에 묘기 5바퀴', (s, r) => r && r.tricks >= 5), A('a_flip15', '인간 팽이', '한 판에 묘기 15바퀴', (s, r) => r && r.tricks >= 15),
     A('a_perf', '칼타이밍', '퍼펙트 발사 10회 누적', (s, r) => (s.perfects || 0) >= 10), A('a_nob', '맨몸 승부', '부스트 없이 1km (로켓 보유 상태)', (s, r) => r && r.st.thrust > 0 && !r.usedBoost && r.maxX >= 1000),
     A('a_coin20', '수금원', '한 판에 코인 20개', (s, r) => r && r.coins >= 20), A('a_smash', '철거반', '한 판에 장애물 10개 파괴', (s, r) => r && r.broke >= 10),
-    A('a_sea', '바다를 건넌 카트', '만년 설산 도달', (s, r) => s.zone >= 5), A('a_moon', '달 착륙', '달 기지 도달', (s, r) => s.zone >= 7), A('a_star', '은하 여행자', '은하 고속도로 도달', (s, r) => s.zone >= 8),
+    A('a_sea', '바다를 건넌 카트', '만년 설산 도달', (s, r) => s.zone >= ZI('ice')), A('a_cloud', '구름 위 산책', '구름 왕국 도달', (s, r) => s.zone >= ZI('cloud')), A('a_moon', '달 착륙', '달 기지 도달', (s, r) => s.zone >= ZI('moon')), A('a_star', '은하 여행자', '은하 고속도로 도달', (s, r) => s.zone >= ZI('star')),
+    A('a_hole', '사건의 지평선', '블랙홀 가장자리 도달', (s, r) => s.zone >= ZI('hole')), A('a_end', '끝을 본 자', '우주의 끝 도달', (s, r) => s.zone >= ZI('end')),
     A('a_lv100', '단골 손님', '업그레이드 100레벨', (s, r) => total(s) >= 100), A('a_lv300', 'VIP 고객', '업그레이드 300레벨', (s, r) => total(s) >= 300),
     A('a_re1', '새 출발', '첫 환생', (s, r) => s.rebirths >= 1), A('a_re5', '윤회', '환생 5회', (s, r) => s.rebirths >= 5),
   ];
   function checkAch(s, r) { const got = []; for (const a of ACH) if (!s.ach[a.id] && a.test(s, r)) { s.ach[a.id] = 1; got.push(a); } return got; }
   const achCount = s => Object.keys(s.ach || {}).length;
-  const newSave = () => ({ gold: 0, lv: {}, best: 0, bestLife: 0, zone: 0, runs: 0, stars: 0, starsTotal: 0, perks: {}, rebirths: 0, seen: {}, ach: {}, perfects: 0 });
+  const newSave = () => ({ gold: 0, lv: {}, best: 0, bestLife: 0, zone: 0, runs: 0, stars: 0, starsTotal: 0, perks: {}, rebirths: 0, seen: {}, ach: {}, perfects: 0, v: 2 });
   const lvl = (s, id) => s.lv[id] || 0;
   const CFG = { infl: 1.014 };
   const cost = (s, id) => { const u = UP[id]; return Math.ceil(u.c0 * Math.pow(u.cm, lvl(s, id)) * Math.pow(CFG.infl - 0.001 * (s.perks.r_disc || 0), total(s))); };
   function lockReason(s, id) { const u = UP[id]; if (s.zone < u.zone) return `${ZONES[u.zone].name} 도달 필요`; for (const [r, n] of u.req) if (lvl(s, r) < n) return `${UP[r].name} Lv${n} 필요`; return ''; }
   const canBuy = (s, id) => lvl(s, id) < UP[id].max && !lockReason(s, id) && s.gold >= cost(s, id);
   function buy(s, id) { if (!canBuy(s, id)) return false; s.gold -= cost(s, id); s.lv[id] = lvl(s, id) + 1; return true; }
-  const starsFor = best => best < 12000 ? 0 : Math.max(1, Math.floor(3 * Math.pow(Math.log10(best / 3000), 1.6)));
+  const starsFor = best => best < 25000 ? 0 : Math.max(1, Math.floor(3 * Math.pow(Math.log10(best / 3000), 1.6)));
 
   function stats(s) {
     const L = id => lvl(s, id), P = id => s.perks[id] || 0;
@@ -143,7 +152,7 @@ const CORE = (() => {
     const air = (lo, hi) => ground(x) + (lo + (hi - lo) * h) * Z.sc;
     let type;
     if (r < 0.30) type = 'coin'; else if (r < 0.42) type = 'pad'; else if (r < 0.52) type = 'tramp'; else if (r < 0.64) type = 'ring'; else if (r < 0.80) type = 'haz'; else if (r < 0.80 + 0.012 * (1 + crate)) type = 'crate'; else if (r < 0.90) type = 'spec'; else return null;
-    if (type === 'spec') { if (Z.id === 'lava') type = h < 0.5 ? 'geyser' : 'pool'; else if (Z.id === 'city') type = 'car'; else if (Z.id === 'sea') type = 'boat'; else if (Z.id === 'star' || Z.id === 'moon') type = 'ring'; else type = 'coin'; }
+    if (type === 'spec') { if (Z.id === 'lava') type = h < 0.5 ? 'geyser' : 'pool'; else if (Z.id === 'city') type = 'car'; else if (Z.id === 'sea') type = 'boat'; else if (Z.id === 'star' || Z.id === 'moon' || Z.id === 'canyon' || Z.id === 'hole') type = 'ring'; else if (Z.id === 'forest' || Z.id === 'cloud') type = 'tramp'; else if (Z.id === 'rock') type = 'haz'; else type = 'coin'; }
     if (Z.water && (type === 'pad' || type === 'haz')) type = h < 0.5 ? 'boat' : 'coin';
     const grounded = type === 'pad' || type === 'tramp' || type === 'haz' || type === 'geyser' || type === 'pool' || type === 'car' || type === 'boat';
     const y = grounded ? ground(x) : type === 'coin' ? air(2, 26) : type === 'ring' ? air(8, 40) : air(20, 60);
@@ -240,9 +249,9 @@ const CORE = (() => {
     return { dist, coins, style, alt, perfect, trick, first, mult, total: Math.floor((dist + coins) * mult + first), zone: z };
   }
   function finish(r, s) { const p = payout(r, s); s.gold += p.total; s.runs++; if (r.perfect) s.perfects = (s.perfects || 0) + 1; p.record = r.maxX > s.best; if (r.maxX > s.best) s.best = r.maxX; if (r.maxX > s.bestLife) s.bestLife = r.maxX; p.newZone = p.zone > s.zone; if (p.zone > s.zone) s.zone = p.zone; p.ach = checkAch(s, r); return p; }
-  function rebirth(s) { const gain = starsFor(s.bestLife); if (s.bestLife < ZONES[4].at) return 0; const seed = (s.perks.p_seed || 0) ? 100 * Math.pow(10, s.perks.p_seed) : 0;
+  function rebirth(s) { const gain = starsFor(s.bestLife); if (s.bestLife < ZONES[ZI('sea')].at) return 0; const seed = (s.perks.p_seed || 0) ? 100 * Math.pow(10, s.perks.p_seed) : 0;
     s.stars += gain; s.starsTotal += gain; s.rebirths++; s.gold = seed; s.lv = {}; s.bestLife = 0; s.zone = Math.min(s.zone, 2 * (s.perks.r_skip || 0)); checkAch(s, null); return gain; }
   function buyPerk(s, id) { const p = PK[id], l = s.perks[id] || 0; if (!p || l >= p.max || perkLock(s, id) || s.stars < perkCost(p, l)) return false; s.stars -= perkCost(p, l); s.perks[id] = l + 1; return true; }
-  return { RAMP, CFG, total, ZONES, UPS, UP, BRANCH, PERKS, PK, PBRANCH, perkCost, perkLock, ACH, checkAch, achCount, zoneAt, lerpZ, ground, isWater, cellObj, CELL, newSave, lvl, cost, lockReason, canBuy, buy, stats, newRun, step, payout, finish, rebirth, buyPerk, starsFor };
+  return { ZI, RAMP, CFG, total, ZONES, UPS, UP, BRANCH, PERKS, PK, PBRANCH, perkCost, perkLock, ACH, checkAch, achCount, zoneAt, lerpZ, ground, isWater, cellObj, CELL, newSave, lvl, cost, lockReason, canBuy, buy, stats, newRun, step, payout, finish, rebirth, buyPerk, starsFor };
 })();
 if (typeof module !== 'undefined') module.exports = CORE;
