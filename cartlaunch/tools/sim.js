@@ -19,6 +19,7 @@ function play(s, seed, pilot = PILOT) {
     C.step(r, 1 / 20, inp); }
   return r;
 }
+play = (s, seed, pilot = PILOT) => require('./bots.js').play(s, seed, pilot ? 'pilot' : 'idle');   // same bots as tools/bots.js
 // Shopping like a sensible player: core upgrades first, side upgrades only once they are cheap next to the core ones.
 const W = { push: +(process.env.PUSHW || 2), runup: 1.5, ad: 1.5, sling: 1.5, cannon: 1.5, rail: 1.5, ramp: 1.5, tire: 1, wheel: 0.8, frame: 0.8, aero: 0.8, rocket: 0.8, spring: 0.7, coin: 0.6, float: 3, wing: 0.7, dash: 0.7, fuel: 0.6, timing: 0.6, sponsor: 0.7, hover: 0.6 };
 function buyAll(s) { for (;;) { let best = null, bv = Infinity; for (const u of C.UPS) if (C.canBuy(s, u.id)) { const v = C.cost(s, u.id) / (W[u.id] || 0.3); if (v < bv) { bv = v; best = u.id; } } if (!best) break; C.buy(s, best); } }
