@@ -78,7 +78,7 @@ const CORE = (() => {
     U_('nozzle', 'gear', '벡터 노즐', 15, 2, 7, '부스트가 앞으로 미는 힘 +5%', [['rocket', 3]]),
     U_('spring', 'gear', '스프링 점퍼', 20, 1, 6, '땅에서 다시 도약 (4레벨마다 횟수 +1)', [['tire', 3]]),
     U_('wing', 'gear', '글라이더 날개', 10, 2, 5, '공중에서 중력 -3.5%', [['aero', 3]], 'hill'),
-    U_('dash', 'gear', '에어 대시', 15, 3, 7, '공중에서 급가속 (5레벨마다 횟수 +1)', [['wing', 3]], 'forest'),
+    U_('dash', 'gear', '에어 대시', 15, 3, 7, '급가속 (땅에서 쓰면 살짝 떠오름, 5레벨마다 횟수 +1)', [['wing', 3]], 'forest'),
     U_('dashpow', 'gear', '대시 증폭기', 15, 4, 7, '대시의 전진 가속 +12%', [['dash', 1]], 'sand'),
     U_('convert', 'gear', '활공 전환 날개', 15, 4, 7, '떨어지는 속도를 전진 속도로 바꿈', [['wing', 5]], 'sand'),
     U_('airjump', 'gear', '공중 스프링', 10, 4.5, 6, '공중에서도 도약 사용 (지상 위력의 40% +6%/Lv)', [['spring', 6]], 'sand'),
@@ -169,7 +169,7 @@ const CORE = (() => {
   function stats(s) {
     const L = id => lvl(s, id), P = id => s.perks[id] || 0, bless = P('r_bless') ? 1.5 : 1;
     const power = 7 * Math.pow(1.05, L('push')) * (1 + 0.02 * L('runup')) * (1 + 0.03 * L('sling')) * (1 + 0.03 * L('cannon')) * (1 + 0.03 * L('rail')) * (1 + 0.05 * P('p_power'));
-    const eCap = 0.80 + 0.008 * L('hover'), thrust = L('rocket') ? (3 + 0.4 * L('rocket') + power * (0.02 + 0.002 * L('rocket'))) * (1 + 0.03 * L('jet')) : 0;
+    const eCap = 0.80 + 0.008 * L('hover'), thrust = L('rocket') ? (3 + 0.4 * L('rocket') + power * (0.05 + 0.004 * L('rocket'))) * (1 + 0.03 * L('jet')) : 0;
     return {
       power, angle: (14 + 2.8 * L('ramp')) * Math.PI / 180,
       perfect: 1.10 + 0.02 * L('timing') + 0.03 * P('r_focus'), window: 0.06 + 0.012 * L('timing'), meter: 1.6 / (1 + 0.15 * P('p_meter')), kickB: 0.01 * L('rail2'),
@@ -190,7 +190,7 @@ const CORE = (() => {
   const hash = n => { let t = (n + 0x6D2B79F5) | 0; t = Math.imul(t ^ (t >>> 15), 1 | t); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   const RAMP = 4, WEAR = 0.12;
   // scale of a launch at speed v: U (length unit), c (height of the coin stream), S (object size), cw (cell width), tw (time warp)
-  function scaleOf(st, v) { const U = Math.max(1, v * v / 588), apex = Math.pow(v * Math.sin(st.angle), 2) / 19.6, c = Math.min(4 * U, Math.max(0.6, 0.5 * apex)); return { U, c, S: Math.max(1, 0.7 * U), cw: 5 * U, tw: Math.max(1, 0.03 * v) }; }
+  function scaleOf(st, v) { const U = Math.max(1, v * v / 588), apex = Math.pow(v * Math.sin(st.angle), 2) / 19.6, c = Math.min(4.5 * U, Math.max(0.6, 0.5 * apex)); return { U, c, S: Math.max(1, 0.7 * U), cw: 5 * U, tw: Math.max(1, 0.03 * v) }; }
   function newRun(st, meter, kick, seed) {   // meter 0..1 from the charge gauge (>= 1-window is perfect); kick = multiplier from the ramp-edge tap
     const perfect = meter >= 1 - st.window, m = perfect ? st.perfect : 0.55 + 0.45 * meter / (1 - st.window), v = st.power * m * (kick || 1), sc = scaleOf(st, v), sd = seed == null ? Math.floor(Math.random() * 1e6) : seed;
     return Object.assign({ st, kick: kick || 1, seed: sd, x: 0, y: RAMP * Math.tan(st.angle) + 0.3, vx: v * Math.cos(st.angle), vy: v * Math.sin(st.angle), v0: v, perfect, fuel: st.fuel, spring: st.springN, dash: st.dashN, dive: st.diveN,
@@ -207,7 +207,7 @@ const CORE = (() => {
     if (gt === 'spec') gt = Z.spec ? Z.spec[Math.floor(h(2) * Z.spec.length)] : null;
     if (gt) { const x = xa + cw * (0.15 + 0.7 * h(3)); if (isWater(x, r.U)) gt = gt === 'boat' || h(7) < 0.4 ? 'boat' : null; else if (gt === 'boat') gt = null; if (gt) out.push({ id: i * 8, type: gt, x, y: ground(x, r.U), grounded: true, rad: S, z }); }
     const ha = h(4);
-    if (ha < 0.55) for (let k = 0; k < 3; k++) { const x = xa + cw * (0.2 + 0.3 * k); out.push({ id: i * 8 + 1 + k, type: 'coin', x, y: ground(x, r.U) + river(r, x), rad: (0.6 + 0.1 * r.st.magnet) * S, z }); }
+    if (ha < 0.55) for (let k = 0; k < 3; k++) { const x = xa + cw * (0.2 + 0.3 * k); out.push({ id: i * 8 + 1 + k, type: 'coin', x, y: ground(x, r.U) + river(r, x), rad: (0.75 + 0.1 * r.st.magnet) * S, z }); }
     else if (ha < 0.63) out.push({ id: i * 8 + 4, type: 'ring', x: xm, y: ground(xm, r.U) + river(r, xm), rad: 1.0 * S, z });
     if (h(5) < 0.035 * (1 + 0.3 * r.st.crate)) { const x = xa + cw * 0.65, up = h(6) < 0.5; out.push({ id: i * 8 + 5, type: 'crate', x, y: ground(x, r.U) + Math.max(0.7 * S, river(r, x) + (up ? 0.75 : -0.55) * r.c), rad: 0.8 * S, z }); }
     return out;
@@ -240,11 +240,11 @@ const CORE = (() => {
     const n = Math.min(80, Math.max(1, Math.ceil(Math.max(sp0 * dt / (0.25 * U), dtReal * 120)))), h = dt / n;
     r.boosting = !!(inp.boost && r.fuel > 0);
     const alt0 = r.y - ground(r.x, U), grounded0 = alt0 < Math.max(1.2, 0.5 * r.S), vRef = Math.max(sp0, 0.5 * r.v0);
-    const doSpring = k => { const pf = k === 1 && r.tr - r.lastBounce < 0.22 ? 1.35 : 1; r.spring--; r.vy = Math.min(0.85 * r.v0 + 8, Math.max(r.vy, 0) + (5 + 0.5 * st.spring + Math.min(sp0, 1.2 * r.v0) * (0.26 + 0.012 * st.spring)) * pf * k); r.vx *= 1.03; r.air = true; r.rotAcc = 0; r.ev.push({ k: k < 1 ? 'airspring' : pf > 1 ? 'pspring' : 'spring', x: r.x, y: r.y }); };
-    const doDash = () => { r.dash--; const add = (6 + st.dash + sp0 * (0.08 + 0.006 * st.dash)) * st.dashpow; r.vx += add; r.vy = Math.max(r.vy, -0.12 * sp0); r.ev.push({ k: 'dash', x: r.x, y: r.y }); };
+    const doSpring = k => { const pf = k === 1 && r.tr - r.lastBounce < 0.22 ? 1.35 : 1; r.spring--; r.vy = Math.min(0.85 * r.v0 + 8, Math.max(r.vy, 0) + (5 + 0.5 * st.spring + Math.min(1.2 * r.v0, Math.max(sp0, 0.8 * r.v0)) * (0.26 + 0.012 * st.spring)) * pf * k); r.vx *= 1.03; r.air = true; r.rotAcc = 0; r.ev.push({ k: k < 1 ? 'airspring' : pf > 1 ? 'pspring' : 'spring', x: r.x, y: r.y }); };
+    const doDash = () => { r.dash--; const add = (6 + st.dash + Math.max(sp0, 0.8 * r.v0) * (0.08 + 0.006 * st.dash)) * st.dashpow; r.vx += add; r.vy = grounded0 ? Math.max(r.vy, 0.18 * r.v0 + 3) : Math.max(r.vy, -0.12 * sp0); if (grounded0) r.air = true; r.ev.push({ k: 'dash', x: r.x, y: r.y }); };
     if (inp.skill) { if (grounded0 && r.spring > 0) doSpring(1); else if (r.dash > 0 && !grounded0) doDash(); else if (!grounded0 && st.airjump && r.spring > 0) doSpring(st.airjump); }
     if (inp.spring && r.spring > 0) { if (grounded0) doSpring(1); else if (st.airjump) doSpring(st.airjump); }
-    if (inp.dash && r.dash > 0 && !grounded0) doDash();
+    if (inp.dash && r.dash > 0) doDash();
     // dive: a hard push straight down (always enough to reach the ground quickly, whatever the altitude) plus some forward speed
     if (inp.dive && r.dive > 0 && !grounded0) { r.dive--; r.slam = true; r.vy = -Math.max(Math.abs(r.vy), 0.9 * r.v0); r.vx += vRef * (0.05 + 0.02 * st.dive) + 4; r.spin = 0; r.ev.push({ k: 'dive', x: r.x, y: r.y }); }
     if (r.air) { const sd = inp.spin || 0;
@@ -252,7 +252,7 @@ const CORE = (() => {
       else { r.spin *= Math.pow(0.02, dtReal); if (Math.abs(r.rotAcc) < 0.6) { const want = Math.max(-0.9, Math.min(0.9, Math.atan2(r.vy, Math.max(1, r.vx)))); let d = want - r.ang; d = Math.atan2(Math.sin(d), Math.cos(d)); r.ang += d * Math.min(1, dtReal * 4); } }
       r.ang += r.spin * dtReal; r.rotAcc += r.spin * dtReal;
       if (st.double && !r.doubled && r.vy < 0 && r.tr > 0.3) { r.doubled = true; const add = 0.25 * r.v0; r.vx += add * 0.92; r.vy += add * 0.4 + Math.max(0, -r.vy) * 0.5; r.ev.push({ k: 'double', x: r.x, y: r.y }); } }
-    if (r.boosting) { r.usedBoost = true; r.fuel -= dtReal; const dv = st.thrust * dtReal; r.vx += dv * (1 + st.nozzle); r.vy += dv * 0.16 + (r.vy < 0 ? Math.min(-r.vy, dv * 0.5) : 0); }
+    if (r.boosting) { r.usedBoost = true; r.fuel -= dtReal; const dv = st.thrust * dtReal; r.vx += dv * (1 + st.nozzle); r.vy += dv * (grounded0 ? 0.45 : 0.16) + (r.vy < 0 ? Math.min(-r.vy, dv * 0.5) : 0); if (grounded0 && r.vy > 0) r.air = true; }
     const xPrev = r.x, dg = 0.1 * U;
     for (let i = 0; i < n; i++) {
       const g = gZ * (r.air ? 1 - st.glide * Math.min(1, Math.abs(r.vx) / (0.05 * r.v0 + 1)) : 1), dk = st.drag * lerpZ(r.x, 'drag') + WEAR * st.wear * (1 + r.tr * r.tr / 200) * 9.8 / (r.v0 + 20);

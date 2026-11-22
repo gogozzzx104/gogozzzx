@@ -460,7 +460,7 @@ function hud(r) {
     if (nz) { const f = Math.min(1, (r.maxX - Z[z].at) / (nz.at - Z[z].at)); g.fillStyle = '#2b2233'; g.fillRect(bx - 2, 30, bw + 4, 10); g.fillStyle = '#fff6e6'; g.fillRect(bx, 32, bw, 6); g.fillStyle = '#12a594'; g.fillRect(bx, 32, bw * f, 6); g.font = `11px ${D}`; g.fillStyle = '#fff'; g.strokeStyle = '#2b2233'; g.lineWidth = 3; g.strokeText('다음: ' + nz.name + ' ' + fmtD(nz.at), W / 2, 54); g.fillText('다음: ' + nz.name + ' ' + fmtD(nz.at), W / 2, 54); }
     boostBtn.querySelector('small').textContent = r.fuel > 0 ? r.fuel.toFixed(1) + '초' : '연료 없음'; boostBtn.disabled = r.fuel <= 0;
     const grounded = alt < Math.max(1.2, 0.5 * r.S); skillBtn.firstChild.textContent = grounded || !st.airjump ? '도약' : '공중도약'; skillBtn.querySelector('small').textContent = r.spring + '회'; skillBtn.disabled = !(r.spring > 0 && (grounded || st.airjump));
-    dashBtn.querySelector('small').textContent = r.dash + '회'; dashBtn.disabled = !(r.dash > 0 && !grounded); diveBtn.querySelector('small').textContent = r.dive + '회'; diveBtn.disabled = !(r.dive > 0 && !grounded);
+    dashBtn.querySelector('small').textContent = r.dash + '회'; dashBtn.disabled = !(r.dash > 0); diveBtn.querySelector('small').textContent = r.dive + '회'; diveBtn.disabled = !(r.dive > 0 && !grounded);
     // live gold + combo
     const cg = r.coinGold * st.rate; if (cg > 0) { const pz = 1 + 0.35 * Math.max(0, 1 - (performance.now() - goldPopT) / 180); g.textAlign = 'left'; txt('+' + fmt(cg), 34, 86 + 2, 15 * pz, '#ffd24a'); g.fillStyle = '#f5b014'; g.strokeStyle = '#2b2233'; g.lineWidth = 2; g.beginPath(); g.arc(23, 86 - 4, 6, 0, 7); g.fill(); g.stroke(); }
     if (r.golden) { g.textAlign = 'left'; txt('황금 판 ×3', 16, 86 + 22, 13, '#ffd24a'); }
