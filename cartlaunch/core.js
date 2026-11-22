@@ -15,12 +15,12 @@ const CORE = (() => {
     { id: 'sea', name: '망망대해', at: 25000, sc: 40, amp: 80, wl: 3200, mu: 1, e: 1, loss: 1, g: 9.8, drag: 1, sky: ['#3d8fd6', '#bfe9ff'], ground: '#1f6fb5', deco: 'sea', water: true },
     { id: 'ice', name: '만년 설산', at: 60000, sc: 100, amp: 170, wl: 3600, sk: 0.6, la: 260, mu: 0.12, e: 0.9, loss: 0.5, g: 9.8, drag: 1, sky: ['#9fc3e8', '#ffffff'], ground: '#e8f1fa', deco: 'ice' },
     { id: 'lava', name: '용암 지대', at: 150000, sc: 250, amp: 250, wl: 6000, sk: 0.75, la: 420, mu: 1.2, e: 0.9, loss: 1, g: 9.8, drag: 1.2, sky: ['#3a1410', '#c2451e'], ground: '#33211f', deco: 'lava' },
-    { id: 'cloud', name: '구름 왕국', at: 400000, sc: 400, amp: 300, wl: 8000, sk: 0.2, la: 520, mu: 0.5, e: 1.3, loss: 0.5, g: 7.4, drag: 0.8, sky: ['#ff9ec7', '#fff0c9'], ground: '#fff3fa', deco: 'cloud' },
-    { id: 'moon', name: '달 기지', at: 900000, sc: 600, amp: 330, wl: 9000, sk: -0.5, la: 520, mu: 0.8, e: 1.05, loss: 0.8, g: 1.62, drag: 0.25, sky: ['#05060d', '#141a33'], ground: '#9a9aa6', deco: 'moon' },
-    { id: 'rock', name: '소행성대', at: 2500000, sc: 900, amp: 700, wl: 12000, sk: -0.7, la: 650, mu: 1, e: 1, loss: 1, g: 0.9, drag: 0.15, sky: ['#070812', '#221a38'], ground: '#6b6258', deco: 'rock' },
-    { id: 'star', name: '은하 고속도로', at: 7000000, sc: 1500, amp: 650, wl: 18000, sk: 0.35, la: 950, mu: 0.7, e: 1.05, loss: 0.7, g: 3.2, drag: 0.3, sky: ['#0a0220', '#3a0f66'], ground: '#5b2bd6', deco: 'star' },
-    { id: 'hole', name: '블랙홀 가장자리', at: 20000000, sc: 2600, amp: 1500, wl: 42000, sk: 0.5, la: 2600, mu: 0.6, e: 0.95, loss: 0.9, g: 16, drag: 0.5, sky: ['#000000', '#3a0a16'], ground: '#1a1020', deco: 'hole' },
-    { id: 'end', name: '우주의 끝', at: 60000000, sc: 4200, amp: 2600, wl: 75000, sk: 0.3, la: 4200, mu: 0.5, e: 1.1, loss: 0.5, g: 2.2, drag: 0.2, sky: ['#b8e8ff', '#f6f0ff'], ground: '#2b2233', deco: 'end' },
+    { id: 'cloud', name: '구름 왕국', at: 400000, sc: 400, amp: 300, wl: 8000, sk: 0.2, la: 520, mu: 0.5, e: 1.15, loss: 0.5, g: 7.4, drag: 0.8, sky: ['#ff9ec7', '#fff0c9'], ground: '#fff3fa', deco: 'cloud' },
+    { id: 'moon', name: '달 기지', at: 1200000, sc: 700, amp: 330, wl: 9000, sk: -0.5, la: 520, mu: 0.8, e: 1.05, loss: 0.8, g: 1.62, drag: 0.25, sky: ['#05060d', '#141a33'], ground: '#9a9aa6', deco: 'moon' },
+    { id: 'rock', name: '소행성대', at: 8000000, sc: 1600, amp: 700, wl: 12000, sk: -0.7, la: 650, mu: 1, e: 1, loss: 1, g: 0.9, drag: 0.15, sky: ['#070812', '#221a38'], ground: '#6b6258', deco: 'rock' },
+    { id: 'star', name: '은하 고속도로', at: 30000000, sc: 3000, amp: 650, wl: 18000, sk: 0.35, la: 950, mu: 0.7, e: 1.05, loss: 0.7, g: 3.2, drag: 0.3, sky: ['#0a0220', '#3a0f66'], ground: '#5b2bd6', deco: 'star' },
+    { id: 'hole', name: '블랙홀 가장자리', at: 80000000, sc: 5000, amp: 1500, wl: 42000, sk: 0.5, la: 2600, mu: 0.6, e: 0.95, loss: 0.9, g: 16, drag: 0.5, sky: ['#000000', '#3a0a16'], ground: '#1a1020', deco: 'hole' },
+    { id: 'end', name: '우주의 끝', at: 250000000, sc: 9000, amp: 2600, wl: 75000, sk: 0.3, la: 4200, mu: 0.5, e: 1.1, loss: 0.5, g: 2.2, drag: 0.2, sky: ['#b8e8ff', '#f6f0ff'], ground: '#2b2233', deco: 'end' },
   ];
   const ZI = id => ZONES.findIndex(z => z.id === id);
 
@@ -42,6 +42,7 @@ const CORE = (() => {
     U('push', 'launch', '근력 훈련', 60, 8, 1.121, '미는 힘 +5%'),
     U('ramp', 'launch', '발사 경사로', 10, 25, 1.405, '발사 각도 +2.8°', [['push', 3]]),
     U('runup', 'launch', '도움닫기', 20, 120, 1.248, '발사 속도 +2.5%', [['push', 5]]),
+    U('rail2', 'launch', '가속 레일', 10, 3000, 1.4, '발사대 킥 보너스 +1%p (굿 킥은 절반)', [['push', 6]]),
     U('timing', 'launch', '타이밍 감각', 10, 400, 1.405, '퍼펙트 구간 확대, 퍼펙트 보너스 +2%', [['runup', 3]]),
     U('sling', 'launch', '대형 새총', 25, 4e4, 1.27, '발사 속도 +5%', [['ramp', 5]], 'sand'),
     U('cannon', 'launch', '화약 대포', 25, 3e6, 1.292, '발사 속도 +5%', [['sling', 10]], 'ice'),
@@ -54,6 +55,8 @@ const CORE = (() => {
     U('bumper', 'body', '강화 범퍼', 10, 2000, 1.45, '장애물 충돌 손실 감소, Lv6부터 부수고 골드 획득', [['frame', 5]]),
     U('wide', 'body', '광폭 타이어', 10, 3e4, 1.405, '진흙·모래·험지에서 잃는 속도 감소', [['tire', 5]], 'forest'),
     U('float', 'body', '부력 튜브', 10, 2e5, 1.45, '물에 가라앉지 않고 물수제비를 뜸', [], 'sea'),
+    U('gyro', 'body', '자이로 안정기', 10, 2e4, 1.36, '공중 회전이 빨라지고 착지 판정이 너그러워짐', [['frame', 3]]),
+    U('rubber', 'body', '초탄성 서스펜션', 10, 5e4, 1.36, '트램펄린·자동차·버섯 등 발판 반발 +5%', [['tire', 6]]),
     U('heat', 'body', '내열 코팅', 10, 2e8, 1.45, '용암 웅덩이 피해 감소', [], 'lava'),
 
     U('rocket', 'gear', '로켓 부스터', 30, 800, 1.225, '부스트 추진력 증가 (BOOST 버튼)', [['push', 8]]),
@@ -63,6 +66,12 @@ const CORE = (() => {
     U('dash', 'gear', '에어 대시', 15, 6e4, 1.315, '공중에서 SKILL로 급가속 (5레벨마다 횟수 +1)', [['wing', 3]]),
     U('hover', 'gear', '호버 스커트', 15, 1e6, 1.36, '지면 마찰 추가 -20%', [['wheel', 15]], 'sea'),
     U('jet', 'gear', '제트 엔진', 20, 5e7, 1.315, '부스트 추진력 +4%', [['rocket', 15]], 'ice'),
+    U('nozzle', 'gear', '벡터 노즐', 15, 5000, 1.27, '부스트가 앞으로 미는 힘 +8%', [['rocket', 3]]),
+    U('dashpow', 'gear', '대시 증폭기', 15, 2e5, 1.3, '대시의 전진 가속 +12%', [['dash', 1]]),
+    U('airjump', 'gear', '공중 스프링', 10, 5e5, 1.4, '공중에서도 도약 사용 (지상 위력의 40% +6%/Lv)', [['spring', 6]], 'sand'),
+    U('convert', 'gear', '활공 전환 날개', 15, 1e5, 1.3, '떨어질 때 낙하 속도를 전진 속도로 바꿈 (초당 0.4%씩)', [['wing', 5]]),
+    U('dive', 'gear', '급강하 장치', 12, 3e5, 1.4, '공중에서 급강하: 내리꽂으며 전진 가속, 착지 시 강하게 튐 (3Lv마다 횟수 +1)', [['tire', 8]], 'sand'),
+    U('relay', 'gear', '중계 대포', 10, 2e6, 1.5, '하늘에 카트를 다시 쏴 주는 대포통이 더 자주 등장', [['rocket', 8]], 'canyon'),
     U('grav', 'gear', '반중력 코어', 15, 5e10, 1.405, '모든 구역의 중력 -3%', [['wing', 10]], 'moon'),
 
     U('ad', 'money', '전단지 광고', 60, 12, 1.135, '거리당 골드 +9%'),
@@ -71,6 +80,9 @@ const CORE = (() => {
     U('style', 'money', '묘기 보너스', 20, 2000, 1.27, '튕길 때마다 골드 +0.25% (최대 12회)', [['ad', 8]]),
     U('alt', 'money', '고도 수당', 20, 1e4, 1.27, '최고 고도에 따라 골드 보너스', [['style', 3]]),
     U('sponsor', 'money', '스폰서 계약', 20, 5e4, 1.36, '도달한 구역 하나당 골드 +5%', [['ad', 15]], 'hill'),
+    U('combo', 'money', '콤보 미터', 15, 8000, 1.3, '3초 안에 연달아 먹으면 콤보, 최고 콤보당 골드 +0.2% (최대 50콤보)', [['coin', 5]]),
+    U('trickpay', 'money', '묘기 전속 계약', 15, 3e4, 1.3, '공중 묘기 보너스 +20%', [['style', 2]]),
+    U('lucky', 'money', '황금 카트', 10, 5e5, 1.5, '판마다 2% 확률로 황금 판 (획득 골드 3배)', [['ad', 20]], 'forest'),
     U('crate', 'money', '보물 드론', 10, 1e6, 1.54, '하늘에 큰 골드 상자가 더 자주 등장', [['coin', 10]], 'sand'),
   ];
   const UP = Object.fromEntries(UPS.map(u => [u.id, u]));
@@ -114,13 +126,14 @@ const CORE = (() => {
     A('a_sea', '바다를 건넌 카트', '만년 설산 도달', (s, r) => s.zone >= ZI('ice')), A('a_cloud', '구름 위 산책', '구름 왕국 도달', (s, r) => s.zone >= ZI('cloud')), A('a_moon', '달 착륙', '달 기지 도달', (s, r) => s.zone >= ZI('moon')), A('a_star', '은하 여행자', '은하 고속도로 도달', (s, r) => s.zone >= ZI('star')),
     A('a_hole', '사건의 지평선', '블랙홀 가장자리 도달', (s, r) => s.zone >= ZI('hole')), A('a_end', '끝을 본 자', '우주의 끝 도달', (s, r) => s.zone >= ZI('end')),
     A('a_lv100', '단골 손님', '업그레이드 100레벨', (s, r) => total(s) >= 100), A('a_lv300', 'VIP 고객', '업그레이드 300레벨', (s, r) => total(s) >= 300),
+    A('a_combo', '줄줄이 사탕', '한 판에 20콤보', (s, r) => r && r.maxCombo >= 20), A('a_slam', '운석 낙하', '급강하 착지 5회 누적', (s, r) => (s.slams || 0) >= 5), A('a_barrel', '환승입니다', '대포통에 들어가기', (s, r) => r && r.barrels >= 1), A('a_gold', '황금빛 하루', '황금 판을 한 번 달리기', (s, r) => r && r.golden),
     A('a_re1', '새 출발', '첫 환생', (s, r) => s.rebirths >= 1), A('a_re5', '윤회', '환생 5회', (s, r) => s.rebirths >= 5),
   ];
   function checkAch(s, r) { const got = []; for (const a of ACH) if (!s.ach[a.id] && a.test(s, r)) { s.ach[a.id] = 1; got.push(a); } return got; }
   const achCount = s => Object.keys(s.ach || {}).length;
   const newSave = () => ({ gold: 0, lv: {}, best: 0, bestLife: 0, zone: 0, runs: 0, stars: 0, starsTotal: 0, perks: {}, rebirths: 0, seen: {}, ach: {}, perfects: 0, v: 2 });
   const lvl = (s, id) => s.lv[id] || 0;
-  const CFG = { infl: 1.014 };
+  const CFG = { infl: 1.015 };
   const cost = (s, id) => { const u = UP[id]; return Math.ceil(u.c0 * Math.pow(u.cm, lvl(s, id)) * Math.pow(CFG.infl - 0.001 * (s.perks.r_disc || 0), total(s))); };
   function lockReason(s, id) { const u = UP[id]; if (s.zone < u.zone) return `${ZONES[u.zone].name} 도달 필요`; for (const [r, n] of u.req) if (lvl(s, r) < n) return `${UP[r].name} Lv${n} 필요`; return ''; }
   const canBuy = (s, id) => lvl(s, id) < UP[id].max && !lockReason(s, id) && s.gold >= cost(s, id);
@@ -137,7 +150,8 @@ const CORE = (() => {
       drag: 0.02 * Math.pow(0.9, L('aero')), bumper: L('bumper'), wide: L('wide'), float: L('float'), heat: L('heat'),
       thrust: L('rocket') ? (3 + 0.4 * L('rocket') + power * (0.04 + 0.004 * L('rocket'))) * (1 + 0.04 * L('jet')) : 0, fuel: L('rocket') ? 1.5 + 0.15 * L('fuel') + 0.5 * P('p_fuel') : 0,
       spring: L('spring'), springN: L('spring') ? 1 + Math.floor(L('spring') / 4) + P('r_spring') : 0, dash: L('dash'), dashN: L('dash') ? 1 + Math.floor(L('dash') / 5) + P('r_dash') : 0,
-      glide: Math.min(0.72, 0.035 * L('wing')), grav: (1 - 0.03 * L('grav')) * (1 - 0.02 * P('r_feather')), trick: 0.03 * (1 + 0.5 * P('r_trick')), double: P('r_double'), phoenix: P('r_phoenix'),
+      glide: Math.min(0.72, 0.035 * L('wing')), grav: (1 - 0.03 * L('grav')) * (1 - 0.02 * P('r_feather')), trick: 0.03 * (1 + 0.5 * P('r_trick')) * (1 + 0.2 * L('trickpay')), gyro: L('gyro'), rubber: 1 + 0.05 * L('rubber'), kickB: 0.01 * L('rail2'), nozzle: 0.08 * L('nozzle'), dashpow: 1 + 0.12 * L('dashpow'),
+      airjump: L('airjump') ? 0.4 + 0.06 * L('airjump') : 0, convert: 0.004 * L('convert'), dive: L('dive'), diveN: L('dive') ? 1 + Math.floor(L('dive') / 3) : 0, relay: L('relay'), combo: 0.002 * L('combo'), lucky: 0.02 * L('lucky'), double: P('r_double'), phoenix: P('r_phoenix'),
       rate: Math.pow(1.09, L('ad')) * (1 + 0.25 * P('p_gold')) * (1 + 0.1 * s.starsTotal * (P('r_bless') ? 2 : 1)) * (1 + 0.05 * L('sponsor') * s.zone) * (1 + 0.03 * achCount(s)),
       coin: Math.pow(1.15, L('coin')) * (1 + 0.5 * P('r_coin')), magnet: L('magnet'), style: 0.0025 * L('style'), alt: 0.005 * L('alt'), crate: L('crate'),
     };
@@ -146,12 +160,12 @@ const CORE = (() => {
   // ---- world objects: one per cell, decided by a hash so the course is the same every run -------------
   const hash = n => { let t = (n + 0x6D2B79F5) | 0; t = Math.imul(t ^ (t >>> 15), 1 | t); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   const CELL = 34;
-  function cellObj(z, i, crate) {
+  function cellObj(z, i, crate, relay) {
     const Z = ZONES[z], cs = CELL * Z.sc, x = Z.at + (i + 0.25 + 0.5 * hash(z * 9973 + i * 7 + 1)) * cs, id = z * 1e6 + i, r = hash(z * 9973 + i * 7 + 2), h = hash(z * 9973 + i * 7 + 3);
     if (x < 26 || (z + 1 < ZONES.length && x >= ZONES[z + 1].at)) return null;
     const air = (lo, hi) => ground(x) + (lo + (hi - lo) * h) * Z.sc;
     let type;
-    if (r < 0.30) type = 'coin'; else if (r < 0.42) type = 'pad'; else if (r < 0.52) type = 'tramp'; else if (r < 0.64) type = 'ring'; else if (r < 0.80) type = 'haz'; else if (r < 0.80 + 0.012 * (1 + crate)) type = 'crate'; else if (r < 0.90) type = 'spec'; else return null;
+    if (r < 0.30) type = 'coin'; else if (r < 0.42) type = 'pad'; else if (r < 0.52) type = 'tramp'; else if (r < 0.64) type = 'ring'; else if (r < 0.80) type = 'haz'; else if (r < 0.80 + 0.012 * (1 + crate)) type = 'crate'; else if (r < 0.90) type = 'spec'; else if (z >= 2 && r > 0.985 - 0.006 * (relay || 0)) type = 'barrel'; else return null;
     if (type === 'spec') { if (Z.id === 'lava') type = h < 0.5 ? 'geyser' : 'pool'; else if (Z.id === 'city') type = 'car'; else if (Z.id === 'sea') type = 'boat'; else if (Z.id === 'star' || Z.id === 'moon' || Z.id === 'canyon' || Z.id === 'hole') type = 'ring'; else if (Z.id === 'forest' || Z.id === 'cloud') type = 'tramp'; else if (Z.id === 'rock') type = 'haz'; else type = 'coin'; }
     if (Z.water && (type === 'pad' || type === 'haz')) type = h < 0.5 ? 'boat' : 'coin';
     const grounded = type === 'pad' || type === 'tramp' || type === 'haz' || type === 'geyser' || type === 'pool' || type === 'car' || type === 'boat';
@@ -165,15 +179,18 @@ const CORE = (() => {
     const perfect = meter >= 1 - st.window, m = perfect ? st.perfect : 0.55 + 0.45 * meter / (1 - st.window), v = st.power * m * (kick || 1);
     return { st, kick: kick || 1, x: 0, y: RAMP * Math.tan(st.angle) + 0.3, vx: v * Math.cos(st.angle), vy: v * Math.sin(st.angle), v0: v, perfect, fuel: st.fuel, spring: st.springN, dash: st.dashN, t: 0, tr: 0, air: true, rest: 0,
       maxX: 0, maxAlt: 0, maxV: v, bounces: 0, coins: 0, coinGold: 0, broke: 0, used: new Set(), cell: [-1, -1], over: false, why: '', ev: [], tw: 1, boosting: false,
+      dive: st.diveN, slam: false, combo: 0, comboT: -9, maxCombo: 0, golden: Math.random() < st.lucky,
       ang: st.angle, spin: 0, rotAcc: 0, tricks: 0, crashes: 0, usedBoost: false, doubled: false, risen: false, lastBounce: -9 };
   }
   function hit(r, o) {
     const st = r.st, sp = Math.hypot(r.vx, r.vy), zc = Math.pow(1.9, o.z);
     r.used.add(o.id);
+    if (o.type !== 'haz' && o.type !== 'pool') { r.combo = r.tr - r.comboT < 3 ? r.combo + 1 : 1; r.comboT = r.tr; if (r.combo > r.maxCombo) r.maxCombo = r.combo; }
     if (o.type === 'coin') { const g = 5 * zc * st.coin; r.coins++; r.coinGold += g; r.ev.push({ k: 'coin', x: o.x, y: o.y, g }); }
+    else if (o.type === 'barrel') { const s2 = sp + 0.4 * r.v0 + 8; r.vx = s2 * 0.88; r.vy = s2 * 0.47; r.air = true; r.rotAcc = 0; r.x = o.x; r.y = o.y; r.barrels = (r.barrels || 0) + 1; r.ev.push({ k: 'barrel', x: o.x, y: o.y }); }
     else if (o.type === 'crate') { const g = 120 * zc * st.coin; r.coinGold += g; r.ev.push({ k: 'crate', x: o.x, y: o.y, g }); }
     else if (o.type === 'pad') { const add = Math.max(sp * 0.02, 0.35 * (1.15 * r.v0 - sp)); r.vx += add; r.ev.push({ k: 'pad', x: o.x, y: o.y }); }
-    else if (o.type === 'tramp' || o.type === 'car' || o.type === 'boat') { r.vy = Math.max(r.vy, 0) + 7 + sp * (o.type === 'tramp' ? 0.34 : 0.24); r.vx *= 1.02; r.air = true; r.bounces++; r.ev.push({ k: 'tramp', x: o.x, y: o.y }); }
+    else if (o.type === 'tramp' || o.type === 'car' || o.type === 'boat') { r.vy = Math.max(r.vy, 0) + (7 + sp * (o.type === 'tramp' ? 0.34 : 0.24)) * st.rubber; r.vx *= 1.02; r.air = true; r.bounces++; r.ev.push({ k: 'tramp', x: o.x, y: o.y }); }
     else if (o.type === 'ring') { r.vx += Math.max(sp * 0.015, 0.25 * (1.1 * r.v0 - sp)); r.vy = r.vy * 0.6 + 4 + sp * 0.06; r.ev.push({ k: 'ring', x: o.x, y: o.y }); }
     else if (o.type === 'geyser') { r.vy = Math.max(r.vy, 0) + 30 + sp * 0.45; r.air = true; r.ev.push({ k: 'geyser', x: o.x, y: o.y }); }
     else if (o.type === 'pool') { const k = 0.55 + 0.044 * st.heat; r.vx *= k; r.vy *= k; r.ev.push({ k: 'burn', x: o.x, y: o.y }); }
@@ -181,7 +198,7 @@ const CORE = (() => {
   }
   function objects(r, x0, x1) {
     for (let z = zoneAt(x0); z <= zoneAt(x1); z++) { const Z = ZONES[z], cs = CELL * Z.sc, i0 = Math.max(0, Math.floor((x0 - Z.at) / cs) - 1), i1 = Math.floor((x1 - Z.at) / cs);
-      for (let i = i0; i <= i1; i++) { const o = cellObj(z, i, r.st.crate); if (!o || r.used.has(o.id) || o.x < x0 || o.x > x1) continue;
+      for (let i = i0; i <= i1; i++) { const o = cellObj(z, i, r.st.crate, r.st.relay); if (!o || r.used.has(o.id) || o.x < x0 || o.x > x1) continue;
         const alt = r.y - ground(o.x);
         if (o.grounded) { if (alt < 2.2 * o.sc) hit(r, o); }
         else { const rad = (o.type === 'coin' ? 3.2 + 0.9 * r.st.magnet : o.type === 'ring' ? 6 : 5) * o.sc; if (Math.abs(r.y - o.y) < rad) hit(r, o); } } }
@@ -189,25 +206,29 @@ const CORE = (() => {
   // advance by dt real seconds; inp = { boost: bool, skill: bool (edge) }
   function step(r, dtReal, inp) {
     if (r.over) return; const st = r.st; r.ev.length = 0;
-    const sp0 = Math.hypot(r.vx, r.vy), gE = lerpZ(r.x, 'g') * st.grav * (1 - st.glide), twT = Math.min(400, Math.max(r.air ? 1 : 3, sp0 / (3.6 * gE))); r.tw += (twT - r.tw) * Math.min(1, dtReal * 3);
+    const sp0 = Math.hypot(r.vx, r.vy), gE = lerpZ(r.x, 'g') * st.grav * (1 - st.glide), altW = r.y - ground(r.x), twT = Math.min(1500, Math.max(r.air ? 1 : 3, sp0 / (2.8 * gE), r.air && r.vy < 0 ? altW / (1 - r.vy) / 4 : 0)); r.tw += (twT - r.tw) * Math.min(1, dtReal * 3);
     const dt = dtReal * r.tw, n = Math.min(400, Math.max(1, Math.ceil(Math.max(sp0 * dt / Math.max(1.2, 0.35 * lerpZ(r.x, 'sc')), dtReal * 120)))), h = dt / n;
     r.boosting = !!(inp.boost && r.fuel > 0);
     const alt0 = r.y - ground(r.x);
-    if (inp.skill) {
-      if (alt0 < 1.5 + sp0 * 0.01 && r.spring > 0) { const pf = r.tr - r.lastBounce < 0.22 ? 1.35 : 1; r.spring--; r.vy = Math.max(r.vy, 0) + (5 + 0.5 * st.spring + sp0 * (0.26 + 0.008 * st.spring)) * pf; r.vx *= 1.03; r.air = true; r.rotAcc = 0; r.ev.push({ k: pf > 1 ? 'pspring' : 'spring', x: r.x, y: r.y }); }
-      else if (r.dash > 0 && alt0 >= 1.5) { r.dash--; const add = 6 + st.dash + sp0 * (0.08 + 0.006 * st.dash); r.vx += add; r.vy = Math.max(r.vy, -sp0 * 0.1) + add * 0.15; r.ev.push({ k: 'dash', x: r.x, y: r.y }); }
-    }
+    const grounded0 = alt0 < 1.5 + sp0 * 0.01;
+    const doSpring = k => { const pf = k === 1 && r.tr - r.lastBounce < 0.22 ? 1.35 : 1; r.spring--; r.vy = Math.max(r.vy, 0) + (5 + 0.5 * st.spring + sp0 * (0.26 + 0.008 * st.spring)) * pf * k; r.vx *= 1.03; r.air = true; r.rotAcc = 0; r.ev.push({ k: k < 1 ? 'airspring' : pf > 1 ? 'pspring' : 'spring', x: r.x, y: r.y }); };
+    const doDash = () => { r.dash--; const add = (6 + st.dash + sp0 * (0.08 + 0.006 * st.dash)) * st.dashpow; r.vx += add; r.vy = Math.max(r.vy, -sp0 * 0.1) + add * 0.12; r.ev.push({ k: 'dash', x: r.x, y: r.y }); };
+    if (inp.skill) { if (grounded0 && r.spring > 0) doSpring(1); else if (r.dash > 0 && !grounded0) doDash(); else if (!grounded0 && st.airjump && r.spring > 0) doSpring(st.airjump); }
+    if (inp.spring && r.spring > 0) { if (grounded0) doSpring(1); else if (st.airjump) doSpring(st.airjump); }
+    if (inp.dash && r.dash > 0 && !grounded0) doDash();
+    if (inp.dive && r.dive > 0 && !grounded0) { r.dive--; r.slam = true; r.vy = -Math.max(Math.abs(r.vy), sp0 * 0.7); r.vx += sp0 * (0.05 + 0.02 * st.dive) + 4; r.spin = 0; r.ev.push({ k: 'dive', x: r.x, y: r.y }); }
     // air control: inp.spin = +1 back flip, -1 front flip.  With no input the cart settles along its flight path.
     if (r.air) { const sd = inp.spin || 0;
-      if (sd) { r.spin += sd * 16 * dtReal; r.spin = Math.max(-9, Math.min(9, r.spin)); }
+      if (sd) { r.spin += sd * 16 * (1 + 0.08 * st.gyro) * dtReal; r.spin = Math.max(-9, Math.min(9, r.spin)); }
       else { r.spin *= Math.pow(0.02, dtReal); if (Math.abs(r.rotAcc) < 0.6) { const want = Math.max(-0.9, Math.min(0.9, Math.atan2(r.vy, Math.max(1, r.vx)))); let d = want - r.ang; d = Math.atan2(Math.sin(d), Math.cos(d)); r.ang += d * Math.min(1, dtReal * 4); } }
       r.ang += r.spin * dtReal; r.rotAcc += r.spin * dtReal;
       if (st.double && !r.doubled && r.vy < 0 && r.tr > 0.3) { r.doubled = true; const sp = Math.hypot(r.vx, r.vy) || 1, add = 0.25 * r.v0; r.vx += add * 0.92; r.vy += add * 0.4 + Math.max(0, -r.vy) * 0.5; r.ev.push({ k: 'double', x: r.x, y: r.y }); } }
-    if (r.boosting) { r.usedBoost = true; r.fuel -= dtReal; const sp = Math.hypot(r.vx, r.vy) || 1; let ux = r.vx / sp, uy = r.vy / sp + 0.38; const m = Math.hypot(ux, uy) || 1; if (sp < 2) { ux = 0.94; uy = 0.34; } else { ux /= m; uy /= m; } const dv = st.thrust * dtReal; r.vx += ux * dv; r.vy += uy * dv; }
+    if (r.boosting) { r.usedBoost = true; r.fuel -= dtReal; const sp = Math.hypot(r.vx, r.vy) || 1; let ux = r.vx / sp, uy = r.vy / sp + 0.38; const m = Math.hypot(ux, uy) || 1; if (sp < 2) { ux = 0.94; uy = 0.34; } else { ux /= m; uy /= m; } const dv = st.thrust * dtReal; r.vx += ux * dv + dv * st.nozzle; r.vy += uy * dv; }
     const xPrev = r.x;
     for (let i = 0; i < n; i++) {
       const g = lerpZ(r.x, 'g') * st.grav * (r.air ? 1 - st.glide * Math.min(1, Math.abs(r.vx) / 12) : 1), dk = st.drag * lerpZ(r.x, 'drag');
       r.vy -= g * h; const d = Math.exp(-dk * h); r.vx *= d; r.vy *= d;
+      if (st.convert && r.air && r.vy < 0) { const f = 1 - Math.exp(-st.convert * h), vy0 = r.vy; r.vy *= 1 - f; r.vx = Math.sqrt(Math.max(0, r.vx) * Math.max(0, r.vx) + (vy0 * vy0 - r.vy * r.vy) * 0.75); }   // wings bend the fall forward: sink speed becomes forward speed, no free energy
       r.x += r.vx * h; r.y += r.vy * h;
       const gy = ground(r.x);
       if (r.y <= gy) {
@@ -217,14 +238,15 @@ const CORE = (() => {
           const imp = -vn, water = isWater(r.x), z = zoneAt(r.x), Z = ZONES[z];
           if (r.air) { // landing: clean flips pay out, a botched one costs speed
             const sa = Math.atan(sl), dd = Math.atan2(Math.sin(r.ang - sa), Math.cos(r.ang - sa)), flips = Math.round(Math.abs(r.rotAcc) / 6.2832);
-            if (flips >= 1 && Math.abs(dd) < 0.7) { r.tricks += flips; vt *= 1 + Math.min(0.25, 0.05 * flips); r.ev.push({ k: 'trick', x: r.x, y: r.y, n: flips, clean: Math.abs(dd) < 0.2 }); }
+            if (flips >= 1 && Math.abs(dd) < 0.7 + 0.04 * st.gyro) { r.tricks += flips; vt *= 1 + Math.min(0.25, 0.05 * flips); r.ev.push({ k: 'trick', x: r.x, y: r.y, n: flips, clean: Math.abs(dd) < 0.2 }); }
             else if (Math.abs(r.rotAcc) > 1.2 && Math.abs(dd) > 1.4) { vt *= 0.75; r.crashes++; r.ev.push({ k: 'crash', x: r.x, y: r.y }); }
             r.rotAcc = 0; r.spin = 0; r.ang = sa; r.lastBounce = r.tr; }
           if (water && !st.float) { if (Math.abs(vt) > 24 && imp < Math.abs(vt) * 0.55) { vn = imp * 0.45; vt *= 0.86; r.bounces++; r.air = true; r.ev.push({ k: 'skip', x: r.x, y: r.y }); } else { r.over = true; r.why = '물에 빠졌어요'; r.ev.push({ k: 'sink', x: r.x, y: r.y }); break; } }
           else {
             const rough = Z.loss > 1 ? 1 + (Z.loss - 1) * Math.max(0.15, 1 - 0.085 * st.wide) : Z.loss, eZ = Z.e < 1 ? 1 - (1 - Z.e) * Math.max(0.15, 1 - 0.085 * st.wide) : Z.e;
             const e = water ? 0.4 + 0.035 * st.float : Math.min(0.92, st.e * eZ);
-            if (imp > 1.4 + Math.abs(vt) * 0.012) { vn = imp * e; vt *= 1 - Math.min(0.9, (water ? 0.16 - 0.01 * st.float : st.loss * rough) * Math.min(1, imp / (Math.abs(vt) + 1) * 3 + 0.25)); r.bounces++; r.air = true; r.ev.push({ k: 'bounce', x: r.x, y: r.y, imp }); }
+            if (r.slam && !water) { r.slam = false; vn = imp * Math.min(0.97, e + 0.08 + 0.02 * st.dive); vt *= 1.02; r.bounces++; r.air = true; r.slams = (r.slams || 0) + 1; r.ev.push({ k: 'slam', x: r.x, y: r.y, imp }); }
+            else if (imp > 1.4 + Math.abs(vt) * 0.012) { vn = imp * e; vt *= 1 - Math.min(0.9, (water ? 0.16 - 0.01 * st.float : st.loss * rough) * Math.min(1, imp / (Math.abs(vt) + 1) * 3 + 0.25)); r.bounces++; r.air = true; r.ev.push({ k: 'bounce', x: r.x, y: r.y, imp }); }
             else { vn = 0; r.air = false; r.ang = Math.atan(sl); const muZ = Z.mu > 1 ? 1 + (Z.mu - 1) * Math.max(0.15, 1 - 0.085 * st.wide) : Z.mu, mu = water ? 0.5 / (1 + 0.6 * st.float) : st.mu * muZ, dec = mu * g * h; vt = Math.abs(vt) <= dec ? 0 : vt - Math.sign(vt) * dec; }
           }
           r.vx = vn * nx + vt * tx; r.vy = vn * ny + vt * ty;
@@ -243,12 +265,12 @@ const CORE = (() => {
   function payout(r, s) {
     const st = r.st, D = r.maxX, z = zoneAt(D), gd = (d, zi) => 9 * Math.pow(d, 0.55) * Math.pow(1.15, zi) * st.rate;
     const dist = gd(D, z);
-    const style = st.style * Math.min(12, r.bounces), alt = st.alt * Math.log2(1 + r.maxAlt / 8), perfect = r.perfect ? 0.1 : 0, trick = st.trick * Math.min(30, r.tricks);
+    const style = st.style * Math.min(12, r.bounces), alt = st.alt * Math.log2(1 + r.maxAlt / 8), perfect = r.perfect ? 0.1 : 0, trick = st.trick * Math.min(30, r.tricks), combo = st.combo * Math.min(50, r.maxCombo), gold = r.golden ? 3 : 1;
     let first = 0; for (let i = s.zone + 1; i <= z; i++) first += 3 * gd(ZONES[i].at, i);
-    const coins = r.coinGold * st.rate * 0.6, mult = 1 + style + alt + perfect + trick;
-    return { dist, coins, style, alt, perfect, trick, first, mult, total: Math.floor((dist + coins) * mult + first), zone: z };
+    const coins = r.coinGold * st.rate * 0.6, mult = 1 + style + alt + perfect + trick + combo;
+    return { dist, coins, style, alt, perfect, trick, combo, gold, first, mult, total: Math.floor(((dist + coins) * mult + first) * gold), zone: z };
   }
-  function finish(r, s) { const p = payout(r, s); s.gold += p.total; s.runs++; if (r.perfect) s.perfects = (s.perfects || 0) + 1; p.record = r.maxX > s.best; if (r.maxX > s.best) s.best = r.maxX; if (r.maxX > s.bestLife) s.bestLife = r.maxX; p.newZone = p.zone > s.zone; if (p.zone > s.zone) s.zone = p.zone; p.ach = checkAch(s, r); return p; }
+  function finish(r, s) { const p = payout(r, s); s.gold += p.total; s.runs++; if (r.perfect) s.perfects = (s.perfects || 0) + 1; if (r.slams) s.slams = (s.slams || 0) + r.slams; p.record = r.maxX > s.best; if (r.maxX > s.best) s.best = r.maxX; if (r.maxX > s.bestLife) s.bestLife = r.maxX; p.newZone = p.zone > s.zone; if (p.zone > s.zone) s.zone = p.zone; p.ach = checkAch(s, r); return p; }
   function rebirth(s) { const gain = starsFor(s.bestLife); if (s.bestLife < ZONES[ZI('sea')].at) return 0; const seed = (s.perks.p_seed || 0) ? 100 * Math.pow(10, s.perks.p_seed) : 0;
     s.stars += gain; s.starsTotal += gain; s.rebirths++; s.gold = seed; s.lv = {}; s.bestLife = 0; s.zone = Math.min(s.zone, 2 * (s.perks.r_skip || 0)); checkAch(s, null); return gain; }
   function buyPerk(s, id) { const p = PK[id], l = s.perks[id] || 0; if (!p || l >= p.max || perkLock(s, id) || s.stars < perkCost(p, l)) return false; s.stars -= perkCost(p, l); s.perks[id] = l + 1; return true; }
