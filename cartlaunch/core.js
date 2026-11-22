@@ -236,11 +236,11 @@ const CORE = (() => {
     if (r.over) return; const st = r.st, U = r.U; r.ev.length = 0;
     const gZ = lerpZ(r.x, 'g') * st.grav, sp0 = Math.hypot(r.vx, r.vy);
     // one time warp for the whole run (set by the launch speed); only gravity changes stretch it, and rolling is hurried along
-    const dt = dtReal * r.tw * Math.sqrt(9.8 / (gZ * (1 - st.glide))) * (r.air ? 1 : 2.5) * Math.min(4, Math.max(1, 0.3 * r.v0 / (sp0 + 0.01 * r.v0)));
+    const dt = dtReal * r.tw * Math.sqrt(9.8 / (gZ * (1 - st.glide))) * (r.air ? 1 : 1.4) * Math.min(2, Math.max(1, 0.2 * r.v0 / (sp0 + 0.01 * r.v0)));
     const n = Math.min(80, Math.max(1, Math.ceil(Math.max(sp0 * dt / (0.25 * U), dtReal * 120)))), h = dt / n;
     r.boosting = !!(inp.boost && r.fuel > 0);
-    const alt0 = r.y - ground(r.x, U), grounded0 = alt0 < Math.max(1.2, 0.5 * r.S), vRef = Math.max(sp0, 0.5 * r.v0);
-    const doSpring = k => { const pf = k === 1 && r.tr - r.lastBounce < 0.22 ? 1.35 : 1; r.spring--; let up = (5 + 0.5 * st.spring + Math.min(1.2 * r.v0, Math.max(sp0, 0.8 * r.v0)) * (0.26 + 0.012 * st.spring)) * pf * k; if (k === 1) up = Math.max(up, Math.sqrt(2.3 * gZ * river(r, r.x + 0.5 * r.cw)) * pf); r.vy = Math.min(0.85 * r.v0 + 8, Math.max(r.vy, 0) + up); r.vx *= 1.03; r.air = true; r.rotAcc = 0; r.ev.push({ k: k < 1 ? 'airspring' : pf > 1 ? 'pspring' : 'spring', x: r.x, y: r.y }); };
+    const gk = Math.sqrt(gZ * (1 - st.glide) / 9.8), alt0 = r.y - ground(r.x, U), grounded0 = alt0 < Math.max(1.2, 0.5 * r.S), vRef = Math.max(sp0, 0.5 * r.v0);
+    const doSpring = k => { const pf = k === 1 && r.tr - r.lastBounce < 0.22 ? 1.35 : 1; r.spring--; let up = (5 + 0.5 * st.spring + Math.min(1.2 * r.v0, Math.max(sp0, 0.8 * r.v0)) * (0.26 + 0.012 * st.spring)) * pf * k; if (k === 1) up = Math.max(up, Math.sqrt(2.3 * gZ * river(r, r.x + 0.5 * r.cw)) * pf); r.vy = Math.min(0.85 * r.v0 * gk + 8, Math.max(r.vy, 0) + up); r.vx *= 1.03; r.air = true; r.rotAcc = 0; r.ev.push({ k: k < 1 ? 'airspring' : pf > 1 ? 'pspring' : 'spring', x: r.x, y: r.y }); };
     const doDash = () => { r.dash--; const add = (6 + st.dash + Math.max(sp0, 0.8 * r.v0) * (0.08 + 0.006 * st.dash)) * st.dashpow; r.vx += add; r.vy = grounded0 ? Math.max(r.vy, 0.18 * r.v0 + 3) : Math.max(r.vy, -0.12 * sp0); if (grounded0) r.air = true; r.ev.push({ k: 'dash', x: r.x, y: r.y }); };
     if (inp.skill) { if (grounded0 && r.spring > 0) doSpring(1); else if (r.dash > 0 && !grounded0) doDash(); else if (!grounded0 && st.airjump && r.spring > 0) doSpring(st.airjump); }
     if (inp.spring && r.spring > 0) { if (grounded0) doSpring(1); else if (st.airjump) doSpring(st.airjump); }
@@ -255,7 +255,7 @@ const CORE = (() => {
     if (r.boosting) { r.usedBoost = true; r.fuel -= dtReal; const dv = st.thrust * dtReal; r.vx += dv * (1 + st.nozzle); r.vy += dv * (grounded0 ? 0.45 : 0.16) + (r.vy < 0 ? Math.min(-r.vy, dv * 0.5) : 0); if (grounded0 && r.vy > 0) r.air = true; }
     const xPrev = r.x, dg = 0.1 * U;
     for (let i = 0; i < n; i++) {
-      const g = gZ * (r.air ? 1 - st.glide * Math.min(1, Math.abs(r.vx) / (0.05 * r.v0 + 1)) : 1), dk = st.drag * lerpZ(r.x, 'drag') + WEAR * st.wear * (1 + r.tr * r.tr / 90 + 1.2 * Math.pow(Math.max(0, r.tr - 34), 2)) * 9.8 / (r.v0 + 20);
+      const g = gZ * (r.air ? 1 - st.glide * Math.min(1, Math.abs(r.vx) / (0.05 * r.v0 + 1)) : 1), dk = st.drag * lerpZ(r.x, 'drag') + WEAR * st.wear * (1 + r.tr * r.tr / 1600) * 9.8 / (r.v0 + 20);
       r.vy -= g * h; const d = Math.exp(-dk * h); r.vx *= d; r.vy *= d;
       if (st.convert && r.air && r.vy < 0) { const f = 1 - Math.exp(-st.convert * h * gZ / (r.v0 + 1)), vy0 = r.vy; r.vy *= 1 - f; r.vx = Math.sqrt(Math.max(0, r.vx) * Math.max(0, r.vx) + (vy0 * vy0 - r.vy * r.vy) * 0.8); }
       r.x += r.vx * h; r.y += r.vy * h;
@@ -274,8 +274,8 @@ const CORE = (() => {
           if (water && !st.float) { if (Math.abs(vt) > 0.25 * r.v0 && imp < Math.abs(vt) * 0.55) { vn = imp * 0.45; vt *= 0.86; r.bounces++; r.air = true; r.ev.push({ k: 'skip', x: r.x, y: r.y }); } else { r.over = true; r.why = '물에 빠졌어요'; r.ev.push({ k: 'sink', x: r.x, y: r.y }); break; } }
           else {
             const rough = Z.loss > 1 ? 1 + (Z.loss - 1) * soft : Z.loss, eZ = Z.e < 1 ? 1 - (1 - Z.e) * soft : Z.e, e = water ? 0.4 + 0.035 * st.float : Math.min(st.eCap + 0.02, st.e * eZ);
-            if (r.slam && !water) { r.slam = false; r.slams++; vn = Math.min(0.85 * r.v0, imp * Math.min(0.97, e + 0.08 + 0.02 * st.dive)); vt *= 1.02; r.bounces++; r.air = true; r.ev.push({ k: 'slam', x: r.x, y: r.y, imp }); }
-            else if (imp > 0.05 * r.v0 + 0.8 + Math.abs(vt) * 0.02) { vn = Math.min(0.72 * r.v0 + 2, imp * e); vt *= (1 - Math.min(0.9, (water ? 0.16 - 0.01 * st.float : st.loss * rough) * (al > 0 ? 0.35 : 1) * Math.min(1, imp / (Math.abs(vt) + 1) * 3 + 0.25))) * (al > 0 ? 1.03 : al < 0 ? 0.88 : 1); r.bounces++; r.air = true; r.ev.push({ k: 'bounce', x: r.x, y: r.y, imp }); }
+            if (r.slam && !water) { r.slam = false; r.slams++; vn = Math.min(0.85 * r.v0 * gk, imp * Math.min(0.97, e + 0.08 + 0.02 * st.dive)); vt *= 1.02; r.bounces++; r.air = true; r.ev.push({ k: 'slam', x: r.x, y: r.y, imp }); }
+            else if (imp > 0.05 * r.v0 + 0.8 + Math.abs(vt) * 0.02) { vn = Math.min(0.72 * r.v0 * gk + 2, imp * e); vt *= (1 - Math.min(0.9, (water ? 0.16 - 0.01 * st.float : st.loss * rough) * (al > 0 ? 0.35 : 1) * Math.min(1, imp / (Math.abs(vt) + 1) * 3 + 0.25))) * (al > 0 ? 1.03 : al < 0 ? 0.88 : 1); r.bounces++; r.air = true; r.ev.push({ k: 'bounce', x: r.x, y: r.y, imp }); }
             else { vn = 0; r.air = false; r.slam = false; r.ang = Math.atan(sl); const muZ = Z.mu > 1 ? 1 + (Z.mu - 1) * soft : Z.mu, mu = water ? 0.5 / (1 + 0.6 * st.float) : st.mu * muZ, dec = mu * g * h; vt = Math.abs(vt) <= dec ? 0 : vt - Math.sign(vt) * dec; }
           }
           r.vx = vn * nx + vt * tx; r.vy = vn * ny + vt * ty;
@@ -291,7 +291,7 @@ const CORE = (() => {
       if (!r.air && sp < Math.max(0.35, 0.04 * r.v0)) r.rest += dtReal; else r.rest = 0;
       if (!r.air && r.vx < 0) r.back += dtReal; else r.back = 0;
       if (r.rest > 0.5 || r.back > 0.7) { if (st.phoenix && !r.risen) { r.risen = true; r.rest = r.back = 0; const v = 0.4 * r.v0; r.vx = v * Math.cos(st.angle); r.vy = v * Math.sin(st.angle); r.y += 0.5; r.air = true; r.ev.push({ k: 'phoenix', x: r.x, y: r.y }); } else { r.over = true; r.why = r.back > 0.7 ? '언덕을 넘지 못했어요' : '멈췄어요'; } }
-      if (r.tr > 90) { r.over = true; r.why = '시간 초과'; } }
+      if (r.tr > 100) { r.over = true; r.why = '시간 초과'; } }
   }
   function payout(r, s) {
     const st = r.st, D = r.maxX, z = zoneAt(D), dist = gd(D, z) * st.rate, coins = r.coinGold * st.rate;
