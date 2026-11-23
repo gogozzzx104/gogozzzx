@@ -82,17 +82,18 @@ button{font-family:var(--disp);touch-action:manipulation}
 .note b{color:var(--ink)}
 #toast{position:absolute;left:50%;top:33%;transform:translateX(-50%);font:30px var(--disp);color:#fff;text-shadow:0 3px 0 var(--ink),0 0 12px rgba(0,0,0,.4);pointer-events:none;opacity:0;transition:opacity .3s;white-space:nowrap;text-align:center}
 #toast.show{opacity:1}
+.kb .hbtn::after{content:attr(data-key);position:absolute;top:-6px;right:-2px;background:#2b2233;color:#fff;font:700 11px sans-serif;padding:2px 7px;border-radius:9px;pointer-events:none}
 </style>
 
 <div id="root">
   <canvas id="cv"></canvas>
   <div id="toast"></div>
   <div id="topbar"><button class="pill" id="sndBtn" type="button">소리 켬</button><button class="pill" id="shopBtn" type="button">업그레이드</button></div>
-  <button class="hbtn" id="skillBtn" type="button" hidden>도약<small></small></button>
-  <button class="hbtn" id="dashBtn" type="button" hidden>대시<small></small></button>
-  <button class="hbtn" id="diveBtn" type="button" hidden>급강하<small></small></button>
+  <button class="hbtn" id="skillBtn" type="button" data-key="W" hidden>도약<small></small></button>
+  <button class="hbtn" id="dashBtn" type="button" data-key="E" hidden>대시<small></small></button>
+  <button class="hbtn" id="diveBtn" type="button" data-key="S" hidden>급강하<small></small></button>
   <button class="pill" id="endBtn" type="button" hidden>결과 보기</button>
-  <button class="hbtn" id="boostBtn" type="button" hidden>부스트<small></small></button>
+  <button class="hbtn" id="boostBtn" type="button" data-key="Space" hidden>부스트<small></small></button>
 
   <section class="card" id="result" hidden>
     <h2 id="rWhy"></h2>
@@ -204,7 +205,8 @@ function dragScroll(el) { let id = null, y0 = 0, s0 = 0, moved = false, vy = 0, 
 const hold = (el, on, off) => { el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); el.classList.add('down'); on(); try { el.setPointerCapture(e.pointerId); } catch (er) {} }); const up = () => { el.classList.remove('down'); off && off(); }; el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); };
 hold(boostBtn, () => boostHeld = true, () => boostHeld = false); hold(skillBtn, () => skillTap = true); hold(dashBtn, () => dashTap = true); hold(diveBtn, () => diveTap = true);
 endBtn.addEventListener('click', () => { if (state === 'fly' && run && !run.over) { run.over = true; run.why = '여기까지!'; endRun(); } });
-addEventListener('keydown', e => { if (e.repeat) return; if (e.code === 'Space') { if (state === 'aim') startCharge(); else if (state === 'push') tryKick(); else if (state === 'fly') boostHeld = true; else if (state === 'result') toAim(); } if (e.code === 'ShiftLeft' || e.code === 'KeyS') skillTap = true; if (e.code === 'KeyE') dashTap = true; if (e.code === 'KeyQ') diveTap = true; if (e.code === 'KeyA' || e.code === 'ArrowLeft') spinDir = 1; if (e.code === 'KeyD' || e.code === 'ArrowRight') spinDir = -1; });
+const KB = matchMedia('(pointer: fine)').matches; if (KB) root.classList.add('kb');
+addEventListener('keydown', e => { if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); if (e.repeat) return; root.classList.add('kb'); if (state === 'shop' && e.code === 'Escape') toAim(); if (state === 'result' && e.code === 'KeyU') openShop(); if (e.code === 'Space') { if (state === 'aim') startCharge(); else if (state === 'push') tryKick(); else if (state === 'fly') boostHeld = true; else if (state === 'result') toAim(); } if (e.code === 'KeyW' || e.code === 'ArrowUp' || e.code === 'ShiftLeft') skillTap = true; if (e.code === 'KeyE') dashTap = true; if (e.code === 'KeyS' || e.code === 'ArrowDown' || e.code === 'KeyQ') diveTap = true; if (e.code === 'KeyA' || e.code === 'ArrowLeft') spinDir = 1; if (e.code === 'KeyD' || e.code === 'ArrowRight') spinDir = -1; });
 addEventListener('keyup', e => { if (e.code === 'Space') { boostHeld = false; if (state === 'charge') release(); } if (['KeyA', 'KeyD', 'ArrowLeft', 'ArrowRight'].includes(e.code)) spinDir = 0; });
 document.addEventListener('contextmenu', e => e.preventDefault());
 $('#rAgain').addEventListener('click', toAim); $('#rShop').addEventListener('click', openShop); $('#shopBtn').addEventListener('click', openShop); $('#sClose').addEventListener('click', toAim);
@@ -467,7 +469,7 @@ function hud(r) {
     const cl = 3 - (r.tr - r.comboT); if (r.combo >= 2 && cl > 0) { const pz = 1 + 0.4 * Math.max(0, 1 - (performance.now() - goldPopT) / 160); g.textAlign = 'center'; txt(r.combo + ' 콤보', W / 2, H * 0.24, 26 * pz, r.combo >= 20 ? '#ff5a8a' : r.combo >= 10 ? '#ffd24a' : '#fff'); g.fillStyle = '#2b2233'; g.fillRect(W / 2 - 42, H * 0.24 + 8, 84, 6); g.fillStyle = '#ffd24a'; g.fillRect(W / 2 - 40, H * 0.24 + 10, 80 * cl / 3, 2); }
   } else if (state === 'aim' || state === 'charge' || state === 'push') {
     g.textAlign = 'center'; txt(state === 'aim' ? '꾹 눌러서 당기기!' : state === 'charge' ? '흰 구간에서 손을 떼세요' : '발사대 끝에서 한 번 더 탭!', W / 2, H * 0.2, 28);
-    if (state === 'aim') { txt(`보유 골드 ${fmt(S.gold)}   ·   최고 ${fmtD(S.best)}`, W / 2, H * 0.2 + 26, 14, '#fff6e6'); txt('공중에서 화면 왼쪽을 누르면 뒤로, 오른쪽을 누르면 앞으로 회전 · 바퀴로 착지하면 보너스', W / 2, H * 0.2 + 48, 12, '#fff6e6'); }
+    if (state === 'aim') { txt(`보유 골드 ${fmt(S.gold)}   ·   최고 ${fmtD(S.best)}`, W / 2, H * 0.2 + 26, 14, '#fff6e6'); txt('공중에서 화면 왼쪽을 누르면 뒤로, 오른쪽을 누르면 앞으로 회전 · 바퀴로 착지하면 보너스', W / 2, H * 0.2 + 48, 12, '#fff6e6'); if (root.classList.contains('kb')) txt('키보드: Space 당기기·킥·부스트 / W 도약 / E 대시 / S 급강하 / A·D 회전', W / 2, H * 0.2 + 68, 12, '#ffd24a'); }
     const bw = Math.min(420, W * 0.6), bx = W / 2 - bw / 2, by = H - 54, pw = st.window * bw, tm = performance.now() / 1000, m = state === 'push' ? pushM : Math.min(1, Math.max(0, charge + Math.sin(tm * 46) * 0.007 * charge * charge)), inP = m >= 1 - st.window;
     const jx = state === 'charge' ? (Math.random() - 0.5) * charge * charge * 5 : 0, jy = state === 'charge' ? (Math.random() - 0.5) * charge * charge * 4 : 0; g.save(); g.translate(jx, jy);
     g.fillStyle = '#2b2233'; g.beginPath(); g.roundRect(bx - 5, by - 5, bw + 10, 32, 8); g.fill(); g.fillStyle = '#463c50'; g.fillRect(bx, by, bw, 22);
