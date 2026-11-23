@@ -34,7 +34,7 @@ button{font-family:var(--disp);touch-action:manipulation}
 #topbar{position:absolute;top:8px;right:10px;display:flex;gap:6px}
 .pill{border:2px solid var(--ink);border-radius:999px;background:var(--paper);padding:4px 12px;font:15px var(--disp);color:var(--ink);box-shadow:0 3px 0 var(--ink)}
 .pill:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
-.card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,calc(100% - 32px));max-height:calc(100% - 20px);overflow:auto;background:var(--paper);border:3px solid var(--ink);border-radius:14px;box-shadow:0 8px 0 var(--ink);padding:14px 18px}
+.card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(var(--k,1));width:min(560px,calc((100% - 32px) / var(--k,1)));max-height:calc((100% - 20px) / var(--k,1));overflow:auto;background:var(--paper);border:3px solid var(--ink);border-radius:14px;box-shadow:0 8px 0 var(--ink);padding:14px 18px}
 .card h2{font:26px/1.1 var(--disp);margin:0;color:var(--red)}
 .big{font:44px/1 var(--disp);font-variant-numeric:tabular-nums}
 .big small{font-size:18px;color:var(--dim)}
@@ -48,7 +48,7 @@ button{font-family:var(--disp);touch-action:manipulation}
 .go.alt{background:var(--teal)}
 .go.plain{background:var(--paper);color:var(--ink)}
 .go:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
-#shop{position:absolute;inset:0;display:grid;grid-template-rows:auto 1fr;color:#efeaff;background:radial-gradient(120% 90% at 25% 0%,#34296a 0%,#1d1740 55%,#120e28 100%)}
+#shop{position:absolute;left:0;top:0;width:calc(100% / var(--k,1));height:calc(100% / var(--k,1));transform:scale(var(--k,1));transform-origin:0 0;display:grid;grid-template-rows:auto 1fr;color:#efeaff;background:radial-gradient(120% 90% at 25% 0%,#34296a 0%,#1d1740 55%,#120e28 100%)}
 #shop::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;background-image:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1.5px);background-size:22px 22px}
 .shead{position:relative;display:flex;align-items:center;gap:10px;padding:7px 12px;background:linear-gradient(#2a2057,#211945);border-bottom:2px solid #4a3d8a;box-shadow:0 3px 0 rgba(0,0,0,.35)}
 .shead h2{font:22px var(--disp);margin:0;color:#ffcf4a;white-space:nowrap;text-shadow:0 2px 0 #0d0a1c}
@@ -58,7 +58,8 @@ button{font-family:var(--disp);touch-action:manipulation}
 .zonebar i{flex:1;height:8px;border-radius:4px;background:#0f0b22;border:1px solid #4a3d8a}
 .zonebar i.on{background:linear-gradient(#5af0d0,#12a594);border-color:#5af0d0}
 #shop .pill{background:linear-gradient(#ffd75e,#f5a614);border-color:#0d0a1c;box-shadow:0 3px 0 #0d0a1c;white-space:nowrap}
-.sbody{position:relative;display:grid;grid-template-columns:86px 1fr 222px;min-height:0}
+.sbody{position:relative;display:grid;grid-template-columns:86px 1fr;min-height:0}
+#sDet{display:none}
 .sbody.wide{grid-template-columns:86px 1fr}
 .sbody.wide #sDet{display:none}
 .tabs{display:flex;flex-direction:column;gap:5px;padding:8px 6px;background:rgba(0,0,0,.28);border-right:2px solid #4a3d8a;overflow:auto}
@@ -77,9 +78,20 @@ button{font-family:var(--disp);touch-action:manipulation}
 .nd{position:absolute;border-radius:14px;border:2px solid #53468f;background:linear-gradient(160deg,#3a2f6e,#241c47);color:var(--bc);display:grid;place-items:center;box-shadow:0 4px 0 #0d0a1c;padding:0}
 .nd .ic{width:58%;height:58%}
 .nd b{position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);background:#0f0b22;border:1.5px solid #53468f;border-radius:8px;padding:0 5px;font:700 10px/14px var(--body);color:#efeaff;white-space:nowrap}
-.nd em{position:absolute;left:50%;top:calc(100% + 10px);width:var(--cw);transform:translateX(-50%);font:11px/1.1 var(--disp);font-style:normal;color:#cfc6f5;text-align:center;word-break:keep-all}
+.nd span{position:absolute;left:50%;top:calc(100% + 11px);width:var(--cw);transform:translateX(-50%);text-align:center}
+.nd em{display:block;font:11.5px/1.1 var(--disp);font-style:normal;color:#cfc6f5;word-break:keep-all}
 .nd.lock{border-style:dashed;color:#6d6399;background:#1b1538;box-shadow:none}
 .nd.lock em{color:#6d6399}
+.nd u{display:block;margin-top:2px;font:700 10.5px var(--body);text-decoration:none;color:#ffe27a;white-space:nowrap}
+.nd u.poor{color:#8479b8}
+.pop{position:absolute;width:236px;z-index:5;border:2px solid var(--bc);border-radius:14px;background:linear-gradient(160deg,#322867,#1c1640);box-shadow:0 8px 0 rgba(0,0,0,.45),0 0 22px rgba(0,0,0,.55);padding:10px;display:flex;flex-direction:column;gap:7px;box-sizing:border-box}
+.pop p{margin:0;font-size:12px;line-height:1.4;color:#cfc6f5}
+.pop .eff{color:#fff;font-weight:700;background:rgba(255,255,255,.08);border-radius:8px;padding:5px 8px;font-variant-numeric:tabular-nums}
+.rbar{display:flex;align-items:center;gap:10px;margin:8px 10px 0;padding:7px 10px;border:2px solid #9a66ff;border-radius:12px;background:rgba(154,102,255,.14)}
+.rbar div{flex:1;min-width:0}
+.rbar h3{font:16px var(--disp);margin:0;font-weight:400;color:#e6d6ff}
+.rbar p{margin:0;font-size:11.5px;color:#cfc6f5;line-height:1.35}
+.rbar .buy{flex:none;padding:6px 16px}
 .nd.can{border-color:var(--bc);animation:glow 1.4s ease-in-out infinite}
 .nd.max{border-color:#ffcf4a;background:linear-gradient(160deg,#6a5416,#3d300f);color:#ffe27a}
 .nd.max b{border-color:#ffcf4a;color:#ffe27a}
@@ -171,8 +183,8 @@ const fmtD = m => m < 1000 ? m.toFixed(1) + 'm' : m < 1e6 ? (m / 1000).toFixed(2
 
 /* ---------------- stage ---------------- */
 const root = $('#root'), cv = $('#cv'); let g = cv.getContext('2d');
-let W = 800, H = 400, portrait = false, DPR = 1;
-function layout() { const vw = innerWidth, vh = innerHeight; portrait = vh > vw; W = portrait ? vh : vw; H = portrait ? vw : vh;
+let W = 800, H = 400, portrait = false, DPR = 1, uiK = 1;
+function layout() { const vw = innerWidth, vh = innerHeight; portrait = vh > vw; W = portrait ? vh : vw; H = portrait ? vw : vh; uiK = Math.max(1, Math.min(2.6, W / 800, H / 400)); root.style.setProperty('--k', uiK.toFixed(3));
   root.style.width = W + 'px'; root.style.height = H + 'px'; root.style.transform = portrait ? `rotate(90deg) translateY(-${H}px)` : 'none';
   DPR = Math.min(devicePixelRatio || 1, 2); cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); }
 addEventListener('resize', layout); layout();
@@ -281,7 +293,7 @@ addEventListener('blur', () => { keys.clear(); ptrSide = 0; boostHeld = false; }
 // Scrolling by drag, in stage coordinates, so it also works while the stage is rotated for a portrait-locked phone.
 function dragScroll(el) { let id = null, y0 = 0, s0 = 0, moved = false, vy = 0, ly = 0, lt = 0, raf = 0;
   el.addEventListener('pointerdown', e => { id = e.pointerId; y0 = ly = locY(e); s0 = el.scrollTop; moved = false; vy = 0; lt = e.timeStamp; cancelAnimationFrame(raf); });
-  el.addEventListener('pointermove', e => { if (e.pointerId !== id) return; const y = locY(e); if (Math.abs(y - y0) > 8) moved = true; if (moved) { el.scrollTop = s0 - (y - y0); const d = Math.max(1, e.timeStamp - lt); vy = vy * 0.6 + (ly - y) / d * 0.4; ly = y; lt = e.timeStamp; } });
+  el.addEventListener('pointermove', e => { if (e.pointerId !== id) return; const y = locY(e); if (Math.abs(y - y0) > 8) moved = true; if (moved) { el.scrollTop = s0 - (y - y0) / uiK; const d = Math.max(1, e.timeStamp - lt); vy = vy * 0.6 + (ly - y) / uiK / d * 0.4; ly = y; lt = e.timeStamp; } });
   const up = e => { if (e.pointerId !== id) return; id = null; if (!moved) return; const glide = () => { if (Math.abs(vy) < 0.02) return; el.scrollTop += vy * 16; vy *= 0.95; raf = requestAnimationFrame(glide); }; glide(); };
   el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
   el.addEventListener('click', e => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true); }
@@ -347,12 +359,14 @@ function layoutTree(items) {
   return { pos, cols: col, rows: Math.max(...items.map(u => pos[u.id][1])) + 1 };
 }
 function treeHTML(items, perk) {
-  const aw = $('#sList').clientWidth || 500, T = layoutTree(items), cw = Math.max(52, Math.min(92, Math.floor((aw - 12) / T.cols))), n = Math.min(54, cw - 12), rh = n + 56, top = perk ? 30 : 12, px = (aw - cw * T.cols) / 2, X = c => px + c * cw + cw / 2, Y = r => top + r * rh; let svg = '', h = '';
+  const aw = $('#sList').clientWidth || 700, T = layoutTree(items), cw = Math.max(56, Math.min(112, Math.floor((aw - 12) / T.cols))), n = Math.max(44, Math.min(68, cw - 24)), rh = n + 76, top = perk ? 30 : 14, px = (aw - cw * T.cols) / 2, X = c => px + c * cw + cw / 2, Y = r => top + r * rh; let svg = '', h = '', pop = '', ht = top + T.rows * rh;
   for (const u of items) { const [c, r] = T.pos[u.id], col = BCOL[u.br], have = id => perk ? (S.perks[id] || 0) : C.lvl(S, id), l = have(u.id), lock = perk ? C.perkLock(S, u.id) : C.lockReason(S, u.id), mx = l >= u.max, can = perk ? perkCan(u) : C.canBuy(S, u.id);
-    u.req.forEach(([rid, need], k) => { if (!T.pos[rid]) return; const [pc, pr] = T.pos[rid], on = have(rid) >= need, x2 = X(c), y2 = Y(r); svg += `<path class="${on ? 'on' : ''}" style="--bc:${col}" d="M${X(pc)} ${Y(pr) + n + 36}V${y2 - 12}H${x2}V${y2}"/>` + (need > 1 ? `<text class="${on ? 'on' : ''}" x="${k ? x2 - 4 : x2 + 4}" y="${y2 - 3}" text-anchor="${k ? 'end' : 'start'}">Lv${need}</text>` : ''); });
+    u.req.forEach(([rid, need], k) => { if (!T.pos[rid]) return; const [pc, pr] = T.pos[rid], on = have(rid) >= need, x2 = X(c), y2 = Y(r); svg += `<path class="${on ? 'on' : ''}" style="--bc:${col}" d="M${X(pc)} ${Y(pr) + n + 58}V${y2 - 10}H${x2}V${y2}"/>` + (need > 1 ? `<text class="${on ? 'on' : ''}" x="${k ? x2 - 4 : x2 + 4}" y="${y2 - 2}" text-anchor="${k ? 'end' : 'start'}">Lv${need}</text>` : ''); });
     if (perk && !u.req.length) h += `<span class="bl" style="left:${X(c)}px;top:6px;--bc:${col}">${C.PBRANCH.find(b => b[0] === u.br)[1]}</span>`;
-    h += `<button type="button" class="nd${lock ? ' lock' : mx ? ' max' : can ? ' can' : ''}${sel[tab] === u.id ? ' sel' : ''}" data-id="${u.id}" style="left:${X(c) - n / 2}px;top:${Y(r)}px;width:${n}px;height:${n}px;--bc:${col}">${icon(u.id)}<b>${u.cap ? (l ? '완료' : '궁극') : l + '/' + u.max}</b><em>${u.name}</em></button>`; }
-  return `<div class="tw" style="height:${top + T.rows * rh}px;--cw:${cw - 4}px"><svg class="edges" width="100%" height="100%">${svg}</svg>${h}</div>`;
+    const price = mx || lock ? '' : `<u class="${can ? '' : 'poor'}">${perk ? '★ ' + C.perkCost(u, l) : fmt(C.cost(S, u.id))}</u>`;
+    h += `<button type="button" class="nd${lock ? ' lock' : mx ? ' max' : can ? ' can' : ''}${sel[tab] === u.id ? ' sel' : ''}" data-id="${u.id}" style="left:${X(c) - n / 2}px;top:${Y(r)}px;width:${n}px;height:${n}px;--bc:${col}">${icon(u.id)}<b>${u.cap ? (l ? '완료' : '궁극') : l + '/' + u.max}</b><span><em>${u.name}</em>${price}</span></button>`;
+    if (sel[tab] === u.id) { const x = X(c) + n / 2 + 12 + 236 <= aw - 4 ? X(c) + n / 2 + 12 : Math.max(4, X(c) - n / 2 - 12 - 236), y = Math.max(4, Y(r) - 8); ht = Math.max(ht, y + 232); pop = `<div class="pop" style="left:${x}px;top:${y}px;--bc:${col}">${perk ? perkDetail(u) : upDetail(u)}</div>`; } }
+  return `<div class="tw" style="height:${ht}px;--cw:${cw - 4}px"><svg class="edges" width="100%" height="100%">${svg}</svg>${h}${pop}</div>`;
 }
 function upDetail(u) { const l = C.lvl(S, u.id), lock = C.lockReason(S, u.id), mx = l >= u.max, can = C.canBuy(S, u.id);
   let eff = ''; if (EFF[u.id]) { const a = EFF[u.id](st); if (mx || lock) eff = a; else { const s2 = JSON.parse(JSON.stringify(S)); s2.lv[u.id] = l + 1; const b = EFF[u.id](C.stats(s2)); eff = a === b ? a : arrow(a, b); } }
@@ -365,12 +379,10 @@ function renderShop() {
   $('#sZones').innerHTML = Z.map((z, i) => `<i class="${i <= S.zone ? 'on' : ''}" title="${z.name}"></i>`).join('');
   const isUp = C.BRANCH.some(b => b[0] === tab), list = $('#sList'), det = $('#sDet');
   $('#sTabs').innerHTML = TABS.map(([id, name, ic]) => { const n = id === 'star' ? C.PERKS.filter(perkCan).length : C.UPS.filter(u => u.br === id && C.canBuy(S, u.id)).length; return `<button type="button" class="tab${tab === id ? ' on' : ''}" data-t="${id}" style="--bc:${BCOL[id]}">${icon(ic)}${name}${n ? `<i>${n}</i>` : ''}</button>`; }).join('');
-  $('.sbody').classList.toggle('wide', !(isUp || tab === 'star')); list.className = isUp || tab === 'star' ? 'tree' : 'tree grid';
-  if (isUp) { const items = C.UPS.filter(u => u.br === tab); if (!items.some(u => u.id === sel[tab])) sel[tab] = (items.find(u => C.canBuy(S, u.id)) || items[0]).id; list.innerHTML = treeHTML(items, false); det.innerHTML = upDetail(C.UP[sel[tab]]); }
-  else if (tab === 'star') { if (!C.PK[sel.star]) sel.star = (C.PERKS.find(perkCan) || C.PERKS[0]).id;
-    const gain = C.starsFor(S.bestLife), per = Math.round(C.STAR_GOLD * (S.perks.r_bless ? 1.5 : 1) * 100), keep = (S.perks.r_mem || 0) * 8;
-    list.innerHTML = treeHTML(C.PERKS, true);
-    det.innerHTML = `<div class="rb"><h3>환생 · 보유 ★ ${S.stars}</h3><p>골드와 업그레이드${keep ? `(${keep}% 유지)` : ''}를 비우고 ★을 받아요. 별·트리·업적은 남습니다.</p><p class="eff">★ 하나당 골드 +${per}% · 지금 +${S.starsTotal * per}%</p><p>이번 생 ${fmtD(S.bestLife)} · 다음 ★ ${fmtD(C.nextStarAt(S.bestLife))}</p><button class="buy star" data-rebirth="1" ${gain > 0 ? '' : 'disabled'}>${confirmKey === 'rebirth' ? '정말요?<small>한 번 더 누르기</small>' : '환생하기<small>★ +' + gain + '</small>'}</button></div>` + perkDetail(C.PK[sel.star]); }
+  list.className = isUp || tab === 'star' ? 'tree' : 'tree grid';
+  if (isUp) list.innerHTML = treeHTML(C.UPS.filter(u => u.br === tab), false);
+  else if (tab === 'star') { const gain = C.starsFor(S.bestLife), per = Math.round(C.STAR_GOLD * (S.perks.r_bless ? 1.5 : 1) * 100), keep = (S.perks.r_mem || 0) * 8;
+    list.innerHTML = `<div class="rbar"><div><h3>환생 · 보유 ★ ${S.stars} · 별 보너스 골드 +${S.starsTotal * per}%</h3><p>골드·업그레이드${keep ? `(${keep}% 유지)` : ''}를 비우고 ★을 받아요. ★ 하나당 골드 +${per}%. 별·트리·업적은 남습니다.</p><p>이번 생 ${fmtD(S.bestLife)} · 다음 ★ ${fmtD(C.nextStarAt(S.bestLife))}</p></div><button class="buy star" data-rebirth="1" ${gain > 0 ? '' : 'disabled'}>${confirmKey === 'rebirth' ? '정말요?<small>한 번 더 누르기</small>' : '환생하기<small>★ +' + gain + '</small>'}</button></div>` + treeHTML(C.PERKS, true); }
   else if (tab === 'skin') { const cur = skinNow().id;
     list.innerHTML = `<div class="bh">스킨</div>` + SKINS.map(k => `<button type="button" class="sk${k.id === cur ? ' on' : ''}${skinOpen(k) ? '' : ' lock'}" data-skin="${k.id}"><canvas width="220" height="140" data-skin="${k.id}"></canvas>${k.name}<small>${skinOpen(k) ? (k.id === cur ? '사용 중' : '눌러서 변경') : Z[k.z].name + ' 도달 시'}</small></button>`).join('');
     for (const c2 of list.querySelectorAll('canvas')) { const g0 = g; g = c2.getContext('2d'); pvSkin = SKINS.find(k => k.id === c2.dataset.skin); g.setTransform(2, 0, 0, 2, 0, 0); drawCart(55, 54, 0, 1.3); pvSkin = null; g = g0; } }
@@ -381,8 +393,8 @@ function renderShop() {
       `<div class="bh">기타</div><p class="note">코인은 공중에 2~3개씩 떠 있어요. 부스트·도약·대시·급강하로 높이를 맞춰 보세요.</p><div class="ac"><h3>처음부터 다시</h3><p>별·업적까지 모두 지웁니다.</p><button class="buy sm" data-wipe="1">${confirmKey === 'wipe' ? '정말요? 한 번 더' : '초기화'}</button></div>`; }
 }
 $('#sTabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if (!b) return; tab = b.dataset.t; confirmKey = ''; $('#sList').scrollTop = 0; $('#sDet').scrollTop = 0; renderShop(); });
-const shopClick = e => { const nd = e.target.closest('.nd'), sk = e.target.closest('.sk'), b = e.target.closest('.buy'), k1 = $('#sList').scrollTop, k2 = $('#sDet').scrollTop;
-  if (nd) { sel[tab] = nd.dataset.id; confirmKey = ''; }
+const shopClick = e => { const nd = e.target.closest('.nd'), sk = e.target.closest('.sk'), b = e.target.closest('.buy'), k1 = $('#sList').scrollTop, k2 = 0;
+  if (nd) { sel[tab] = sel[tab] === nd.dataset.id ? null : nd.dataset.id; confirmKey = ''; }
   else if (sk) { if (sk.classList.contains('lock')) return; S.skin = sk.dataset.skin; SFX.buy(); }
   else if (b && !b.disabled) {
     if (b.dataset.up) { if (C.buy(S, b.dataset.up)) SFX.buy(); }
@@ -390,8 +402,10 @@ const shopClick = e => { const nd = e.target.closest('.nd'), sk = e.target.close
     else if (b.dataset.perk) { if (C.buyPerk(S, b.dataset.perk)) SFX.buy(); }
     else if (b.dataset.rebirth) { if (confirmKey !== 'rebirth') confirmKey = 'rebirth'; else { const n = C.rebirth(S); confirmKey = ''; SFX.zone(); toast('환생! ★ +' + n, 2200); } }
     else if (b.dataset.wipe) { if (confirmKey !== 'wipe') confirmKey = 'wipe'; else { S = C.newSave(); confirmKey = ''; } } }
+  else if (sel[tab] && !e.target.closest('.pop') && e.target.closest('.tw')) sel[tab] = null;   // tap on empty space closes the card
   else return;
-  save(); renderShop(); $('#sList').scrollTop = k1; $('#sDet').scrollTop = k2; };
+  save(); renderShop(); $('#sList').scrollTop = k1; };
+addEventListener('resize', () => { if (state === 'shop') renderShop(); });
 $('#sList').addEventListener('click', shopClick); $('#sDet').addEventListener('click', shopClick);
 
 /* ---------------- render ---------------- */
