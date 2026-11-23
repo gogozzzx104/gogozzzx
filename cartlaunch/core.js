@@ -57,7 +57,8 @@ const CORE = (() => {
   const pr = z => Math.pow(PRICE.late, Math.max(0, z - PRICE.from));
   const U_ = (id, br, name, max, zs, span, desc, req, zone, re) => ({ id, br, name, max, zs, span, desc, req: req || [], zone: zone ? ZI(zone) : 0, re: re || 0 });
   // levels past an upgrade's original cap: each costs 1.7x the one before
-  const EXT = { magnet: 20, style: 30, combo: 25, trickpay: 25, alt: 30, fuel: 25, dashpow: 25, dive: 18, airjump: 15, gyro: 15, rubber: 15, float: 15, heat: 15, wide: 15, crate: 15, lucky: 15, nozzle: 25, jet: 30 };
+  const EXT = { runup: 50, sling: 35, cannon: 35, rail: 35, warp: 35, frame: 30, aero: 60, gyro: 20, rubber: 25, float: 25, heat: 25, wide: 25, fuel: 40, nozzle: 40, spring: 30, dash: 25, dashpow: 40, dive: 24, airjump: 15, jet: 50, grav: 20, refuel: 30, leap: 25, crater: 25, amp: 30, tail: 25,
+    ad: 100, coin: 100, magnet: 30, style: 50, combo: 40, alt: 50, sponsor: 40, trickpay: 40, lucky: 20, crate: 25, streak: 25, encore: 40 };
   const UPS = [
     { id: 'push', br: 'launch', name: '근력 훈련', max: 400, c0: 8, cm: 1.1, q: 1.0008, q2: 1.006, l2: 50, desc: '발사 속도 ×1.05 · 한도 없음', req: [], zone: 0 },
     U_('ramp', 'launch', '발사 경사로', 10, 0, 2.5, '발사 각도 +2.8°', [['push', 3]]),
@@ -70,6 +71,9 @@ const CORE = (() => {
 
     U_('warp', 'launch', '워프 코일', 20, 11, 6, '발사 속도 +4%', [['rail', 10]], 'moon', 1),
 
+    U_('anti', 'launch', '반물질 사출기', 25, 15, 5, '발사 속도 +4%', [['warp', 20]], 'rift', 3),
+    U_('singu', 'launch', '특이점 엔진', 30, 16.5, 5, '발사 속도 +5%', [['anti', 25]], 'crystal', 5),
+    U_('bang', 'launch', '빅뱅 점화', 30, 18, 5, '발사 속도 +5%', [['singu', 30]], 'sun', 8),
     U_('wheel', 'body', '바퀴 윤활', 18, 0, 2.5, '땅에서 굴러갈 때 덜 느려짐'),
     U_('tire', 'body', '탄성 타이어', 20, 0.3, 3.5, '땅에서 더 높이 튕김', [['wheel', 3]]),
     U_('frame', 'body', '경량 프레임', 20, 0.6, 4, '착지 때 잃는 속도 -14%', [['wheel', 5]]),
@@ -131,7 +135,7 @@ const CORE = (() => {
   // price of level l = the price of the zone that level is scheduled for (zs .. zs+span), so early levels stay cheap and late ones follow the late game
   for (const u of UPS) if (u.zs != null) { u.tab = []; const base = u.max, k0 = EARLY[u.id] ? EARLY[u.id] / (PRICE.first * pr(u.zs) * gref(u.zs)) : 1;
     for (let l = 0; l < base; l++) { const t = base > 1 ? l / (base - 1) : 0, z = u.zs + u.span * t; u.tab.push(PRICE.first * Math.pow(PRICE.last / PRICE.first, t) * pr(z) * gref(z) * Math.pow(k0, 1 - t)); }
-    if (EXT[u.id]) { u.base = base; u.max = EXT[u.id]; for (let l = base; l < u.max; l++) u.tab.push(u.tab[l - 1] * 1.7); } }
+    if (EXT[u.id]) { u.base = base; u.max = EXT[u.id]; const gr = u.max - base > 12 ? 1.45 : 1.7; for (let l = base; l < u.max; l++) u.tab.push(u.tab[l - 1] * gr); } }   // long extensions climb a little more gently
   const UP = Object.fromEntries(UPS.map(u => [u.id, u]));
   const BRANCH = [['launch', '발사'], ['body', '차체'], ['gear', '장치'], ['money', '수익']];
 
@@ -142,7 +146,7 @@ const CORE = (() => {
     K('p_meter', 'might', '느긋한 호흡', 5, '퍼펙트 구간 +15%', [['p_power', 1]]),
     K('r_focus', 'might', '무아지경', 5, '퍼펙트 보너스 +3%', [['p_meter', 2]]),
     K('r_mem', 'might', '전생의 기억', 5, '환생 때 레벨 8% 유지', [['p_power', 2]]),
-    K('r_skip', 'might', '지름길 지도', 4, '환생해도 구역 잠금 해제 2개 유지', [['p_power', 3]]),
+    K('r_skip', 'might', '개척 지도', 10, '새 구역 개척 골드 +50%', [['p_power', 3]]),
     K('r_double', 'might', '2단 발사', 1, '첫 정점에서 한 번 더 가속', [['p_power', 5], ['r_focus', 2]], 12),
     K('r_perf', 'might', '승부사', 10, '퍼펙트 발사·킥 보너스가 50% 커짐', [['p_power', 2]]),
     K('p_fuel', 'flight', '예비 연료', 8, '부스트 +0.5초'),
@@ -175,7 +179,8 @@ const CORE = (() => {
     for (const k in s.perks) if (!PK[k]) delete s.perks[k]; else s.perks[k] = Math.min(s.perks[k], PK[k].max); s.ach = s.ach || {}; s.migrated = gain; s.v = 3; return s; }
   const lvl = (s, id) => s.lv[id] || 0;
   const total = s => { let n = 0; for (const k in s.lv) n += s.lv[k]; return n; };
-  const cost = (s, id) => { const u = UP[id], l = lvl(s, id), base = u.tab ? u.tab[Math.min(l, u.max - 1)] : u.c0 * Math.pow(u.cm, l) * Math.pow(u.q, l * l) * Math.pow(u.q2, Math.pow(Math.max(0, l - u.l2), 2)); return Math.ceil(base * (1 - 0.05 * (s.perks.r_disc || 0))); };
+  const pushCost = (u, l) => { const k = Math.min(l, 90); return u.c0 * Math.pow(u.cm, k) * Math.pow(u.q, k * k) * Math.pow(u.q2, Math.pow(Math.max(0, k - u.l2), 2)) * Math.pow(1.8, Math.max(0, l - 90)); };
+  const cost = (s, id) => { const u = UP[id], l = lvl(s, id), base = u.tab ? u.tab[Math.min(l, u.max - 1)] : pushCost(u, l); return Math.ceil(base * (1 - 0.05 * (s.perks.r_disc || 0))); };
   function lockReason(s, id) { const u = UP[id]; if (u.re && (s.rebirths || 0) < u.re) return `환생 ${u.re}회 필요`; if (s.zone < u.zone) return `${ZONES[u.zone].name} 도달 필요`; for (const [r, n] of u.req) if (lvl(s, r) < n) return `${UP[r].name} Lv${n} 필요`; return ''; }
   const canBuy = (s, id) => lvl(s, id) < UP[id].max && !lockReason(s, id) && s.gold >= cost(s, id);
   function buy(s, id) { if (!canBuy(s, id)) return false; s.gold -= cost(s, id); s.lv[id] = lvl(s, id) + 1; return true; }
@@ -201,7 +206,7 @@ const CORE = (() => {
 
   function stats(s) {
     const L = id => lvl(s, id), P = id => s.perks[id] || 0, bless = P('r_bless') ? 1.5 : 1;
-    const power = 7 * Math.pow(1.05, L('push')) * (1 + 0.02 * L('runup')) * (1 + 0.03 * L('sling')) * (1 + 0.03 * L('cannon')) * (1 + 0.03 * L('rail')) * (1 + 0.04 * L('warp')) * (1 + 0.05 * P('p_power'));
+    const power = 7 * Math.pow(1.05, L('push')) * (1 + 0.02 * L('runup')) * (1 + 0.03 * L('sling')) * (1 + 0.03 * L('cannon')) * (1 + 0.03 * L('rail')) * (1 + 0.04 * L('warp')) * (1 + 0.04 * L('anti')) * (1 + 0.05 * L('singu')) * (1 + 0.05 * L('bang')) * (1 + 0.05 * P('p_power'));
     const eCap = 0.80 + 0.008 * L('hover'), thrust = L('rocket') ? (3 + 0.4 * L('rocket') + power * (0.05 + 0.004 * L('rocket'))) * (1 + 0.03 * L('jet')) * (1 + 0.04 * L('amp')) * (1 + 0.05 * L('burn')) : 0;
     return {
       power, angle: (14 + 2.8 * L('ramp')) * Math.PI / 180,
@@ -212,7 +217,7 @@ const CORE = (() => {
       spring: L('spring'), springN: L('spring') ? 1 + Math.floor(L('spring') / 4) + P('r_spring') + Math.floor(L('over') / 5) : 0, airjump: L('airjump') ? Math.min(1, 0.4 + 0.06 * L('airjump')) : 0,
       dash: L('dash'), dashN: L('dash') ? 1 + Math.floor(L('dash') / 5) + P('r_dash') + Math.floor(L('over') / 5) : 0, dashpow: (1 + 0.12 * L('dashpow')) * (1 + 0.04 * L('amp')),
       dive: L('dive'), diveN: L('dive') ? 1 + Math.floor(L('dive') / 3) + Math.floor(L('over') / 5) : 0, glide: Math.min(0.35, 0.035 * L('wing')), convert: 0.08 * L('convert'), grav: Math.max(0.6, 1 - 0.02 * L('grav')),
-      double: P('r_double'), phoenix: P('r_phoenix'), encore: 1 + 0.05 * L('encore'), refuel: 0.1 + 0.02 * L('refuel'), tractor: L('tractor') ? 8 - 0.5 * L('tractor') : 0, ampP: 4 * L('amp'), burnP: 5 * L('burn'), turbine: 0.02 * L('turbine'), pit: L('pit'), pslam: 0.012 * L('pslam'), jspring: L('jspring'), draft: 0.02 * L('draft'), streakB: 0.006 * L('streak'), burnK: 1 + 0.04 * L('burn'), comboT: 3 + 0.15 * L('ctime'), multi: 0.15 * L('multi'), allB: 0.012 * L('allr'),
+      pioneer: 1 + 0.5 * P('r_skip'), double: P('r_double'), phoenix: P('r_phoenix'), encore: 1 + 0.05 * L('encore'), refuel: 0.1 + 0.02 * L('refuel'), tractor: L('tractor') ? 8 - 0.5 * L('tractor') : 0, ampP: 4 * L('amp'), burnP: 5 * L('burn'), turbine: 0.02 * L('turbine'), pit: L('pit'), pslam: 0.012 * L('pslam'), jspring: L('jspring'), draft: 0.02 * L('draft'), streakB: 0.006 * L('streak'), burnK: 1 + 0.04 * L('burn'), comboT: 3 + 0.15 * L('ctime'), multi: 0.15 * L('multi'), allB: 0.012 * L('allr'),
       leap: 0.02 + 0.01 * L('leap'), crater: 0.02 + 0.008 * L('crater'), time: 10 * P('r_time'),
       perfB: 0.3 * (1 + 0.5 * P('r_perf')), landG: 0.03 * (1 + 0.5 * P('r_land')), landP: 0.08 * (1 + 0.5 * P('r_land')), slamB: 0.08 * (1 + 0.5 * P('r_land')),
       rate: (1 + 0.06 * L('ad')) * (1 + 0.25 * P('p_gold')) * (1 + STAR_GOLD * bless * s.starsTotal) * (1 + 0.01 * L('sponsor') * s.zone) * (1 + 0.03 * achCount(s)),
@@ -348,14 +353,14 @@ const CORE = (() => {
   function payout(r, s) {
     const st = r.st, D = r.maxX, z = zoneAt(D), dist = gd(D, z) * st.rate, coins = r.coinGold * st.rate;
     const style = st.style * r.bounces, alt = st.alt * Math.log2(1 + r.maxAlt / (2 * r.U)), perfect = r.perfect ? st.perfB : 0, kickB = r.kick > 1.05 ? st.perfB : r.kick > 1 ? st.perfB / 3 : 0, dbl = r.dbl ? 2 * st.perfB : 0, land = st.landG * (r.cleans - r.perfLands) + st.landP * r.perfLands, slam = st.slamB * r.slams + st.streakB * Math.min(40, r.maxStreak) + st.allB * Math.min(2 * r.slams, r.tricks, r.perfLands, Math.floor(r.maxCombo / 5), 15), trick = st.trick * r.tricks, combo = st.combo * r.maxCombo, gold = r.golden ? 3 : 1;
-    let first = 0; for (let i = zoneAt(s.bestLife || 0) + 1; i <= z; i++) first += 3 * gd(ZONES[i].at, i) * st.rate;   // base gold for zones reached for the first time this life; bonuses multiply it too
+    let first = 0; for (let i = zoneAt(s.bestLife || 0) + 1; i <= z; i++) first += 3 * gd(ZONES[i].at, i) * st.rate * st.pioneer;   // base gold for zones reached for the first time this life; bonuses multiply it too
     const mult = 1 + (style + alt + perfect + kickB + dbl + land + slam + trick + combo) * st.encore;
     return { dist, coins, style, alt, perfect, kickB, dbl, land, slam, trick, combo, gold, first, mult, total: Math.floor((dist + coins + first) * mult * gold), zone: z };
   }
   function finish(r, s) { const p = payout(r, s); s.gold += p.total; s.runs++; if (r.perfect) s.perfects = (s.perfects || 0) + 1; if (r.slams) s.slams = (s.slams || 0) + r.slams;
     p.record = r.maxX > s.best; if (r.maxX > s.best) s.best = r.maxX; if (r.maxX > s.bestLife) s.bestLife = r.maxX; p.newZone = p.zone > s.zone; if (p.zone > s.zone) s.zone = p.zone; p.ach = checkAch(s, r); return p; }
   function rebirth(s) { const gain = starsFor(s.bestLife); if (gain <= 0) return 0; const seed = (s.perks.p_seed || 0) ? 100 * Math.pow(10, s.perks.p_seed) : 0, keep = 0.08 * (s.perks.r_mem || 0);
-    s.stars += gain; s.starsTotal += gain; s.rebirths++; s.gold = seed; const lv = {}; if (keep) for (const k in s.lv) { const n = Math.floor(s.lv[k] * keep); if (n) lv[k] = n; } s.lv = lv; s.bestLife = 0; s.zone = Math.min(s.zone, 2 * (s.perks.r_skip || 0)); checkAch(s, null); return gain; }
+    s.stars += gain; s.starsTotal += gain; s.rebirths++; s.gold = seed; const lv = {}; if (keep) for (const k in s.lv) { const n = Math.floor(s.lv[k] * keep); if (n) lv[k] = n; } s.lv = lv; s.bestLife = 0; s.zone = 0; checkAch(s, null); return gain; }
   function buyPerk(s, id) { const p = PK[id], l = s.perks[id] || 0; if (!p || l >= p.max || perkLock(s, id) || s.stars < perkCost(p, l)) return false; s.stars -= perkCost(p, l); s.perks[id] = l + 1; return true; }
   return { ZONES, ZI, zoneAt, zoneProg, lerpZ, ground, isWater, UPS, UP, BRANCH, PERKS, PK, PBRANCH, perkCost, perkLock, STAR_GOLD, starsFor, nextStarAt, ACH, checkAch, achCount,
     newSave, migrate, lvl, total, cost, lockReason, canBuy, buy, stats, RAMP, scaleOf, newRun, river, cellObjs, step, payout, finish, rebirth, buyPerk, gd, gref };
