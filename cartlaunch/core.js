@@ -31,19 +31,19 @@ const CORE = (() => {
     { id: 'jupiter', fx: 'jupiter', name: '목성 폭풍', at: 5e7, g: 13, drag: 1.2, amp: 0.9, wl: 40, sk: 0.2, la: 2.5, mu: 0.5, e: 1.1, loss: 0.6, spec: ['tramp'], sky: ['#3a2416', '#d9a066'], ground: '#e8c9a0', deco: 'cloud' },
     { id: 'saturn', fx: 'saturn', name: '토성 고리', at: 1.2e8, g: 8, drag: 0.7, amp: 0.8, wl: 22, sk: -0.6, la: 2, mu: 1.6, e: 0.95, loss: 1.2, rough: 1, sky: ['#0a0a18', '#3a3350'], ground: '#cfc3a0', deco: 'rock' },
     { id: 'crystal', fx: 'crystal', name: '카이퍼 얼음띠', at: 3e8, g: 7, drag: 0.8, amp: 1.1, wl: 26, sk: 0.4, la: 2.5, mu: 0.3, e: 1.05, loss: 0.6, spec: ['tramp'], sky: ['#0b3a4a', '#7ff0e0'], ground: '#bff5ee', deco: 'ice' },
-    { id: 'centauri', fx: 'centauri', name: '알파 센타우리', at: 7.5e8, g: 9, drag: 1, amp: 1.1, wl: 30, sk: 0.5, la: 2.5, mu: 1, e: 1, loss: 1, spec: ['pool', 'geyser'], sky: ['#1a0a05', '#a8431a'], ground: '#3a1a12', deco: 'lava' },
-    { id: 'pleiades', fx: 'pleiades', name: '플레이아데스 성단', at: 2e9, g: 6, drag: 0.8, amp: 1, wl: 30, sk: 0.3, la: 2.5, mu: 0.4, e: 1.05, loss: 0.7, sky: ['#030818', '#1a3a7a'], ground: '#b9d2f5', deco: 'ice' },
-    { id: 'nebula', fx: 'nebula', name: '오리온 성운', at: 5e9, g: 6, drag: 0.8, amp: 1, wl: 38, sk: 0.2, la: 3, mu: 0.5, e: 1.1, loss: 0.6, spec: ['tramp'], sky: ['#3a1a6a', '#ff9ec7'], ground: '#e8d9ff', deco: 'cloud' },
-    { id: 'crab', fx: 'crab', name: '게 성운', at: 1.2e10, g: 10, drag: 1.1, amp: 1.4, wl: 34, sk: 0.6, la: 3, mu: 1.3, e: 0.95, loss: 1.2, rough: 1, spec: ['pool'], sky: ['#06040f', '#2a1038'], ground: '#3a2a30', deco: 'rock' },
-    { id: 'star', name: '은하 고속도로', at: 3e10, g: 7, drag: 0.8, amp: 0.93, wl: 44, sk: 0.35, la: 3, mu: 0.6, e: 1.05, loss: 0.7, sky: ['#0a0220', '#3a0f66'], ground: '#5b2bd6', deco: 'star' },
-    { id: 'hole', name: '궁수자리 블랙홀', at: 7.5e10, g: 14, drag: 1.3, amp: 1.69, wl: 36, sk: 0.5, la: 3, mu: 1.2, e: 0.9, loss: 1.2, rough: 1, spec: ['pool', 'geyser'], sky: ['#000000', '#3a0a16'], ground: '#1a1020', deco: 'hole' },
-    { id: 'magellan', fx: 'magellan', name: '마젤란 은하', at: 2e11, g: 6, drag: 0.8, amp: 1, wl: 36, sk: 0.2, la: 3, mu: 0.5, e: 1.1, loss: 0.6, spec: ['tramp'], sky: ['#0a1030', '#5a3a8a'], ground: '#d6e2ff', deco: 'cloud' },
-    { id: 'andromeda', fx: 'andromeda', name: '안드로메다 은하', at: 5e11, g: 5, drag: 0.7, amp: 0.9, wl: 28, sk: -0.4, la: 2.5, mu: 0.8, e: 1.03, loss: 0.8, sky: ['#02030a', '#101a3a'], ground: '#8f94b8', deco: 'moon' },
-    { id: 'virgo', fx: 'virgo', name: '처녀자리 은하단', at: 1.2e12, g: 8, drag: 0.9, amp: 1.3, wl: 26, sk: -0.6, la: 3, mu: 1.5, e: 0.95, loss: 1.3, rough: 1, sky: ['#050208', '#2a1a12'], ground: '#6a5a4a', deco: 'rock' },
-    { id: 'end', name: '우주의 끝', at: 3e12, g: 6, drag: 0.9, amp: 1.6, wl: 40, sk: 0.3, la: 3.5, mu: 1.5, e: 0.95, loss: 1.3, rough: 1, spec: ['pool'], sky: ['#b8e8ff', '#f6f0ff'], ground: '#2b2233', deco: 'end' },
-    { id: 'rift', fx: 'rift', name: '차원의 틈', at: 7.5e12, g: 9, drag: 1, amp: 1.4, wl: 34, sk: 0.6, la: 3, mu: 1.3, e: 0.95, loss: 1.2, rough: 1, spec: ['geyser'], sky: ['#12002b', '#6a1fb5'], ground: '#2a0f4a', deco: 'hole' },
-    { id: 'multi', fx: 'multi', name: '멀티버스', at: 2e13, g: 7, drag: 0.9, amp: 1.2, wl: 36, sk: 0.3, la: 3, mu: 0.6, e: 1.1, loss: 0.7, spec: ['tramp', 'geyser'], sky: ['#0a0220', '#103a4a'], ground: '#c9f0e8', deco: 'cloud' },
-    { id: 'omega', fx: 'omega', name: '시간의 끝', at: 5e13, g: 8, drag: 1, amp: 1.6, wl: 42, sk: 0.3, la: 3.5, mu: 1, e: 1, loss: 1, rough: 1, spec: ['pool'], sky: ['#000010', '#1a3a6a'], ground: '#101830', deco: 'star' },
+    { id: 'centauri', fx: 'centauri', name: '알파 센타우리', at: 1.2e9, g: 9, drag: 1, amp: 1.1, wl: 30, sk: 0.5, la: 2.5, mu: 1, e: 1, loss: 1, spec: ['pool', 'geyser'], sky: ['#1a0a05', '#a8431a'], ground: '#3a1a12', deco: 'lava' },
+    { id: 'pleiades', fx: 'pleiades', name: '플레이아데스 성단', at: 5e9, g: 6, drag: 0.8, amp: 1, wl: 30, sk: 0.3, la: 2.5, mu: 0.4, e: 1.05, loss: 0.7, sky: ['#030818', '#1a3a7a'], ground: '#b9d2f5', deco: 'ice' },
+    { id: 'nebula', fx: 'nebula', name: '오리온 성운', at: 2e10, g: 6, drag: 0.8, amp: 1, wl: 38, sk: 0.2, la: 3, mu: 0.5, e: 1.1, loss: 0.6, spec: ['tramp'], sky: ['#3a1a6a', '#ff9ec7'], ground: '#e8d9ff', deco: 'cloud' },
+    { id: 'crab', fx: 'crab', name: '게 성운', at: 8e10, g: 10, drag: 1.1, amp: 1.4, wl: 34, sk: 0.6, la: 3, mu: 1.3, e: 0.95, loss: 1.2, rough: 1, spec: ['pool'], sky: ['#06040f', '#2a1038'], ground: '#3a2a30', deco: 'rock' },
+    { id: 'star', name: '은하 고속도로', at: 3e11, g: 7, drag: 0.8, amp: 0.93, wl: 44, sk: 0.35, la: 3, mu: 0.6, e: 1.05, loss: 0.7, sky: ['#0a0220', '#3a0f66'], ground: '#5b2bd6', deco: 'star' },
+    { id: 'hole', name: '궁수자리 블랙홀', at: 1.2e12, g: 14, drag: 1.3, amp: 1.69, wl: 36, sk: 0.5, la: 3, mu: 1.2, e: 0.9, loss: 1.2, rough: 1, spec: ['pool', 'geyser'], sky: ['#000000', '#3a0a16'], ground: '#1a1020', deco: 'hole' },
+    { id: 'magellan', fx: 'magellan', name: '마젤란 은하', at: 5e12, g: 6, drag: 0.8, amp: 1, wl: 36, sk: 0.2, la: 3, mu: 0.5, e: 1.1, loss: 0.6, spec: ['tramp'], sky: ['#0a1030', '#5a3a8a'], ground: '#d6e2ff', deco: 'cloud' },
+    { id: 'andromeda', fx: 'andromeda', name: '안드로메다 은하', at: 2e13, g: 5, drag: 0.7, amp: 0.9, wl: 28, sk: -0.4, la: 2.5, mu: 0.8, e: 1.03, loss: 0.8, sky: ['#02030a', '#101a3a'], ground: '#8f94b8', deco: 'moon' },
+    { id: 'virgo', fx: 'virgo', name: '처녀자리 은하단', at: 8e13, g: 8, drag: 0.9, amp: 1.3, wl: 26, sk: -0.6, la: 3, mu: 1.5, e: 0.95, loss: 1.3, rough: 1, sky: ['#050208', '#2a1a12'], ground: '#6a5a4a', deco: 'rock' },
+    { id: 'end', name: '우주의 끝', at: 3e14, g: 6, drag: 0.9, amp: 1.6, wl: 40, sk: 0.3, la: 3.5, mu: 1.5, e: 0.95, loss: 1.3, rough: 1, spec: ['pool'], sky: ['#b8e8ff', '#f6f0ff'], ground: '#2b2233', deco: 'end' },
+    { id: 'rift', fx: 'rift', name: '차원의 틈', at: 1.2e15, g: 9, drag: 1, amp: 1.4, wl: 34, sk: 0.6, la: 3, mu: 1.3, e: 0.95, loss: 1.2, rough: 1, spec: ['geyser'], sky: ['#12002b', '#6a1fb5'], ground: '#2a0f4a', deco: 'hole' },
+    { id: 'multi', fx: 'multi', name: '멀티버스', at: 5e15, g: 7, drag: 0.9, amp: 1.2, wl: 36, sk: 0.3, la: 3, mu: 0.6, e: 1.1, loss: 0.7, spec: ['tramp', 'geyser'], sky: ['#0a0220', '#103a4a'], ground: '#c9f0e8', deco: 'cloud' },
+    { id: 'omega', fx: 'omega', name: '시간의 끝', at: 2e16, g: 8, drag: 1, amp: 1.6, wl: 42, sk: 0.3, la: 3.5, mu: 1, e: 1, loss: 1, rough: 1, spec: ['pool'], sky: ['#000010', '#1a3a6a'], ground: '#101830', deco: 'star' },
   ];
   const ZI = id => ZONES.findIndex(z => z.id === id);
   const zoneAt = x => { let z = 0; for (let i = 1; i < ZONES.length; i++) if (x >= ZONES[i].at) z = i; return z; };
@@ -64,10 +64,10 @@ const CORE = (() => {
   const gd = (d, zi) => 9 * Math.pow(d, 0.55) * Math.pow(1.15, zi);
   // typical gold of one run while working in zone z (measured with tools/sim.js; beyond the last zone it keeps growing)
   const GT = [40, 330, 1100, 3300, 8500, 2.2e4, 4.8e4, 1.4e5, 3.7e5, 1.9e6, 6e6, 3.2e7, 8.5e7, 5e8, 1.6e9];
-  const gref = z => { const f = k => k < GT.length ? GT[Math.max(0, k)] : GT[GT.length - 1] * Math.pow(2.6, k - GT.length + 1), a = Math.floor(z), t = z - a; return Math.exp(Math.log(f(a)) * (1 - t) + Math.log(f(a + 1)) * t); };
+  const gref = z => { const f = k => k < GT.length ? GT[Math.max(0, k)] : GT[GT.length - 1] * Math.pow(2.6, Math.min(k, 16) - GT.length + 1) * Math.pow(3.4, Math.max(0, k - 16)), a = Math.floor(z), t = z - a; return Math.exp(Math.log(f(a)) * (1 - t) + Math.log(f(a + 1)) * t); };
   // prices in "runs of gold": the first level of an upgrade costs about PRICE.first runs, its last level PRICE.last runs; past the sea everything gets steeper
   const PRICE = { first: 3, last: 12, late: 1.9, from: 5 };
-  const pr = z => Math.pow(PRICE.late, Math.max(0, z - PRICE.from));
+  const pr = z => Math.pow(PRICE.late, Math.max(0, Math.min(z, 14) - PRICE.from)) * Math.pow(0.75, Math.max(0, z - 14));   // steeper up to zone 14, then easing so the far zones stay reachable
   const U_ = (id, br, name, max, zs, span, desc, req, zone, re) => ({ id, br, name, max, zs, span, desc, req: req || [], zone: zone ? ZI(zone) : 0, re: re || 0 });
   // levels past an upgrade's original cap: each costs 1.7x the one before
   const EXT = { anti: 40, singu: 45, bang: 50, runup: 50, sling: 35, cannon: 35, rail: 35, warp: 35, frame: 30, aero: 60, gyro: 20, rubber: 25, float: 25, heat: 25, wide: 25, fuel: 40, nozzle: 40, spring: 30, dash: 25, dashpow: 40, dive: 24, airjump: 15, jet: 50, grav: 20, refuel: 30, leap: 25, crater: 25, amp: 30, tail: 25,
@@ -87,7 +87,7 @@ const CORE = (() => {
     U_('anti', 'launch', '반물질 사출기', 25, 15, 5, '발사 속도 +4%', [['warp', 20]], 'saturn', 3),
     U_('singu', 'launch', '특이점 엔진', 30, 18.5, 5, '발사 속도 +5%', [['anti', 25]], 'pleiades', 5),
     U_('bang', 'launch', '빅뱅 점화', 30, 22, 5, '발사 속도 +5%', [['singu', 30]], 'hole', 8),
-    U_('cosmos', 'launch', '우주 가속기', 40, 26, 4, '발사 속도 +6%', [['bang', 30]], 'end', 12),
+    U_('cosmos', 'launch', '우주 가속기', 60, 26, 4, '발사 속도 +6%', [['bang', 30]], 'end', 12),
     U_('wheel', 'body', '바퀴 윤활', 18, 0, 2.5, '땅에서 굴러갈 때 덜 느려짐'),
     U_('tire', 'body', '탄성 타이어', 20, 0.3, 3.5, '땅에서 더 높이 튕김', [['wheel', 3]]),
     U_('frame', 'body', '경량 프레임', 20, 0.6, 4, '착지 때 잃는 속도 -14%', [['wheel', 5]]),
@@ -184,7 +184,7 @@ const CORE = (() => {
   const STAR_GOLD = 0.04;
   const SEA = ZI('sea');
   // stars for a rebirth: 2 on reaching the sea, then more for every zone (and part of a zone) beyond it
-  const starsFor = best => best < ZONES[SEA].at ? 0 : Math.floor(2 * Math.pow(zoneProg(best) - (SEA - 1), 1.4));
+  const starsFor = best => best < ZONES[SEA].at ? 0 : Math.floor(2 * Math.pow(zoneProg(best) - (SEA - 1), 1.4) + 4 * Math.pow(Math.max(0, zoneProg(best) - 16), 1.3));
   function nextStarAt(best) { const n = starsFor(best) + 1; let lo = Math.max(best, ZONES[SEA].at * 0.999), hi = lo * 2; while (starsFor(hi) < n) hi *= 2; for (let i = 0; i < 40; i++) { const m = Math.sqrt(lo * hi); if (starsFor(m) >= n) hi = m; else lo = m; } return hi; }
 
   const newSave = () => ({ gold: 0, lv: {}, best: 0, bestLife: 0, zone: 0, runs: 0, stars: 0, starsTotal: 0, perks: {}, rebirths: 0, ach: {}, perfects: 0, slams: 0, v: 3 });
