@@ -328,9 +328,9 @@ const CORE = (() => {
   function payout(r, s) {
     const st = r.st, D = r.maxX, z = zoneAt(D), dist = gd(D, z) * st.rate, coins = r.coinGold * st.rate;
     const style = st.style * r.bounces, alt = st.alt * Math.log2(1 + r.maxAlt / (2 * r.U)), perfect = r.perfect ? st.perfB : 0, kickB = r.kick > 1.05 ? st.perfB : r.kick > 1 ? st.perfB / 3 : 0, dbl = r.dbl ? 2 * st.perfB : 0, land = st.landG * (r.cleans - r.perfLands) + st.landP * r.perfLands, slam = st.slamB * r.slams, trick = st.trick * r.tricks, combo = st.combo * r.maxCombo, gold = r.golden ? 3 : 1;
-    const first = 1.5 * Math.max(0, z - s.zone);   // +150% for every zone reached for the first time this life
-    const mult = 1 + (style + alt + perfect + kickB + dbl + land + slam + trick + combo) * st.encore + first;
-    return { dist, coins, style, alt, perfect, kickB, dbl, land, slam, trick, combo, gold, first, mult, total: Math.floor((dist + coins) * mult * gold), zone: z };
+    let first = 0; for (let i = s.zone + 1; i <= z; i++) first += 3 * gd(ZONES[i].at, i) * st.rate;   // base gold for zones reached for the first time this life; bonuses multiply it too
+    const mult = 1 + (style + alt + perfect + kickB + dbl + land + slam + trick + combo) * st.encore;
+    return { dist, coins, style, alt, perfect, kickB, dbl, land, slam, trick, combo, gold, first, mult, total: Math.floor((dist + coins + first) * mult * gold), zone: z };
   }
   function finish(r, s) { const p = payout(r, s); s.gold += p.total; s.runs++; if (r.perfect) s.perfects = (s.perfects || 0) + 1; if (r.slams) s.slams = (s.slams || 0) + r.slams;
     p.record = r.maxX > s.best; if (r.maxX > s.best) s.best = r.maxX; if (r.maxX > s.bestLife) s.bestLife = r.maxX; p.newZone = p.zone > s.zone; if (p.zone > s.zone) s.zone = p.zone; p.ach = checkAch(s, r); return p; }
