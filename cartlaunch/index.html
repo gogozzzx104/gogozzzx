@@ -807,9 +807,9 @@ function frame(now) {
       else if (e.k === 'bonk' || e.k === 'burn') { shake = 9; SFX.bonk(); dollJolt = 10; }
       else if (e.k === 'trick') { confetti(cartX, cartY, 10 + e.n * 8); ringFx(cartX, cartY, '#ffd24a', 80, 0.5, 6); toast(`${e.n}바퀴 ${e.clean ? '완벽 ' : ''}착지!`, 1100); SFX.perfect(); pops.push({ a: 1, t: 0, txt: `공중제비 ${e.n}바퀴 · 골드 +${Math.round(st.trick * 100 * e.n)}%` }); }
       else if (e.k === 'clean') { const up = Math.pow(2, Math.min(12, e.n - 1) / 12);
-        if (e.pf) { pops.push({ a: 1, t: 0, txt: `완벽 착지${e.n > 1 ? ' ×' + e.n : ''} · 골드 +${Math.round(st.landP * 100)}% · 연료 +${st.refuel.toFixed(2)}초` }); tone(784 * up, 1175 * up, 0.12, 0.13); tone(1175 * up, 1568 * up, 0.14, 0.1, 'triangle', 0.07); buzz(18);
+        if (e.pf) { pops.push({ a: 1, t: 0, txt: `완벽 착지${e.n > 1 ? ' ×' + e.n : ''} · 골드 +${Math.round(st.landP * 100)}% · 연료 +${e.f.toFixed(2)}초${e.slam ? ' (급강하 ×2)' : ''}` }); tone(784 * up, 1175 * up, 0.12, 0.13); tone(1175 * up, 1568 * up, 0.14, 0.1, 'triangle', 0.07); buzz(18);
           ringFx(cartX, cartY + 12, '#ffd24a', 76, 0.45, 6); ringFx(cartX, cartY + 12, '#ffffff', 46, 0.35, 3, 0.05); burst(cartX, cartY + 14, 10, ['#ffd24a', '#fff3b0', '#ffffff'], 420, 0.5, { a0: Math.PI, spread: 0.5, g: 200, z: 4 }); burst(cartX, cartY + 14, 10, ['#ffd24a', '#fff3b0', '#ffffff'], 420, 0.5, { a0: 0, spread: 0.5, g: 200, z: 4 }); landT = now; }
-        else { pops.push({ a: 1, t: 0, col: '#b9f29a', txt: `좋은 착지${e.n > 1 ? ' ×' + e.n : ''} · 골드 +${Math.round(st.landG * 100)}%` }); tone(660 * up, 880 * up, 0.1, 0.1); ringFx(cartX, cartY + 12, '#9be37a', 46, 0.3, 3); } }
+        else { pops.push({ a: 1, t: 0, col: '#b9f29a', txt: `좋은 착지${e.n > 1 ? ' ×' + e.n : ''} · 골드 +${Math.round(st.landG * 100)}%${e.slam ? ` · 연료 +${e.f.toFixed(2)}초 (급강하 ×1.5)` : ''}` }); tone(660 * up, 880 * up, 0.1, 0.1); ringFx(cartX, cartY + 12, '#9be37a', 46, 0.3, 3); } }
       else if (e.k === 'badland') { pops.push({ a: 1, t: 0, col: '#ff9d9d', txt: '삐끗! 속도 -12%' }); shake = Math.max(shake, 5); }
       else if (e.k === 'pull') tone(1100, 1500, 0.05, 0.05);
       else if (e.k === 'tractor') { tone(500, 1400, 0.3, 0.1, 'sine'); pops.push({ a: 1, t: 0, col: '#ffe27a', txt: '견인 광선!' }); }

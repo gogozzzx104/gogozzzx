@@ -329,7 +329,7 @@ const CORE = (() => {
             if (trick) { r.tricks += flips + st.multi * (Math.min(flips, 5) - 1); vt *= 1 + Math.min(0.25, 0.05 * flips); r.ev.push({ k: 'trick', x: r.x, y: r.y, n: flips, clean: Math.abs(dd) < 0.2 }); }
             if (crash) { vt *= 0.75; r.crashes++; r.ev.push({ k: 'crash', x: r.x, y: r.y }); }
             if (long && Math.abs(dd) < 0.26 + 0.01 * st.gyro) { const pf = Math.abs(dd) < 0.11 + 0.004 * st.gyro; al = pf ? 2 : 1; r.cleans++; if (pf) r.perfLands++; r.landStreak++; if (r.landStreak > r.maxStreak) r.maxStreak = r.landStreak;
-              if (st.fuel) r.fuel = Math.min(st.fuel, r.fuel + (pf ? st.refuel : st.refuel / 2)); r.ev.push({ k: 'clean', x: r.x, y: r.y, pf, n: r.landStreak }); if (st.pit && r.landStreak % 3 === 0 && r.refills < st.pit && r.dash < st.dashN) { r.dash++; r.refills++; r.ev.push({ k: 'recharge', x: r.x, y: r.y }); } }
+              const fu = (pf ? st.refuel : st.refuel / 2) * (r.slam ? (pf ? 2 : 1.5) : 1); if (st.fuel) r.fuel = Math.min(st.fuel, r.fuel + fu); r.ev.push({ k: 'clean', x: r.x, y: r.y, pf, n: r.landStreak, f: fu, slam: r.slam }); if (st.pit && r.landStreak % 3 === 0 && r.refills < st.pit && r.dash < st.dashN) { r.dash++; r.refills++; r.ev.push({ k: 'recharge', x: r.x, y: r.y }); } }
             else if (long && !crash && Math.abs(dd) > 1.1) { al = -1; r.landStreak = 0; r.ev.push({ k: 'badland', x: r.x, y: r.y }); }
             else if (long && !trick) r.landStreak = 0;
             r.airT = 0; r.rotAcc = 0; r.spin = 0; r.ang = sa; r.lastBounce = r.tr; }
