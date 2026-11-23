@@ -269,12 +269,14 @@ const CORE = (() => {
         if (vn < 0) {
           let al = 0; const imp = -vn, water = isWater(r.x, U), Z = ZONES[zoneAt(r.x)], soft = Math.max(0.15, 1 - 0.085 * st.wide);
           if (r.air) { const sa = Math.atan(sl), dd = Math.atan2(Math.sin(r.ang - sa), Math.cos(r.ang - sa)), flips = Math.round(Math.abs(r.rotAcc) / 6.2832);
-            if (flips >= 1 && Math.abs(dd) < 0.7 + 0.04 * st.gyro) { r.tricks += flips; vt *= 1 + Math.min(0.25, 0.05 * flips); r.ev.push({ k: 'trick', x: r.x, y: r.y, n: flips, clean: Math.abs(dd) < 0.2 }); }
-            else if (Math.abs(r.rotAcc) > 1.2 && Math.abs(dd) > 1.4) { vt *= 0.75; r.crashes++; r.ev.push({ k: 'crash', x: r.x, y: r.y }); }
-            else if (r.airT > 0.35 && Math.abs(dd) < 0.26 + 0.01 * st.gyro) { const pf = Math.abs(dd) < 0.11 + 0.004 * st.gyro; al = pf ? 2 : 1; r.cleans++; if (pf) r.perfLands++; r.landStreak++; if (r.landStreak > r.maxStreak) r.maxStreak = r.landStreak;
+            // flips and landing attitude are judged separately: a flip that ends wheels-down earns the trick bonus and the landing bonus
+            const trick = flips >= 1 && Math.abs(dd) < 0.7 + 0.04 * st.gyro, crash = !trick && Math.abs(r.rotAcc) > 1.2 && Math.abs(dd) > 1.4, long = r.airT > 0.35;
+            if (trick) { r.tricks += flips; vt *= 1 + Math.min(0.25, 0.05 * flips); r.ev.push({ k: 'trick', x: r.x, y: r.y, n: flips, clean: Math.abs(dd) < 0.2 }); }
+            if (crash) { vt *= 0.75; r.crashes++; r.ev.push({ k: 'crash', x: r.x, y: r.y }); }
+            if (long && Math.abs(dd) < 0.26 + 0.01 * st.gyro) { const pf = Math.abs(dd) < 0.11 + 0.004 * st.gyro; al = pf ? 2 : 1; r.cleans++; if (pf) r.perfLands++; r.landStreak++; if (r.landStreak > r.maxStreak) r.maxStreak = r.landStreak;
               if (st.fuel) r.fuel = Math.min(st.fuel, r.fuel + (pf ? 0.3 : 0.15)); r.ev.push({ k: 'clean', x: r.x, y: r.y, pf, n: r.landStreak }); }
-            else if (r.airT > 0.35 && Math.abs(dd) > 1.1) { al = -1; r.landStreak = 0; r.ev.push({ k: 'badland', x: r.x, y: r.y }); }
-            else if (r.airT > 0.35 && !(flips >= 1 && Math.abs(dd) < 0.7 + 0.04 * st.gyro)) r.landStreak = 0;
+            else if (long && !crash && Math.abs(dd) > 1.1) { al = -1; r.landStreak = 0; r.ev.push({ k: 'badland', x: r.x, y: r.y }); }
+            else if (long && !trick) r.landStreak = 0;
             r.airT = 0; r.rotAcc = 0; r.spin = 0; r.ang = sa; r.lastBounce = r.tr; }
           if (water && !st.float) { if (Math.abs(vt) > 0.25 * r.v0 && imp < Math.abs(vt) * 0.55) { vn = imp * 0.45; vt *= 0.86; r.bounces++; r.air = true; r.ev.push({ k: 'skip', x: r.x, y: r.y }); } else { r.over = true; r.why = '물에 빠졌어요'; r.ev.push({ k: 'sink', x: r.x, y: r.y }); break; } }
           else {
