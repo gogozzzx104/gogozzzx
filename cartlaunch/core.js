@@ -206,14 +206,15 @@ const CORE = (() => {
     const hg = h(1); let gt = hg < 0.10 ? 'pad' : hg < 0.19 ? 'tramp' : hg < 0.31 ? 'haz' : hg < 0.40 ? 'spec' : null;
     if (gt === 'spec') gt = Z.spec ? Z.spec[Math.floor(h(2) * Z.spec.length)] : null;
     if (gt) { const x = xa + cw * (0.15 + 0.7 * h(3)); if (isWater(x, r.U)) gt = gt === 'boat' || h(7) < 0.4 ? 'boat' : null; else if (gt === 'boat') gt = null; if (gt) out.push({ id: i * 8, type: gt, x, y: ground(x, r.U), grounded: true, rad: S, z }); }
-    const ha = h(4);
-    if (ha < 0.55) for (let k = 0; k < 3; k++) { const x = xa + cw * (0.2 + 0.3 * k); out.push({ id: i * 8 + 1 + k, type: 'coin', x, y: ground(x, r.U) + river(r, x), rad: (0.75 + 0.1 * r.st.magnet) * S, z }); }
-    else if (ha < 0.63) out.push({ id: i * 8 + 4, type: 'ring', x: xm, y: ground(xm, r.U) + river(r, xm), rad: 1.0 * S, z });
-    if (h(5) < 0.035 * (1 + 0.3 * r.st.crate)) { const x = xa + cw * 0.65, up = h(6) < 0.5; out.push({ id: i * 8 + 5, type: 'crate', x, y: ground(x, r.U) + Math.max(0.7 * S, river(r, x) + (up ? 0.75 : -0.55) * r.c), rad: 0.8 * S, z }); }
+    // air: small groups of coins hung at heights across the whole flight envelope (not a line to follow) - worth chasing, easy to miss
+    const ha = h(4), lo = 1.8 * S, hi = Math.max(3.5 * S, 2 * r.c), at = (k, x) => ground(x, r.U) + lo + (hi - lo) * Math.pow(h(k), 1.6);
+    if (ha < 0.30) { const n = h(8) < 0.5 ? 2 : 3, x0 = xa + cw * (0.25 + 0.3 * h(9)), y0 = at(10, x0) - ground(x0, r.U), tilt = (h(11) - 0.5) * 0.8; for (let k = 0; k < n; k++) { const x = x0 + k * 1.5 * S; out.push({ id: i * 8 + 1 + k, type: 'coin', x, y: ground(x, r.U) + Math.max(lo, y0 + k * tilt * S), rad: (0.6 + 0.1 * r.st.magnet) * S, z }); } }
+    else if (ha < 0.37) { const x = xm; out.push({ id: i * 8 + 4, type: 'ring', x, y: at(12, x), rad: 1.0 * S, z }); }
+    if (h(5) < 0.03 * (1 + 0.3 * r.st.crate)) { const x = xa + cw * 0.8; out.push({ id: i * 8 + 5, type: 'crate', x, y: ground(x, r.U) + lo + (hi - lo) * (0.55 + 0.45 * h(6)), rad: 0.8 * S, z }); }
     return out;
   }
   function hit(r, o) {
-    const st = r.st, sp = Math.hypot(r.vx, r.vy), cv = 0.008 * gd(Math.max(30, r.v0 * r.v0 / 9.8), o.z) * st.coin;
+    const st = r.st, sp = Math.hypot(r.vx, r.vy), cv = 0.03 * gd(Math.max(30, r.v0 * r.v0 / 9.8), o.z) * st.coin;
     const vr = Math.min(sp, 1.2 * r.v0); r.used.add(o.id);
     if (o.type !== 'haz' && o.type !== 'pool') { r.combo = r.tr - r.comboT < 3 ? r.combo + 1 : 1; r.comboT = r.tr; if (r.combo > r.maxCombo) r.maxCombo = r.combo; }
     if (o.type === 'coin') { r.coins++; r.coinGold += cv; r.ev.push({ k: 'coin', x: o.x, y: o.y, g: cv }); }

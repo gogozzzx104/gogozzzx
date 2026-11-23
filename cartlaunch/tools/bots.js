@@ -7,7 +7,7 @@ function play(s, seed, mode, m) {
   const st = C.stats(s), rnd = rng(seed), good = mode !== 'idle', perfect = rnd() < (good ? 0.6 : 0.3), meter = perfect ? 0.995 : 0.55 + rnd() * 0.35, kr = rnd(), kick = !good ? 1 : kr < 0.35 ? 1.06 + st.kickB : kr < 0.7 ? 1.03 + st.kickB / 2 : 1;
   const r = C.newRun(st, meter, kick, seed); let guard = 0, dead = 0, acts = 0, lastAct = 0, gap = 0;
   while (!r.over && guard++ < 4000) {
-    const gy = C.ground(r.x, r.U), alt = r.y - gy, sp = Math.hypot(r.vx, r.vy), grounded = alt < Math.max(1.2, 0.5 * r.S), inp = {}, tgt = C.river(r, r.x + 0.5 * r.cw);
+    const gy = C.ground(r.x, r.U), alt = r.y - gy, sp = Math.hypot(r.vx, r.vy), grounded = alt < Math.max(1.2, 0.5 * r.S), inp = {}; let tgt = C.river(r, r.x + 0.5 * r.cw); if (mode !== 'idle') { const i0 = Math.floor(r.x / r.cw - 1.2); out: for (let i = Math.max(0, i0); i <= i0 + 2; i++) for (const o of C.cellObjs(r, i)) if (!o.grounded && o.type !== 'ring' && o.x > r.x && !r.used.has(o.id)) { tgt = o.y - C.ground(o.x, r.U); break out; } }
     if (mode === 'idle') { inp.boost = r.tr > 0.2; inp.skill = (grounded && sp > 2 && r.spring > 0 && r.tr > 0.6) || (r.dash > 0 && r.vy < 0 && !grounded); }
     else {
       inp.boost = r.fuel > 0 && r.tr > 0.3 && ((alt < tgt * 1.1 && r.vy < 0.2 * sp) || sp < 0.8 * r.v0);
