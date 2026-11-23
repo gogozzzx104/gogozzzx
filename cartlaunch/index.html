@@ -373,7 +373,9 @@ const IC = {
 const icon = id => `<svg class="ic" viewBox="0 0 24 24">${IC[id] || c_(12, 12, 7)}</svg>`;
 const BCOL = { launch: '#ff8a66', body: '#6cbcff', gear: '#3fe6c5', money: '#ffcf4a', star: '#c59bff', skin: '#ff9de0', info: '#9fb0ff', might: '#ff8a66', flight: '#6cbcff', wealth: '#ffcf4a' };
 const TABS = [['launch', '발사', 'ramp'], ['body', '차체', 'frame'], ['gear', '장치', 'rocket'], ['money', '수익', 'coin'], ['star', '환생', 'style'], ['skin', '스킨', 't_skin'], ['info', '기록', 't_info']];
-const arrow = (a, b) => { let i = 0; while (i < a.length && i < b.length && a[i] === b[i]) i++; i = a.lastIndexOf(' ', i - 1) + 1; return a + ' → ' + (i > 2 ? b.slice(i) : b); };
+// "부스트 힘 +5%" and "부스트 힘 +10%" become "부스트 힘 +5% → +10%": the words appear once and only the numbers that change are paired
+const NUM = /[+\-×]?\d[\d,.]*(?:만|억|조|경|해)?(?:%p|%|초|회|°|m\/s|개|번)?/g;
+const arrow = (a, b) => { const na = a.match(NUM) || [], nb = b.match(NUM) || [], ta = a.split(NUM), tb = b.split(NUM); if (na.length !== nb.length || ta.join('|') !== tb.join('|')) return `${a} → ${b}`; let o = ta[0]; for (let i = 0; i < na.length; i++) o += (na[i] === nb[i] ? na[i] : `${na[i]} → ${nb[i]}`) + ta[i + 1]; return o; };
 const sel = {}, perkCan = q => { const l = S.perks[q.id] || 0; return l < q.max && !C.perkLock(S, q.id) && S.stars >= C.perkCost(q, l); };
 function openShop() { state = 'shop'; $('#result').hidden = true; $('#shop').hidden = false; flyUI(false); confirmKey = ''; renderShop(); }
 // tree layout: a node sits one row below its deepest prerequisite and is centred over its children
@@ -396,11 +398,11 @@ function treeHTML(items, perk) {
   return `<div class="tw" style="height:${ht}px;--cw:${cw - 4}px"><svg class="edges" width="100%" height="100%">${svg}</svg>${h}${pop}</div>`;
 }
 function upDetail(u) { const l = C.lvl(S, u.id), lock = C.lockReason(S, u.id), mx = l >= u.max, can = C.canBuy(S, u.id);
-  let eff = ''; if (EFF[u.id]) { const a = EFF[u.id](st); if (mx || lock) eff = a; else { const s2 = JSON.parse(JSON.stringify(S)); s2.lv[u.id] = l + 1; const b = EFF[u.id](C.stats(s2)); eff = a === b ? a : `<i>지금</i>${a}<br><i>다음 Lv</i>${b}`; } }
+  let eff = ''; if (EFF[u.id]) { const a = EFF[u.id](st); if (mx) eff = a; else { const s2 = JSON.parse(JSON.stringify(S)); s2.lv[u.id] = l + 1; const b = EFF[u.id](C.stats(s2)); eff = a === b ? a : `<i>다음 Lv</i>${arrow(a, b)}`; } }
   const reqs = u.req.map(([r, n]) => `<span class="${C.lvl(S, r) >= n ? 'ok' : ''}">${C.UP[r].name} Lv${n}</span>`).concat(u.zone ? [`<span class="${S.zone >= u.zone ? 'ok' : ''}">${Z[u.zone].name} 도달</span>`] : []).concat(u.re ? [`<span class="${S.rebirths >= u.re ? 'ok' : ''}">환생 ${u.re}회</span>`] : []).join('');
   return `<div class="dh" style="--bc:${BCOL[u.br]}"><div class="di">${icon(u.id)}</div><div><h3>${u.name}</h3><span>Lv ${l} / ${u.max}</span></div></div><p>${u.desc}</p>${eff ? `<p class="eff">${eff}</p>` : ''}${reqs ? `<div class="dr">${reqs}</div>` : ''}<div class="brow"><button class="buy" data-up="${u.id}" ${can ? '' : 'disabled'}>${mx ? '최대 레벨' : lock ? '잠김' : fmt(C.cost(S, u.id)) + '<small>골드</small>'}</button><button class="buy sm" data-max="${u.id}" ${can ? '' : 'disabled'}>최대로</button></div>`; }
 function perkDetail(q) { const l = S.perks[q.id] || 0, mx = l >= q.max, lock = C.perkLock(S, q.id), c = C.perkCost(q, l), reqs = q.req.map(([r, n]) => `<span class="${(S.perks[r] || 0) >= n ? 'ok' : ''}">${C.PK[r].name} Lv${n}</span>`).join('');
-  return `<div class="dh" style="--bc:${BCOL[q.br]}"><div class="di">${icon(q.id)}</div><div><h3>${q.name}</h3><span>${q.cap ? '궁극' : 'Lv ' + l + ' / ' + q.max}</span></div></div><p>${q.desc}</p>${PEFF[q.id] ? `<p class="eff">${mx ? PEFF[q.id](l) : `<i>지금</i>${PEFF[q.id](l)}<br><i>다음 Lv</i>${PEFF[q.id](l + 1)}`}</p>` : ''}${reqs ? `<div class="dr">${reqs}</div>` : ''}<button class="buy star" data-perk="${q.id}" ${perkCan(q) ? '' : 'disabled'}>${mx ? '완료' : lock ? '잠김' : '★ ' + c}</button>`; }
+  return `<div class="dh" style="--bc:${BCOL[q.br]}"><div class="di">${icon(q.id)}</div><div><h3>${q.name}</h3><span>${q.cap ? '궁극' : 'Lv ' + l + ' / ' + q.max}</span></div></div><p>${q.desc}</p>${PEFF[q.id] ? `<p class="eff">${mx ? PEFF[q.id](l) : `<i>다음 Lv</i>${arrow(PEFF[q.id](l), PEFF[q.id](l + 1))}`}</p>` : ''}${reqs ? `<div class="dr">${reqs}</div>` : ''}<button class="buy star" data-perk="${q.id}" ${perkCan(q) ? '' : 'disabled'}>${mx ? '완료' : lock ? '잠김' : '★ ' + c}</button>`; }
 function renderShop() {
   st = C.stats(S); $('#sGold').textContent = fmt(S.gold);
   $('#sZones').innerHTML = Z.map((z, i) => `<i class="${i <= S.zone ? 'on' : ''}" title="${z.name}"></i>`).join('');
