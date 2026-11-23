@@ -185,7 +185,8 @@ const CORE = (() => {
   const SEA = ZI('sea');
   // stars for a rebirth: 2 on reaching the sea, then more for every zone (and part of a zone) beyond it
   const starsFor = best => best < ZONES[SEA].at ? 0 : Math.floor(2 * Math.pow(zoneProg(best) - (SEA - 1), 1.4) + 4 * Math.pow(Math.max(0, zoneProg(best) - 16), 1.3));
-  function nextStarAt(best) { const n = starsFor(best) + 1; let lo = Math.max(best, ZONES[SEA].at * 0.999), hi = lo * 2; while (starsFor(hi) < n) hi *= 2; for (let i = 0; i < 40; i++) { const m = Math.sqrt(lo * hi); if (starsFor(m) >= n) hi = m; else lo = m; } return hi; }
+  // distance at which the next star is earned; Infinity once the star count can no longer grow (past the last zone it would loop forever otherwise)
+  function nextStarAt(best) { const n = starsFor(best) + 1; let lo = Math.max(best, ZONES[SEA].at * 0.999), hi = lo * 2, k = 0; while (starsFor(hi) < n) { hi *= 2; if (++k > 200) return Infinity; } for (let i = 0; i < 40; i++) { const m = Math.sqrt(lo * hi); if (starsFor(m) >= n) hi = m; else lo = m; } return hi; }
 
   const newSave = () => ({ gold: 0, lv: {}, best: 0, bestLife: 0, zone: 0, runs: 0, stars: 0, starsTotal: 0, perks: {}, rebirths: 0, ach: {}, perfects: 0, slams: 0, v: 3 });
   // saves from before the rebalance: upgrade levels and gold no longer mean the same thing, so they are turned into stars (like a free rebirth)
