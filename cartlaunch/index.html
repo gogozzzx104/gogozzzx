@@ -276,11 +276,11 @@ function endRun() {
   const tags = []; for (const a of pay.ach) tags.push('업적: ' + a.name); if (pay.record) tags.push('신기록'); if (pay.newZone) tags.push(Z[pay.zone].name + ' 첫 도달'); if (run.dbl) tags.push('더블 퍼펙트'); else if (run.perfect) tags.push('퍼펙트 발사'); if (run.kick > 1) tags.push((run.kick > 1.05 ? '퍼펙트 킥 +' : '굿 킥 +') + Math.round((run.kick - 1) * 100) + '%'); if (run.golden) tags.push('황금 판 ×3');
   $('#rTags').innerHTML = tags.map(t => `<span class="tagx">${t}</span>`).join('');
   const rows = [['거리 수익', fmt(pay.dist)], [`코인 · 상자 (${run.coins}개)`, fmt(pay.coins)]];
-  if (pay.perfect) rows.push(['퍼펙트 발사', '+' + Math.round(pay.perfect * 100) + '%']); if (pay.kickB) rows.push([run.kick > 1.05 ? '퍼펙트 킥' : '굿 킥', '+' + Math.round(pay.kickB * 100) + '%']); if (pay.dbl) rows.push(['더블 퍼펙트', '+' + Math.round(pay.dbl * 100) + '%']); if (pay.style) rows.push([`묘기 (${run.bounces}회 튕김)`, '+' + (pay.style * 100).toFixed(1) + '%']); if (pay.alt) rows.push([`고도 수당 (${fmtD(run.maxAlt)})`, '+' + (pay.alt * 100).toFixed(1) + '%']); if (pay.trick) rows.push([`공중 묘기 (${run.tricks}바퀴)`, '+' + (pay.trick * 100).toFixed(0) + '%']);
+  if (pay.perfect) rows.push(['퍼펙트 발사', '+' + Math.round(pay.perfect * 100) + '%']); if (pay.kickB) rows.push([run.kick > 1.05 ? '퍼펙트 킥' : '굿 킥', '+' + Math.round(pay.kickB * 100) + '%']); if (pay.dbl) rows.push(['더블 퍼펙트', '+' + Math.round(pay.dbl * 100) + '%']); if (pay.first) rows.push([`새 구역 개척 (${Math.round(pay.first / 1.5)}곳)`, '+' + Math.round(pay.first * 100) + '%']); if (pay.style) rows.push([`묘기 (${run.bounces}회 튕김)`, '+' + (pay.style * 100).toFixed(1) + '%']); if (pay.alt) rows.push([`고도 수당 (${fmtD(run.maxAlt)})`, '+' + (pay.alt * 100).toFixed(1) + '%']); if (pay.trick) rows.push([`공중 묘기 (${run.tricks}바퀴)`, '+' + (pay.trick * 100).toFixed(0) + '%']);
   if (pay.land) rows.push([`착지 (완벽 ${run.perfLands} · 좋음 ${run.cleans - run.perfLands})`, '+' + Math.round(pay.land * 100) + '%']);
   if (pay.slam) rows.push([`슬램 바운스 (${run.slams}회)`, '+' + Math.round(pay.slam * 100) + '%']);
   if (pay.combo) rows.push([`콤보 (최고 ${run.maxCombo})`, '+' + (pay.combo * 100).toFixed(1) + '%']);
-  if (pay.first) rows.push(['새 구역 개척 보너스', fmt(pay.first)]); if (pay.gold > 1) rows.push(['황금 판', '×3']);
+  if (pay.gold > 1) rows.push(['황금 판', '×3']);
   $('#rRows').innerHTML = rows.map(r => `<span>${r[0]}</span><b>${r[1]}</b>`).join('') + `<span class="tot">획득 골드</span><b class="tot">${fmt(pay.total)}</b>`;
   $('#result').hidden = false; if (pay.newZone) SFX.zone();
 }

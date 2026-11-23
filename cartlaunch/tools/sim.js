@@ -30,7 +30,7 @@ if (require.main === module) {
   for (let i = 1; i <= MAX; i++) {
     const z0 = s.zone, r = play(s, i * 7 + 3), p = C.finish(r, s); time += r.tr + 7; lifeTime += r.tr + 7; lifeRun++; durSum += r.tr; durMax = Math.max(durMax, r.tr); buyAll(s);
     if (p.total > 0) { coinShare += p.coins * p.mult * p.gold / p.total; coinN++; }
-    ga = ga * 0.8 + 0.2 * (p.total - p.first * p.gold) / p.gold; da = da * 0.8 + 0.2 * r.tr; ca = ca * 0.8 + 0.2 * r.coins;
+    ga = ga * 0.8 + 0.2 * p.total / (p.gold * (1 + p.first / p.mult)); da = da * 0.8 + 0.2 * r.tr; ca = ca * 0.8 + 0.2 * r.coins;
     if (s.zone > z0) console.log(`  z${s.zone} ${C.ZONES[s.zone].name}: run ${lifeRun} (${(lifeTime / 60).toFixed(0)}m)  v0=${r.v0.toFixed(0)} gold~${fmt(ga)} gref=${fmt(C.gref(s.zone))} lv=${C.total(s)} push=${C.lvl(s, 'push')} coins~${ca.toFixed(0)} dur~${da.toFixed(0)}s`);
     if (r.maxX > lifeBest * 1.1) { lifeBest = r.maxX; lastGain = lifeRun; }
     if (V && i % V === 0) console.log(`  run ${lifeRun}: D=${fmt(r.maxX)} v0=${r.v0.toFixed(0)} gold=${fmt(p.total)} coins=${r.coins}/${r.crates} b=${r.bounces} dur=${r.tr.toFixed(0)}s ${r.why}`);
