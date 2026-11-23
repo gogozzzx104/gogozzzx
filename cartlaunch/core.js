@@ -142,7 +142,7 @@ const CORE = (() => {
     K('p_meter', 'might', '느긋한 호흡', 5, '퍼펙트 구간 +15%', [['p_power', 1]]),
     K('r_focus', 'might', '무아지경', 5, '퍼펙트 보너스 +3%', [['p_meter', 2]]),
     K('r_mem', 'might', '전생의 기억', 5, '환생 때 레벨 8% 유지', [['p_power', 2]]),
-    K('r_skip', 'might', '지름길 지도', 4, '환생 때 구역 기록 2개 유지', [['p_power', 3]]),
+    K('r_skip', 'might', '지름길 지도', 4, '환생해도 구역 잠금 해제 2개 유지', [['p_power', 3]]),
     K('r_double', 'might', '2단 발사', 1, '첫 정점에서 한 번 더 가속', [['p_power', 5], ['r_focus', 2]], 12),
     K('r_perf', 'might', '승부사', 10, '퍼펙트 발사·킥 보너스가 50% 커짐', [['p_power', 2]]),
     K('p_fuel', 'flight', '예비 연료', 8, '부스트 +0.5초'),
@@ -348,7 +348,7 @@ const CORE = (() => {
   function payout(r, s) {
     const st = r.st, D = r.maxX, z = zoneAt(D), dist = gd(D, z) * st.rate, coins = r.coinGold * st.rate;
     const style = st.style * r.bounces, alt = st.alt * Math.log2(1 + r.maxAlt / (2 * r.U)), perfect = r.perfect ? st.perfB : 0, kickB = r.kick > 1.05 ? st.perfB : r.kick > 1 ? st.perfB / 3 : 0, dbl = r.dbl ? 2 * st.perfB : 0, land = st.landG * (r.cleans - r.perfLands) + st.landP * r.perfLands, slam = st.slamB * r.slams + st.streakB * Math.min(40, r.maxStreak) + st.allB * Math.min(2 * r.slams, r.tricks, r.perfLands, Math.floor(r.maxCombo / 5), 15), trick = st.trick * r.tricks, combo = st.combo * r.maxCombo, gold = r.golden ? 3 : 1;
-    let first = 0; for (let i = s.zone + 1; i <= z; i++) first += 3 * gd(ZONES[i].at, i) * st.rate;   // base gold for zones reached for the first time this life; bonuses multiply it too
+    let first = 0; for (let i = zoneAt(s.bestLife || 0) + 1; i <= z; i++) first += 3 * gd(ZONES[i].at, i) * st.rate;   // base gold for zones reached for the first time this life; bonuses multiply it too
     const mult = 1 + (style + alt + perfect + kickB + dbl + land + slam + trick + combo) * st.encore;
     return { dist, coins, style, alt, perfect, kickB, dbl, land, slam, trick, combo, gold, first, mult, total: Math.floor((dist + coins + first) * mult * gold), zone: z };
   }
