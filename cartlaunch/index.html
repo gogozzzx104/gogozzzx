@@ -425,7 +425,7 @@ function renderShop() {
     list.innerHTML = `<div class="ac done"><h3>최고 ${fmtD(S.best)}</h3><p>${S.runs}판 · 업그레이드 ${C.total(S)}Lv · 환생 ${S.rebirths}회</p><p>업적 ${n}개 → 골드 +${n * 3}%</p></div>` +
       `<div class="bh">구역</div>` + Z.map((z, i) => `<div class="ac${i <= S.zone ? ' done' : ' off'}"><h3>${i + 1}. ${i <= S.zone + 1 ? z.name : '???'}</h3><p>${fmtD(z.at)}부터${i === S.zone + 1 ? ' · 다음 목표' : ''}</p></div>`).join('') +
       `<div class="bh">업적 · 하나당 골드 +3%</div>` + C.ACH.map(a => `<div class="ac${S.ach[a.id] ? ' done' : ' off'}"><h3>${a.name}</h3><p>${a.desc}</p></div>`).join('') +
-      `<div class="bh">기타</div><p class="note">코인은 공중에 2~3개씩 떠 있어요. 부스트·도약·대시·급강하로 높이를 맞춰 보세요.</p><div class="ac"><h3>처음부터 다시</h3><p>별·업적까지 모두 지웁니다.</p><button class="buy sm" data-wipe="1">${confirmKey === 'wipe' ? '정말요? 한 번 더' : '초기화'}</button></div>`; }
+      `<div class="bh">기타</div><p class="note">코인은 공중에 2~3개씩 떠 있어요. 부스트·도약·대시·급강하로 높이를 맞춰 보세요.</p><div class="ac"><h3>골드만 비우기</h3><p>업그레이드·별은 그대로 두고 보유 골드만 0으로. 이 기기의 내 기록에만 적용됩니다.</p><button class="buy sm" data-zero="1">${confirmKey === 'zero' ? '정말요? 한 번 더' : '골드 0으로'}</button></div><div class="ac"><h3>처음부터 다시</h3><p>별·업적까지 모두 지웁니다.</p><button class="buy sm" data-wipe="1">${confirmKey === 'wipe' ? '정말요? 한 번 더' : '초기화'}</button></div>`; }
 }
 $('#sTabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if (!b) return; tab = b.dataset.t; confirmKey = ''; $('#sList').scrollTop = 0; $('#sDet').scrollTop = 0; renderShop(); });
 const shopClick = e => { const nd = e.target.closest('.nd'), sk = e.target.closest('.sk'), b = e.target.closest('.buy'), k1 = $('#sList').scrollTop, k2 = 0;
@@ -436,6 +436,7 @@ const shopClick = e => { const nd = e.target.closest('.nd'), sk = e.target.close
     else if (b.dataset.max) { let n = 0; while (n < 300 && C.buy(S, b.dataset.max)) n++; if (n) SFX.buy(); }
     else if (b.dataset.perk) { if (C.buyPerk(S, b.dataset.perk)) SFX.buy(); }
     else if (b.dataset.rebirth) { if (confirmKey !== 'rebirth') confirmKey = 'rebirth'; else { const n = C.rebirth(S); confirmKey = ''; SFX.zone(); toast('환생! ★ +' + n, 2200); } }
+    else if (b.dataset.zero) { if (confirmKey !== 'zero') confirmKey = 'zero'; else { S.gold = 0; confirmKey = ''; toast('골드를 비웠어요', 1500); } }
     else if (b.dataset.wipe) { if (confirmKey !== 'wipe') confirmKey = 'wipe'; else { S = C.newSave(); confirmKey = ''; } } }
   else if (sel[tab] && !e.target.closest('.pop') && e.target.closest('.tw')) sel[tab] = null;   // tap on empty space closes the card
   else return;
@@ -741,7 +742,7 @@ function hud(r) {
   const D = getComputedStyle(root).getPropertyValue('--disp'), z = C.zoneAt(r ? r.maxX : 0);
   g.textAlign = 'left'; g.lineJoin = 'round'; const txt = (t, x, y, size, col = '#fff') => { g.font = `${size}px ${D}`; g.lineWidth = Math.max(3, size * 0.16); g.strokeStyle = '#2b2233'; g.strokeText(t, x, y); g.fillStyle = col; g.fillText(t, x, y); };
   if (r) { const sp = Math.hypot(r.vx, r.vy), alt = Math.max(0, r.y - G(r.x));
-    txt(fmtD(r.maxX), 14, 40, 34); txt(`${fmt(sp * 3.6)} km/h   고도 ${fmtD(alt)}`, 16, 62, 14, '#fff6e6');
+    txt(fmtD(r.maxX), 14, 40, 34); { const mx = r.tr - r.capT < 0.25; txt(`${fmt(sp * 3.6)} km/h${mx ? ' · 최고 속도' : ''}   고도 ${fmtD(alt)}`, 16, 62, 14, mx ? '#ffd24a' : '#fff6e6'); }
     // zone progress
     const nz = Z[z + 1], bw = Math.min(260, W * 0.3), bx = W / 2 - bw / 2; g.textAlign = 'center'; txt(Z[z].name, W / 2, 24, 16);
     if (nz) { const f = Math.min(1, (r.maxX - Z[z].at) / (nz.at - Z[z].at)); g.fillStyle = '#2b2233'; g.fillRect(bx - 2, 30, bw + 4, 10); g.fillStyle = '#fff6e6'; g.fillRect(bx, 32, bw, 6); g.fillStyle = '#12a594'; g.fillRect(bx, 32, bw * f, 6); g.font = `11px ${D}`; g.fillStyle = '#fff'; g.strokeStyle = '#2b2233'; g.lineWidth = 3; g.strokeText('다음: ' + nz.name + ' ' + fmtD(nz.at), W / 2, 54); g.fillText('다음: ' + nz.name + ' ' + fmtD(nz.at), W / 2, 54); }
