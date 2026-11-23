@@ -16,7 +16,7 @@ function play(s, seed, mode, m) {
       inp.dive = r.dive > 0 && !grounded && alt > tgt + 2.2 * r.c && r.vy > -0.4 * sp;
       // attitude: the trick bot flips while high, everyone who steers lines the cart up with the slope before touching down
       const dg = 0.1 * r.U, xl = r.x + r.vx * 0.4 * r.U / (sp + 1), sl = Math.atan((C.ground(xl + dg, r.U) - C.ground(xl - dg, r.U)) / (2 * dg)), low = alt < 2.2 * r.S + Math.max(0, -r.vy) * 0.5 * r.U / (r.v0 + 1) * 3;
-      if (!grounded) { if (mode === 'trick' && !low && alt > 1.5 * r.c) inp.spin = 1; else if (low || mode !== 'trick') { let e = sl - r.ang; e = Math.atan2(Math.sin(e), Math.cos(e)); const u = e - 0.12 * r.spin; inp.spin = Math.abs(u) > 0.12 ? Math.sign(u) : 0; } }
+      if (!grounded) { if (mode === 'trick' && !low && alt > 1.5 * r.c) inp.spin = 1; else if (low || mode !== 'trick') { let e = sl + ((((seed * 31 + r.bounces * 17) % 97) / 97) - 0.5) * 0.5 - r.ang; e = Math.atan2(Math.sin(e), Math.cos(e)); const u = e - 0.12 * r.spin; inp.spin = Math.abs(u) > 0.12 ? Math.sign(u) : 0; } }
     }
     if (inp.spring || inp.dash || inp.dive || inp.skill) { acts++; gap = Math.max(gap, r.tr - lastAct); lastAct = r.tr; }
     if (!(r.fuel > 0.05 || r.spring > 0 || r.dash > 0 || r.dive > 0)) dead += 1 / 20;

@@ -52,50 +52,50 @@ const CORE = (() => {
   const pr = z => Math.pow(PRICE.late, Math.max(0, z - PRICE.from));
   const U_ = (id, br, name, max, zs, span, desc, req, zone) => ({ id, br, name, max, zs, span, desc, req: req || [], zone: zone ? ZI(zone) : 0 });
   const UPS = [
-    { id: 'push', br: 'launch', name: '근력 훈련', max: 400, c0: 8, cm: 1.1, q: 1.0008, q2: 1.004, l2: 50, desc: '발사 속도 ×1.05 (한도 없음)', req: [], zone: 0 },
-    U_('ramp', 'launch', '발사 경사로', 10, 0, 2.5, '발사 각도 +2.8° (14° → 42°)', [['push', 3]]),
-    U_('runup', 'launch', '도움닫기', 30, 0.5, 4, '발사 속도 +2% (최대 +60%)', [['push', 5]]),
-    U_('timing', 'launch', '타이밍 감각', 10, 0.8, 3, '퍼펙트 구간 확대, 퍼펙트 보너스 +2%', [['runup', 3]]),
-    U_('rail2', 'launch', '가속 레일', 10, 1.2, 3, '발사대 킥 보너스 +1%p (굿 킥은 절반)', [['push', 6]]),
-    U_('sling', 'launch', '대형 새총', 20, 2, 4, '발사 속도 +3% (최대 +60%)', [['ramp', 5]], 'hill'),
-    U_('cannon', 'launch', '화약 대포', 20, 5, 4, '발사 속도 +3% (최대 +60%)', [['sling', 10]], 'canyon'),
-    U_('rail', 'launch', '레일건', 20, 9, 5, '발사 속도 +3% (최대 +60%)', [['cannon', 10]], 'cloud'),
+    { id: 'push', br: 'launch', name: '근력 훈련', max: 400, c0: 8, cm: 1.1, q: 1.0008, q2: 1.004, l2: 50, desc: '발사 속도 ×1.05 · 한도 없음', req: [], zone: 0 },
+    U_('ramp', 'launch', '발사 경사로', 10, 0, 2.5, '발사 각도 +2.8°', [['push', 3]]),
+    U_('runup', 'launch', '도움닫기', 30, 0.5, 4, '발사 속도 +2%', [['push', 5]]),
+    U_('timing', 'launch', '타이밍 감각', 10, 0.8, 3, '퍼펙트 구간 확대 · 보너스 +2%', [['runup', 3]]),
+    U_('rail2', 'launch', '가속 레일', 10, 1.2, 3, '킥 보너스 +1%p', [['push', 6]]),
+    U_('sling', 'launch', '대형 새총', 20, 2, 4, '발사 속도 +3%', [['ramp', 5]], 'hill'),
+    U_('cannon', 'launch', '화약 대포', 20, 5, 4, '발사 속도 +3%', [['sling', 10]], 'canyon'),
+    U_('rail', 'launch', '레일건', 20, 9, 5, '발사 속도 +3%', [['cannon', 10]], 'cloud'),
 
-    U_('wheel', 'body', '바퀴 윤활', 18, 0, 2.5, '굴러갈 때 마찰 -10%, 달리면서 저절로 줄어드는 속도 -2%'),
-    U_('tire', 'body', '탄성 타이어', 20, 0.3, 3.5, '튕길 때 반발력 +2.6%p (한도 80%)', [['wheel', 3]]),
-    U_('frame', 'body', '경량 프레임', 20, 0.6, 4, '착지 충격으로 잃는 속도 -14%', [['wheel', 5]]),
-    U_('aero', 'body', '공기역학 커버', 40, 1, 12, '공기 저항 -8% (빨라질수록 저항이 커져서 계속 필요)', [['frame', 3]]),
-    U_('bumper', 'body', '강화 범퍼', 10, 1.5, 5, '장애물 충돌 손실 감소, Lv6부터 부수고 골드 획득', [['frame', 5]]),
-    U_('gyro', 'body', '자이로 안정기', 10, 2, 5, '공중 회전이 빨라지고 착지 판정이 너그러워짐', [['frame', 3]]),
-    U_('rubber', 'body', '초탄성 서스펜션', 10, 2.5, 5, '트램펄린·가속 패드·링·자동차·보트의 효과 +5%', [['tire', 6]]),
-    U_('wide', 'body', '광폭 타이어', 10, 3, 6, '진흙·모래·암석 지형 페널티 감소, 모든 지형 착지 손실 -2%', [['tire', 5]], 'forest'),
-    U_('float', 'body', '부력 튜브', 10, 6, 5, '물에 가라앉지 않음, 모든 지형 반발력 +0.4%p', [], 'sea'),
-    U_('hover', 'body', '호버 스커트', 15, 6.5, 7, '반발력과 그 한도 +0.8%p (80% → 최대 92%)', [['tire', 15]], 'sea'),
-    U_('heat', 'body', '내열 코팅', 10, 8, 5, '용암 웅덩이 피해 감소, 공기 저항 -3%', [], 'lava'),
+    U_('wheel', 'body', '바퀴 윤활', 18, 0, 2.5, '굴림 마찰 -10% · 자연 감속 -2%'),
+    U_('tire', 'body', '탄성 타이어', 20, 0.3, 3.5, '반발력 +2.6%p', [['wheel', 3]]),
+    U_('frame', 'body', '경량 프레임', 20, 0.6, 4, '착지 때 잃는 속도 -14%', [['wheel', 5]]),
+    U_('aero', 'body', '공기역학 커버', 40, 1, 12, '공기 저항 -8%', [['frame', 3]]),
+    U_('bumper', 'body', '강화 범퍼', 10, 1.5, 5, '충돌 손실 감소 · Lv6부터 부수고 골드', [['frame', 5]]),
+    U_('gyro', 'body', '자이로 안정기', 10, 2, 5, '회전이 빨라지고 착지 판정이 넓어짐', [['frame', 3]]),
+    U_('rubber', 'body', '초탄성 서스펜션', 10, 2.5, 5, '트램펄린·패드·링 효과 +5%', [['tire', 6]]),
+    U_('wide', 'body', '광폭 타이어', 10, 3, 6, '숲·모래·암석 페널티 감소', [['tire', 5]], 'forest'),
+    U_('float', 'body', '부력 튜브', 10, 6, 5, '물 위에서 튕김 (없으면 침수)', [], 'sea'),
+    U_('hover', 'body', '호버 스커트', 15, 6.5, 7, '반발력과 한도 +0.8%p', [['tire', 15]], 'sea'),
+    U_('heat', 'body', '내열 코팅', 10, 8, 5, '용암 피해 감소 · 공기 저항 -3%', [], 'lava'),
 
-    U_('rocket', 'gear', '로켓 부스터', 30, 1, 8, '부스트 추진력 증가 (부스트 버튼)', [['push', 8]]),
+    U_('rocket', 'gear', '로켓 부스터', 30, 1, 8, '부스트 추진력 증가', [['push', 8]]),
     U_('fuel', 'gear', '연료 탱크', 15, 1.5, 7, '부스트 시간 +0.15초', [['rocket', 1]]),
-    U_('nozzle', 'gear', '벡터 노즐', 15, 2, 7, '부스트가 앞으로 미는 힘 +5%', [['rocket', 3]]),
-    U_('spring', 'gear', '스프링 점퍼', 20, 1, 6, '땅에서 다시 도약 (4레벨마다 횟수 +1)', [['tire', 3]]),
-    U_('wing', 'gear', '글라이더 날개', 10, 2, 5, '공중에서 중력 -3.5%', [['aero', 3]], 'hill'),
-    U_('dash', 'gear', '에어 대시', 15, 3, 7, '급가속 (땅에서 쓰면 살짝 떠오름, 5레벨마다 횟수 +1)', [['wing', 3]], 'forest'),
-    U_('dashpow', 'gear', '대시 증폭기', 15, 4, 7, '대시의 전진 가속 +12%', [['dash', 1]], 'sand'),
-    U_('convert', 'gear', '활공 전환 날개', 15, 4, 7, '떨어지는 속도를 전진 속도로 바꿈', [['wing', 5]], 'sand'),
-    U_('airjump', 'gear', '공중 스프링', 10, 4.5, 6, '공중에서도 도약 사용 (지상 위력의 40% +6%/Lv)', [['spring', 6]], 'sand'),
-    U_('dive', 'gear', '급강하 장치', 12, 5, 7, '공중에서 내리꽂으며 전진 가속, 착지 시 강하게 튐 (3Lv마다 횟수 +1)', [['tire', 8]], 'canyon'),
+    U_('nozzle', 'gear', '벡터 노즐', 15, 2, 7, '부스트 전진력 +5%', [['rocket', 3]]),
+    U_('spring', 'gear', '스프링 점퍼', 20, 1, 6, '도약 세기 증가 · 4Lv마다 +1회', [['tire', 3]]),
+    U_('wing', 'gear', '글라이더 날개', 10, 2, 5, '공중 중력 -3.5%', [['aero', 3]], 'hill'),
+    U_('dash', 'gear', '에어 대시', 15, 3, 7, '급가속 · 5Lv마다 +1회', [['wing', 3]], 'forest'),
+    U_('dashpow', 'gear', '대시 증폭기', 15, 4, 7, '대시 세기 +12%', [['dash', 1]], 'sand'),
+    U_('convert', 'gear', '활공 전환 날개', 15, 4, 7, '낙하 속도를 전진 속도로 전환', [['wing', 5]], 'sand'),
+    U_('airjump', 'gear', '공중 스프링', 10, 4.5, 6, '공중에서도 도약 · 위력 +6%', [['spring', 6]], 'sand'),
+    U_('dive', 'gear', '급강하 장치', 12, 5, 7, '내리꽂아 강하게 튕김 · 슬램마다 콤보 +1, 골드 +2% · 3Lv마다 +1회', [['tire', 8]], 'canyon'),
     U_('jet', 'gear', '제트 엔진', 20, 7, 6, '부스트 추진력 +3%', [['rocket', 15]], 'ice'),
-    U_('grav', 'gear', '반중력 코어', 15, 10, 4, '모든 구역의 중력 -2%', [['wing', 10]], 'moon'),
+    U_('grav', 'gear', '반중력 코어', 15, 10, 4, '중력 -2%', [['wing', 10]], 'moon'),
 
-    U_('ad', 'money', '전단지 광고', 60, 0, 13, '모든 골드 +6% (최대 +360%)'),
+    U_('ad', 'money', '전단지 광고', 60, 0, 13, '모든 골드 +6%'),
     U_('coin', 'money', '코인 감정사', 60, 0.5, 12, '코인·상자 가치 +8%', [['ad', 3]]),
-    U_('magnet', 'money', '코인 자석', 10, 1, 6, '코인을 끌어오는 범위 +16%', [['coin', 3]]),
-    U_('style', 'money', '묘기 보너스', 20, 1, 7, '튕길 때마다 골드 +0.25% (횟수 제한 없음)', [['ad', 8]]),
-    U_('combo', 'money', '콤보 미터', 15, 1.5, 7, '3초 안에 연달아 먹으면 콤보, 최고 콤보당 골드 +0.2% (제한 없음)', [['coin', 5]]),
-    U_('alt', 'money', '고도 수당', 20, 2, 7, '그 판의 최고 고도에 따라 골드 보너스', [['style', 3]]),
-    U_('sponsor', 'money', '스폰서 계약', 20, 2, 11, '도달한 구역 하나당 골드 +1%', [['ad', 12]], 'hill'),
-    U_('trickpay', 'money', '묘기 전속 계약', 15, 2.5, 6, '공중 묘기 보너스 +20%', [['style', 2]]),
-    U_('lucky', 'money', '황금 카트', 10, 3, 9, '판마다 2% 확률로 황금 판 (획득 골드 3배)', [['ad', 15]], 'forest'),
-    U_('crate', 'money', '보물 드론', 10, 4, 8, '골드 상자가 30% 더 자주 등장', [['coin', 10]], 'sand'),
+    U_('magnet', 'money', '코인 자석', 10, 1, 6, '코인 획득 범위 +16%', [['coin', 3]]),
+    U_('style', 'money', '묘기 보너스', 20, 1, 7, '튕길 때마다 골드 +0.25%', [['ad', 8]]),
+    U_('combo', 'money', '콤보 미터', 15, 1.5, 7, '3초 안에 이어 먹으면 콤보 · 콤보당 +0.2%', [['coin', 5]]),
+    U_('alt', 'money', '고도 수당', 20, 2, 7, '최고 고도만큼 골드 보너스', [['style', 3]]),
+    U_('sponsor', 'money', '스폰서 계약', 20, 2, 11, '도달 구역당 골드 +1%', [['ad', 12]], 'hill'),
+    U_('trickpay', 'money', '묘기 전속 계약', 15, 2.5, 6, '공중제비 보너스 +20%', [['style', 2]]),
+    U_('lucky', 'money', '황금 카트', 10, 3, 9, '2% 확률로 골드 3배 판', [['ad', 15]], 'forest'),
+    U_('crate', 'money', '보물 드론', 10, 4, 8, '상자 등장 +30%', [['coin', 10]], 'sand'),
   ];
   // the first purchases are priced by hand (gold in the first minutes does not follow the zone rule); their last level still does
   const EARLY = { ramp: 25, runup: 100, timing: 300, rail2: 1500, wheel: 10, tire: 30, frame: 120, aero: 300, bumper: 1200, rocket: 500, fuel: 1500, nozzle: 3000, spring: 800, ad: 12, coin: 80, magnet: 400, style: 900, combo: 2500 };
@@ -109,22 +109,22 @@ const CORE = (() => {
   const K = (id, br, name, max, desc, req, cap) => ({ id, br, name, max, desc, req: req || [], cap: cap || 0 });
   const PERKS = [
     K('p_power', 'might', '전설의 팔뚝', 10, '발사 속도 +5%'),
-    K('p_meter', 'might', '느긋한 호흡', 5, '차지 게이지가 15% 느려짐', [['p_power', 1]]),
-    K('r_focus', 'might', '무아지경', 5, '퍼펙트 발사 보너스 +3%', [['p_meter', 2]]),
-    K('r_mem', 'might', '전생의 기억', 5, '환생할 때 모든 업그레이드 레벨의 8%를 가지고 시작', [['p_power', 2]]),
-    K('r_skip', 'might', '지름길 지도', 4, '환생해도 구역 도달 기록을 2개씩 유지', [['p_power', 3]]),
-    K('r_double', 'might', '2단 발사', 1, '첫 정점에서 발사 속도의 25%로 한 번 더 가속', [['p_power', 5], ['r_focus', 2]], 12),
-    K('p_fuel', 'flight', '예비 연료', 5, '부스트 시간 +0.5초'),
-    K('r_trick', 'flight', '타고난 곡예사', 10, '공중 묘기 보너스 +50%', [['p_fuel', 1]]),
-    K('r_spring', 'flight', '여분 스프링', 3, '도약 횟수 +1 (스프링 점퍼 보유 시)', [['r_trick', 2]]),
-    K('r_dash', 'flight', '여분 추진기', 3, '대시 횟수 +1 (에어 대시 보유 시)', [['r_spring', 1]]),
+    K('p_meter', 'might', '느긋한 호흡', 5, '차지 게이지 15% 느려짐', [['p_power', 1]]),
+    K('r_focus', 'might', '무아지경', 5, '퍼펙트 보너스 +3%', [['p_meter', 2]]),
+    K('r_mem', 'might', '전생의 기억', 5, '환생 때 레벨 8% 유지', [['p_power', 2]]),
+    K('r_skip', 'might', '지름길 지도', 4, '환생 때 구역 기록 2개 유지', [['p_power', 3]]),
+    K('r_double', 'might', '2단 발사', 1, '첫 정점에서 한 번 더 가속', [['p_power', 5], ['r_focus', 2]], 12),
+    K('p_fuel', 'flight', '예비 연료', 5, '부스트 +0.5초'),
+    K('r_trick', 'flight', '타고난 곡예사', 10, '공중제비 보너스 +50%', [['p_fuel', 1]]),
+    K('r_spring', 'flight', '여분 스프링', 3, '도약 +1회', [['r_trick', 2]]),
+    K('r_dash', 'flight', '여분 추진기', 3, '대시 +1회', [['r_spring', 1]]),
     K('r_feather', 'flight', '깃털 몸', 5, '공기 저항 -6%', [['p_fuel', 3]]),
-    K('r_phoenix', 'flight', '불사조', 1, '멈추는 순간 발사 속도의 40%로 한 번 다시 날아오름', [['r_trick', 5], ['r_feather', 2]], 12),
+    K('r_phoenix', 'flight', '불사조', 1, '멈추면 한 번 다시 날아오름', [['r_trick', 5], ['r_feather', 2]], 12),
     K('p_gold', 'wealth', '프랜차이즈 본사', 10, '모든 골드 +25%'),
-    K('p_seed', 'wealth', '창업 자금', 5, '환생 직후 골드 지급 (1,000부터 ×10씩)', [['p_gold', 1]]),
+    K('p_seed', 'wealth', '창업 자금', 5, '환생 직후 시작 골드', [['p_gold', 1]]),
     K('r_coin', 'wealth', '황금 손', 5, '코인·상자 가치 +40%', [['p_gold', 2]]),
-    K('r_disc', 'wealth', '단골 할인', 5, '모든 업그레이드 가격 -5%', [['p_seed', 2]]),
-    K('r_bless', 'wealth', '별의 축복', 1, '별 하나당 수익 보너스가 1.5배 (+4% → +6%)', [['p_gold', 5], ['r_disc', 2]], 15),
+    K('r_disc', 'wealth', '단골 할인', 5, '업그레이드 가격 -5%', [['p_seed', 2]]),
+    K('r_bless', 'wealth', '별의 축복', 1, '별 보너스 1.5배', [['p_gold', 5], ['r_disc', 2]], 15),
   ];
   const PK = Object.fromEntries(PERKS.map(p => [p.id, p]));
   const PBRANCH = [['might', '힘의 길'], ['flight', '비행의 길'], ['wealth', '부의 길']];
@@ -192,11 +192,11 @@ const CORE = (() => {
   // scale of a launch at speed v: U (length unit), c (height of the coin stream), S (object size), cw (cell width), tw (time warp)
   function scaleOf(st, v) { const U = Math.max(1, v * v / 588), apex = Math.pow(v * Math.sin(st.angle), 2) / 19.6, c = Math.min(4.5 * U, Math.max(0.6, 0.5 * apex)); return { U, c, S: Math.max(1, 0.7 * U), cw: 5 * U, tw: Math.max(1, 0.03 * v) }; }
   function newRun(st, meter, kick, seed) {   // meter 0..1 from the charge gauge (>= 1-window is perfect); kick = multiplier from the ramp-edge tap
-    const perfect = meter >= 1 - st.window, m = perfect ? st.perfect : 0.55 + 0.45 * meter / (1 - st.window), v = st.power * m * (kick || 1), sc = scaleOf(st, v), sd = seed == null ? Math.floor(Math.random() * 1e6) : seed;
-    return Object.assign({ st, kick: kick || 1, seed: sd, x: 0, y: RAMP * Math.tan(st.angle) + 0.3, vx: v * Math.cos(st.angle), vy: v * Math.sin(st.angle), v0: v, perfect, fuel: st.fuel, spring: st.springN, dash: st.dashN, dive: st.diveN,
+    const perfect = meter >= 1 - st.window, m = perfect ? st.perfect : 0.55 + 0.45 * meter / (1 - st.window), dbl = perfect && (kick || 1) > 1.05, v = st.power * m * (kick || 1) * (dbl ? 1.03 : 1), sc = scaleOf(st, v), sd = seed == null ? Math.floor(Math.random() * 1e6) : seed;
+    return Object.assign({ st, kick: kick || 1, seed: sd, x: 0, y: RAMP * Math.tan(st.angle) + 0.3, vx: v * Math.cos(st.angle), vy: v * Math.sin(st.angle), v0: v, perfect, dbl, airT: 0, fuel: st.fuel, spring: st.springN, dash: st.dashN, dive: st.diveN,
       t: 0, tr: 0, air: true, rest: 0, back: 0, maxX: 0, maxAlt: 0, maxV: v, bounces: 0, coins: 0, crates: 0, coinGold: 0, broke: 0, used: new Set(), over: false, why: '', ev: [], boosting: false,
       tops: 0, slam: false, slams: 0, combo: 0, comboT: -9, maxCombo: 0, golden: hash(sd * 13 + 5) < st.lucky, ph: hash(sd) * 6.283, ph2: hash(sd + 1) * 6.283,
-      ang: st.angle, spin: 0, rotAcc: 0, tricks: 0, crashes: 0, cleans: 0, spinT: -9, usedBoost: false, doubled: false, risen: false, lastBounce: -9 }, sc);
+      ang: st.angle, spin: 0, rotAcc: 0, tricks: 0, crashes: 0, cleans: 0, perfLands: 0, landStreak: 0, maxStreak: 0, spinT: -9, usedBoost: false, doubled: false, risen: false, lastBounce: -9 }, sc);
   }
   // height of the coin stream above the ground at x
   const river = (r, x) => Math.max(0.6 * r.S, r.c * (1 + 0.45 * Math.sin(x / (9 * r.U) + r.ph) + 0.18 * Math.sin(x / (3.7 * r.U) + r.ph2)));
@@ -248,6 +248,7 @@ const CORE = (() => {
     if (inp.dash && r.dash > 0) doDash();
     // dive: a hard push straight down (always enough to reach the ground quickly, whatever the altitude) plus some forward speed
     if (inp.dive && r.dive > 0 && !grounded0) { r.dive--; r.slam = true; r.vy = -Math.max(Math.abs(r.vy), 0.9 * r.v0); r.vx += vRef * (0.05 + 0.02 * st.dive) + 4; r.spin = 0; r.ev.push({ k: 'dive', x: r.x, y: r.y }); }
+    if (r.air) r.airT += dtReal; else r.airT = 0;
     if (r.air) { const sd = inp.spin || 0;
       if (sd) { r.spin += sd * 16 * (1 + 0.08 * st.gyro) * dtReal; r.spin = Math.max(-9, Math.min(9, r.spin)); r.spinT = r.tr; }
       else { r.spin *= Math.pow(0.02, dtReal); if (Math.abs(r.rotAcc) < 0.6 && r.tr - r.spinT > 1) { const want = Math.max(-0.9, Math.min(0.9, Math.atan2(r.vy, Math.max(1, r.vx)))); let d = want - r.ang; d = Math.atan2(Math.sin(d), Math.cos(d)); r.ang += d * Math.min(1, dtReal * 4); } }
@@ -270,15 +271,19 @@ const CORE = (() => {
           if (r.air) { const sa = Math.atan(sl), dd = Math.atan2(Math.sin(r.ang - sa), Math.cos(r.ang - sa)), flips = Math.round(Math.abs(r.rotAcc) / 6.2832);
             if (flips >= 1 && Math.abs(dd) < 0.7 + 0.04 * st.gyro) { r.tricks += flips; vt *= 1 + Math.min(0.25, 0.05 * flips); r.ev.push({ k: 'trick', x: r.x, y: r.y, n: flips, clean: Math.abs(dd) < 0.2 }); }
             else if (Math.abs(r.rotAcc) > 1.2 && Math.abs(dd) > 1.4) { vt *= 0.75; r.crashes++; r.ev.push({ k: 'crash', x: r.x, y: r.y }); }
-            else if (Math.abs(dd) < 0.24 && imp > 0.05 * r.v0 + 0.8) { al = 1; r.cleans++; if (st.fuel) r.fuel = Math.min(st.fuel, r.fuel + 0.2); r.ev.push({ k: 'clean', x: r.x, y: r.y }); } else if (Math.abs(dd) > 1.1 && imp > 0.05 * r.v0 + 0.8) { al = -1; r.ev.push({ k: 'badland', x: r.x, y: r.y }); }
-            r.rotAcc = 0; r.spin = 0; r.ang = sa; r.lastBounce = r.tr; }
+            else if (r.airT > 0.35 && Math.abs(dd) < 0.26 + 0.01 * st.gyro) { const pf = Math.abs(dd) < 0.11 + 0.004 * st.gyro; al = pf ? 2 : 1; r.cleans++; if (pf) r.perfLands++; r.landStreak++; if (r.landStreak > r.maxStreak) r.maxStreak = r.landStreak;
+              if (st.fuel) r.fuel = Math.min(st.fuel, r.fuel + (pf ? 0.3 : 0.15)); r.ev.push({ k: 'clean', x: r.x, y: r.y, pf, n: r.landStreak }); }
+            else if (r.airT > 0.35 && Math.abs(dd) > 1.1) { al = -1; r.landStreak = 0; r.ev.push({ k: 'badland', x: r.x, y: r.y }); }
+            else if (r.airT > 0.35 && !(flips >= 1 && Math.abs(dd) < 0.7 + 0.04 * st.gyro)) r.landStreak = 0;
+            r.airT = 0; r.rotAcc = 0; r.spin = 0; r.ang = sa; r.lastBounce = r.tr; }
           if (water && !st.float) { if (Math.abs(vt) > 0.25 * r.v0 && imp < Math.abs(vt) * 0.55) { vn = imp * 0.45; vt *= 0.86; r.bounces++; r.air = true; r.ev.push({ k: 'skip', x: r.x, y: r.y }); } else { r.over = true; r.why = '물에 빠졌어요'; r.ev.push({ k: 'sink', x: r.x, y: r.y }); break; } }
           else {
             const rough = Z.loss > 1 ? 1 + (Z.loss - 1) * soft : Z.loss, eZ = Z.e < 1 ? 1 - (1 - Z.e) * soft : Z.e, e = water ? 0.4 + 0.035 * st.float : Math.min(st.eCap + 0.02, st.e * eZ);
-            if (r.slam && !water) { r.slam = false; r.slams++; vn = Math.min(0.85 * r.v0 * gk, imp * Math.min(0.97, e + 0.08 + 0.02 * st.dive)); vt *= 1.02; r.bounces++; r.air = true; r.ev.push({ k: 'slam', x: r.x, y: r.y, imp }); }
-            else if (imp > 0.05 * r.v0 + 0.8 + Math.abs(vt) * 0.02) { vn = Math.min(0.72 * r.v0 * gk + 2, imp * e); vt *= (1 - Math.min(0.9, (water ? 0.16 - 0.01 * st.float : st.loss * rough) * (al > 0 ? 0.35 : 1) * Math.min(1, imp / (Math.abs(vt) + 1) * 3 + 0.25))) * (al > 0 ? 1.03 : al < 0 ? 0.88 : 1); r.bounces++; r.air = true; r.ev.push({ k: 'bounce', x: r.x, y: r.y, imp }); }
+            if (r.slam && !water) { r.slam = false; r.slams++; r.combo = r.tr - r.comboT < 3 ? r.combo + 1 : 1; r.comboT = r.tr; if (r.combo > r.maxCombo) r.maxCombo = r.combo; vn = Math.min(0.85 * r.v0 * gk, imp * Math.min(0.97, e + 0.08 + 0.02 * st.dive)); vt *= 1.02; r.bounces++; r.air = true; r.ev.push({ k: 'slam', x: r.x, y: r.y, imp, combo: r.combo }); }
+            else if (imp > 0.05 * r.v0 + 0.8 + Math.abs(vt) * 0.02) { vn = Math.min(0.72 * r.v0 * gk + 2, imp * e); vt *= (1 - Math.min(0.9, (water ? 0.16 - 0.01 * st.float : st.loss * rough) * (al > 0 ? 0.35 : 1) * Math.min(1, imp / (Math.abs(vt) + 1) * 3 + 0.25))) ; r.bounces++; r.air = true; r.ev.push({ k: 'bounce', x: r.x, y: r.y, imp }); }
             else { vn = 0; r.air = false; r.slam = false; r.ang = Math.atan(sl); const muZ = Z.mu > 1 ? 1 + (Z.mu - 1) * soft : Z.mu, mu = water ? 0.5 / (1 + 0.6 * st.float) : st.mu * muZ, dec = mu * g * h; vt = Math.abs(vt) <= dec ? 0 : vt - Math.sign(vt) * dec; }
           }
+          if (al) vt *= al > 1 ? 1.03 : al > 0 ? 1.01 : 0.88;
           r.vx = vn * nx + vt * tx; r.vy = vn * ny + vt * ty;
         }
       } else if (r.y - gy > 0.3 * r.S) r.air = true;
@@ -296,10 +301,10 @@ const CORE = (() => {
   }
   function payout(r, s) {
     const st = r.st, D = r.maxX, z = zoneAt(D), dist = gd(D, z) * st.rate, coins = r.coinGold * st.rate;
-    const style = st.style * r.bounces, alt = st.alt * Math.log2(1 + r.maxAlt / (2 * r.U)), perfect = r.perfect ? 0.1 : 0, trick = st.trick * r.tricks, combo = st.combo * r.maxCombo, gold = r.golden ? 3 : 1;
+    const style = st.style * r.bounces, alt = st.alt * Math.log2(1 + r.maxAlt / (2 * r.U)), perfect = r.perfect ? 0.1 : 0, kickB = r.kick > 1.05 ? 0.1 : r.kick > 1 ? 0.03 : 0, dbl = r.dbl ? 0.15 : 0, land = 0.01 * (r.cleans - r.perfLands) + 0.02 * r.perfLands, slam = 0.02 * r.slams, trick = st.trick * r.tricks, combo = st.combo * r.maxCombo, gold = r.golden ? 3 : 1;
     let first = 0; for (let i = s.zone + 1; i <= z; i++) first += 3 * gd(ZONES[i].at, i) * st.rate;
-    const mult = 1 + style + alt + perfect + trick + combo;
-    return { dist, coins, style, alt, perfect, trick, combo, gold, first, mult, total: Math.floor(((dist + coins) * mult + first) * gold), zone: z };
+    const mult = 1 + style + alt + perfect + kickB + dbl + land + slam + trick + combo;
+    return { dist, coins, style, alt, perfect, kickB, dbl, land, slam, trick, combo, gold, first, mult, total: Math.floor(((dist + coins) * mult + first) * gold), zone: z };
   }
   function finish(r, s) { const p = payout(r, s); s.gold += p.total; s.runs++; if (r.perfect) s.perfects = (s.perfects || 0) + 1; if (r.slams) s.slams = (s.slams || 0) + r.slams;
     p.record = r.maxX > s.best; if (r.maxX > s.best) s.best = r.maxX; if (r.maxX > s.bestLife) s.bestLife = r.maxX; p.newZone = p.zone > s.zone; if (p.zone > s.zone) s.zone = p.zone; p.ach = checkAch(s, r); return p; }
