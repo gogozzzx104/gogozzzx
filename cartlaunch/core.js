@@ -45,14 +45,14 @@ const CORE = (() => {
   // and its last level costs about PRICE.last runs' worth `span` zones later.  Only 근력 훈련 has no ceiling.
   const gd = (d, zi) => 9 * Math.pow(d, 0.55) * Math.pow(1.15, zi);
   // typical gold of one run while working in zone z (measured with tools/sim.js; beyond the last zone it keeps growing)
-  const GT = [40, 220, 1000, 2100, 5000, 13000, 27000, 65000, 1.5e5, 4.1e5, 1.5e6, 4.8e6, 9.5e6, 2.7e7, 7.6e7];
+  const GT = [40, 220, 1000, 2100, 5000, 13000, 30000, 9e4, 2.4e5, 1.3e6, 5.4e6, 1.6e7, 5.5e7, 1.9e8, 6e8];
   const gref = z => { const f = k => k < GT.length ? GT[Math.max(0, k)] : GT[GT.length - 1] * Math.pow(2.6, k - GT.length + 1), a = Math.floor(z), t = z - a; return Math.exp(Math.log(f(a)) * (1 - t) + Math.log(f(a + 1)) * t); };
   // prices in "runs of gold": the first level of an upgrade costs about PRICE.first runs, its last level PRICE.last runs; past the sea everything gets steeper
-  const PRICE = { first: 3, last: 12, late: 1.6, from: 5 };
+  const PRICE = { first: 3, last: 12, late: 1.9, from: 5 };
   const pr = z => Math.pow(PRICE.late, Math.max(0, z - PRICE.from));
   const U_ = (id, br, name, max, zs, span, desc, req, zone) => ({ id, br, name, max, zs, span, desc, req: req || [], zone: zone ? ZI(zone) : 0 });
   const UPS = [
-    { id: 'push', br: 'launch', name: '근력 훈련', max: 400, c0: 8, cm: 1.1, q: 1.0008, q2: 1.004, l2: 50, desc: '발사 속도 ×1.05 · 한도 없음', req: [], zone: 0 },
+    { id: 'push', br: 'launch', name: '근력 훈련', max: 400, c0: 8, cm: 1.1, q: 1.0008, q2: 1.006, l2: 50, desc: '발사 속도 ×1.05 · 한도 없음', req: [], zone: 0 },
     U_('ramp', 'launch', '발사 경사로', 10, 0, 2.5, '발사 각도 +2.8°', [['push', 3]]),
     U_('runup', 'launch', '도움닫기', 30, 0.5, 4, '발사 속도 +2%', [['push', 5]]),
     U_('timing', 'launch', '타이밍 감각', 10, 0.8, 3, '퍼펙트 구간 확대 · 보너스 +2%', [['runup', 3]]),
@@ -88,7 +88,7 @@ const CORE = (() => {
 
     U_('ad', 'money', '전단지 광고', 60, 0, 13, '모든 골드 +6%'),
     U_('coin', 'money', '코인 감정사', 60, 0.5, 12, '코인·상자 가치 +8%', [['ad', 3]]),
-    U_('magnet', 'money', '코인 자석', 10, 1, 6, '코인 획득 범위 +16%', [['coin', 3]]),
+    U_('magnet', 'money', '코인 자석', 10, 1, 6, '가까운 코인·상자를 끌어당김 · Lv마다 범위 증가', [['coin', 3]]),
     U_('style', 'money', '묘기 보너스', 20, 1, 7, '튕길 때마다 골드 +0.25%', [['ad', 8]]),
     U_('combo', 'money', '콤보 미터', 15, 1.5, 7, '3초 안에 이어 먹으면 콤보 · 콤보당 +0.2%', [['coin', 5]]),
     U_('alt', 'money', '고도 수당', 20, 2, 7, '최고 고도만큼 골드 보너스', [['style', 3]]),
@@ -181,7 +181,7 @@ const CORE = (() => {
       dive: L('dive'), diveN: L('dive') ? 1 + Math.floor(L('dive') / 3) : 0, glide: Math.min(0.35, 0.035 * L('wing')), convert: 0.08 * L('convert'), grav: Math.max(0.6, 1 - 0.02 * L('grav')),
       double: P('r_double'), phoenix: P('r_phoenix'),
       rate: (1 + 0.06 * L('ad')) * (1 + 0.25 * P('p_gold')) * (1 + STAR_GOLD * bless * s.starsTotal) * (1 + 0.01 * L('sponsor') * s.zone) * (1 + 0.03 * achCount(s)),
-      coin: (1 + 0.08 * L('coin')) * (1 + 0.4 * P('r_coin')), magnet: L('magnet'), style: 0.0025 * L('style'), alt: 0.005 * L('alt'), crate: L('crate'), combo: 0.002 * L('combo'),
+      coin: (1 + 0.08 * L('coin')) * (1 + 0.4 * P('r_coin')), magnet: L('magnet'), magR: L('magnet') ? 0.9 + 0.3 * L('magnet') : 0, style: 0.0025 * L('style'), alt: 0.005 * L('alt'), crate: L('crate'), combo: 0.002 * L('combo'),
       trick: 0.03 * (1 + 0.5 * P('r_trick')) * (1 + 0.2 * L('trickpay')), lucky: 0.02 * L('lucky'),
     };
   }
@@ -195,7 +195,7 @@ const CORE = (() => {
     const perfect = meter >= 1 - st.window, m = perfect ? st.perfect : 0.55 + 0.45 * meter / (1 - st.window), dbl = perfect && (kick || 1) > 1.05, v = st.power * m * (kick || 1) * (dbl ? 1.03 : 1), sc = scaleOf(st, v), sd = seed == null ? Math.floor(Math.random() * 1e6) : seed;
     return Object.assign({ st, kick: kick || 1, seed: sd, x: 0, y: RAMP * Math.tan(st.angle) + 0.3, vx: v * Math.cos(st.angle), vy: v * Math.sin(st.angle), v0: v, perfect, dbl, airT: 0, fuel: st.fuel, spring: st.springN, dash: st.dashN, dive: st.diveN,
       t: 0, tr: 0, air: true, rest: 0, back: 0, maxX: 0, maxAlt: 0, maxV: v, bounces: 0, coins: 0, crates: 0, coinGold: 0, broke: 0, used: new Set(), over: false, why: '', ev: [], boosting: false,
-      tops: 0, slam: false, slams: 0, combo: 0, comboT: -9, maxCombo: 0, golden: hash(sd * 13 + 5) < st.lucky, ph: hash(sd) * 6.283, ph2: hash(sd + 1) * 6.283,
+      tops: 0, mag: [], slam: false, slams: 0, combo: 0, comboT: -9, maxCombo: 0, golden: hash(sd * 13 + 5) < st.lucky, ph: hash(sd) * 6.283, ph2: hash(sd + 1) * 6.283,
       ang: st.angle, spin: 0, rotAcc: 0, tricks: 0, crashes: 0, cleans: 0, perfLands: 0, landStreak: 0, maxStreak: 0, spinT: -9, usedBoost: false, doubled: false, risen: false, lastBounce: -9 }, sc);
   }
   // height of the coin stream above the ground at x
@@ -208,7 +208,7 @@ const CORE = (() => {
     if (gt) { const x = xa + cw * (0.15 + 0.7 * h(3)); if (isWater(x, r.U)) gt = gt === 'boat' || h(7) < 0.4 ? 'boat' : null; else if (gt === 'boat') gt = null; if (gt) out.push({ id: i * 8, type: gt, x, y: ground(x, r.U), grounded: true, rad: S, z }); }
     // air: small groups of coins hung at heights across the whole flight envelope (not a line to follow) - worth chasing, easy to miss
     const ha = h(4), lo = 1.8 * S, hi = Math.max(3.5 * S, 2 * r.c), at = (k, x) => ground(x, r.U) + lo + (hi - lo) * Math.pow(h(k), 1.6);
-    if (ha < 0.30) { const n = h(8) < 0.5 ? 2 : 3, x0 = xa + cw * (0.25 + 0.3 * h(9)), y0 = at(10, x0) - ground(x0, r.U), tilt = (h(11) - 0.5) * 0.8; for (let k = 0; k < n; k++) { const x = x0 + k * 1.5 * S; out.push({ id: i * 8 + 1 + k, type: 'coin', x, y: ground(x, r.U) + Math.max(lo, y0 + k * tilt * S), rad: (0.6 + 0.1 * r.st.magnet) * S, z }); } }
+    if (ha < 0.30) { const n = h(8) < 0.5 ? 2 : 3, x0 = xa + cw * (0.25 + 0.3 * h(9)), y0 = at(10, x0) - ground(x0, r.U), tilt = (h(11) - 0.5) * 0.8; for (let k = 0; k < n; k++) { const x = x0 + k * 1.5 * S; out.push({ id: i * 8 + 1 + k, type: 'coin', x, y: ground(x, r.U) + Math.max(lo, y0 + k * tilt * S), rad: 0.6 * S, z }); } }
     else if (ha < 0.37) { const x = xm; out.push({ id: i * 8 + 4, type: 'ring', x, y: at(12, x), rad: 1.0 * S, z }); }
     if (h(5) < 0.03 * (1 + 0.3 * r.st.crate)) { const x = xa + cw * 0.8; out.push({ id: i * 8 + 5, type: 'crate', x, y: ground(x, r.U) + lo + (hi - lo) * (0.55 + 0.45 * h(6)), rad: 0.8 * S, z }); }
     return out;
@@ -290,6 +290,10 @@ const CORE = (() => {
       if (r.y - gy > r.maxAlt) r.maxAlt = r.y - gy;
     }
     if (!r.over && r.x > xPrev) objects(r, xPrev, r.x);
+    if (st.magR && !r.over) { const R = st.magR * r.S, cy = r.y + 0.5 * r.S, i0 = Math.max(0, Math.floor((xPrev - R) / r.cw - 1.2)), i1 = Math.floor((r.x + R) / r.cw - 1.2);
+      for (let i = i0; i <= i1; i++) for (const o of cellObjs(r, i)) { if ((o.type !== 'coin' && o.type !== 'crate') || r.used.has(o.id)) continue; const dx = o.x < xPrev ? xPrev - o.x : o.x > r.x ? o.x - r.x : 0;
+        if (Math.hypot(dx, o.y - cy) < R) { r.used.add(o.id); r.mag.push({ o, t0: r.tr }); r.ev.push({ k: 'pull', x: o.x, y: o.y }); } } }
+    for (let k = r.mag.length - 1; k >= 0; k--) if (r.over || r.tr - r.mag[k].t0 >= 0.3) { hit(r, Object.assign({}, r.mag[k].o, { x: r.x, y: r.y + 0.5 * r.S })); r.mag.splice(k, 1); }
     r.t += dt; r.tr += dtReal; if (r.x > r.maxX) r.maxX = r.x;
     const sp = Math.hypot(r.vx, r.vy); if (sp > r.maxV) r.maxV = sp;
     if (!r.over) {

@@ -316,7 +316,7 @@ const EFF = { push: pw, runup: pw, sling: pw, cannon: pw, rail: pw, ramp: s => `
   float: s => s.float ? `물 반발 ${(40 + 3.5 * s.float).toFixed(0)}%` : '물에 닿으면 침수', heat: s => `용암 후 속도 ${(55 + 4.4 * s.heat).toFixed(0)}%`, rocket: bst, jet: bst, nozzle: bst, fuel: s => `연료 ${s.fuel.toFixed(2)}초`,
   spring: s => s.springN ? `도약 ${s.springN}회 · 세기 ${Math.round(26 + 1.2 * s.spring)}%` : '도약 없음', airjump: s => s.airjump ? `공중 도약 위력 ${Math.round(s.airjump * 100)}%` : '공중 도약 불가', dash: s => s.dashN ? `대시 ${s.dashN}회` : '대시 없음', dashpow: s => `대시 ×${s.dashpow.toFixed(2)}`,
   wing: s => `중력 ${((1 - s.glide) * 100).toFixed(1)}%`, grav: s => `중력 ×${s.grav.toFixed(2)}`, convert: s => `전환 세기 ${s.convert.toFixed(2)}`, dive: s => s.diveN ? `${s.diveN}회 · 슬램 반발 +${8 + 2 * s.dive}%p` : '급강하 없음',
-  ad: s => `수익 ×${fmt2(s.rate)}`, sponsor: s => `수익 ×${fmt2(s.rate)}`, coin: s => `코인 ×${fmt2(s.coin)}`, magnet: s => `범위 +${Math.round(s.magnet * 100 / 6)}%`, style: s => `튕김당 +${(s.style * 100).toFixed(2)}%`, alt: s => `고도 계수 ${(s.alt * 100).toFixed(1)}%`,
+  ad: s => `수익 ×${fmt2(s.rate)}`, sponsor: s => `수익 ×${fmt2(s.rate)}`, coin: s => `코인 ×${fmt2(s.coin)}`, magnet: s => s.magR ? `끌어당기는 범위 ${Math.round(s.magR / 1.2 * 100)}%` : '자석 없음', style: s => `튕김당 +${(s.style * 100).toFixed(2)}%`, alt: s => `고도 계수 ${(s.alt * 100).toFixed(1)}%`,
   combo: s => `콤보당 +${(s.combo * 100).toFixed(1)}%`, trickpay: s => `바퀴당 +${(s.trick * 100).toFixed(1)}%`, lucky: s => `황금 판 확률 ${Math.round(s.lucky * 100)}%`, crate: s => `상자 등장 ×${(1 + 0.3 * s.crate).toFixed(1)}` };
 const PEFF = { p_power: l => `발사 속도 +${l * 5}%`, p_meter: l => `게이지 속도 ${Math.round(100 / (1 + 0.15 * l))}%`, r_focus: l => `퍼펙트 보너스 +${l * 3}%`, r_mem: l => `레벨의 ${l * 8}% 유지`, r_skip: l => `구역 기록 ${l * 2}개 유지`, p_fuel: l => `부스트 +${(l * 0.5).toFixed(1)}초`, r_trick: l => `묘기 보너스 +${l * 50}%`,
   r_spring: l => `도약 +${l}회`, r_dash: l => `대시 +${l}회`, r_feather: l => `공기 저항 -${l * 6}%`, p_gold: l => `모든 골드 +${l * 25}%`, p_seed: l => l ? `시작 골드 ${fmt(100 * Math.pow(10, l))}` : '시작 골드 없음', r_coin: l => `코인 가치 +${l * 40}%`, r_disc: l => `가격 -${l * 5}%` };
@@ -454,7 +454,8 @@ function drawWorld(cx, cy, dt) {
   if (S.best > 3 && S.best > x0 && S.best < x1) { const x = SX(S.best), y = SY(G(S.best)); g.fillStyle = '#2b2233'; g.fillRect(x - 1.5, y - 64, 3, 64); g.fillStyle = '#f5b014'; g.beginPath(); g.moveTo(x, y - 64); g.lineTo(x + 30, y - 55); g.lineTo(x, y - 46); g.fill(); g.fillStyle = '#2b2233'; g.font = '700 10px sans-serif'; g.textAlign = 'left'; g.fillText('BEST', x + 4, y - 51); g.textAlign = 'center'; }
   // objects
   if (run) { const i0 = Math.max(0, Math.floor(x0 / run.cw - 1.2)), i1 = Math.min(i0 + 40, Math.floor(x1 / run.cw - 1.2));
-    for (let i = i0; i <= i1; i++) for (const o of C.cellObjs(run, i)) if (!run.used.has(o.id)) drawObj(o); }
+    for (let i = i0; i <= i1; i++) for (const o of C.cellObjs(run, i)) if (!run.used.has(o.id)) drawObj(o);
+    for (const m of run.mag) { const f = Math.min(1, (run.tr - m.t0) / 0.3), e = f * f, o = m.o, tx = o.x + (run.x - o.x) * e, ty = o.y + (run.y + 0.5 * run.S - o.y) * e; g.strokeStyle = `rgba(255,90,90,${0.5 * (1 - f)})`; g.lineWidth = 2; g.beginPath(); g.moveTo(SX(tx), SY(ty)); g.lineTo(SX(run.x), SY(run.y + 0.5 * run.S)); g.stroke(); drawObj(Object.assign({}, o, { x: tx, y: ty })); } }
 }
 // --- scenery: sky bodies, clouds and two parallax layers per zone, all placed by hash so they never flicker ---
 const DISP = () => getComputedStyle(root).getPropertyValue('--disp');
@@ -680,6 +681,7 @@ function frame(now) {
           ringFx(cartX, cartY + 12, '#ffd24a', 76, 0.45, 6); ringFx(cartX, cartY + 12, '#ffffff', 46, 0.35, 3, 0.05); burst(cartX, cartY + 14, 10, ['#ffd24a', '#fff3b0', '#ffffff'], 420, 0.5, { a0: Math.PI, spread: 0.5, g: 200, z: 4 }); burst(cartX, cartY + 14, 10, ['#ffd24a', '#fff3b0', '#ffffff'], 420, 0.5, { a0: 0, spread: 0.5, g: 200, z: 4 }); landT = now; }
         else { pops.push({ a: 1, t: 0, col: '#b9f29a', txt: `좋은 착지${e.n > 1 ? ' ×' + e.n : ''} · 골드 +1%` }); tone(660 * up, 880 * up, 0.1, 0.1); ringFx(cartX, cartY + 12, '#9be37a', 46, 0.3, 3); } }
       else if (e.k === 'badland') { pops.push({ a: 1, t: 0, col: '#ff9d9d', txt: '삐끗! 속도 -12%' }); shake = Math.max(shake, 5); }
+      else if (e.k === 'pull') tone(1100, 1500, 0.05, 0.05);
       else if (e.k === 'crash') { toast('쿵! 착지 실패', 900); shake = 12; SFX.bonk(); dollJolt = 14; }
       else if (e.k === 'pspring') { toast('퍼펙트 도약!', 900); SFX.spring(); SFX.perfect(); ringFx(cartX, cartY + 12, '#ffd24a', 110, 0.5, 8); ringFx(cartX, cartY + 12, '#12e0c4', 70, 0.4, 5, 0.05); burst(cartX, cartY + 12, 20, ['#ffd24a', '#12e0c4', '#fff'], 520, 0.5, { a0: 1.57, spread: 1.4, g: 0, z: 5 }); }
       else if (e.k === 'double') { toast('2단 발사!', 900); SFX.launch(); shake = 8; ringFx(cartX, cartY, '#ffd24a', 120, 0.5, 8); burst(cartX, cartY, 24, ['#ffd24a', '#fff'], 700, 0.5, { a0: Math.PI, spread: 1.2, g: 0 }); }
