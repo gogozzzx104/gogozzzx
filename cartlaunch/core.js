@@ -96,6 +96,9 @@ const CORE = (() => {
     U_('grav', 'gear', '반중력 코어', 15, 10, 4, '중력 -2%', [['wing', 10]], 'moon'),
 
     U_('refuel', 'gear', '재급유 장치', 20, 3, 10, '완벽 착지 연료 회복 +0.02초 (좋은 착지는 절반)', [['fuel', 5]]),
+    U_('leap', 'gear', '추진 스프링', 15, 11, 6, '공중 도약의 전진력 +1%', [['airjump', 10]], 'rock'),
+    U_('crater', 'gear', '충격 추진기', 15, 11, 6, '슬램 후 전진력 +0.8%', [['dive', 12]], 'rock'),
+    U_('amp', 'gear', '증폭 코어', 20, 12, 6, '부스트·대시 힘 +4%', [['jet', 15], ['dashpow', 15]], 'star', 1),
     U_('tail', 'gear', '순풍 장치', 15, 10, 7, '자연 감속 -3%', [['wing', 10]], 'cloud', 1),
     U_('over', 'gear', '오버클럭', 10, 12, 6, '5Lv마다 도약·대시·급강하 +1회', [['dash', 10]], 'rock', 3),
 
@@ -187,7 +190,7 @@ const CORE = (() => {
   function stats(s) {
     const L = id => lvl(s, id), P = id => s.perks[id] || 0, bless = P('r_bless') ? 1.5 : 1;
     const power = 7 * Math.pow(1.05, L('push')) * (1 + 0.02 * L('runup')) * (1 + 0.03 * L('sling')) * (1 + 0.03 * L('cannon')) * (1 + 0.03 * L('rail')) * (1 + 0.04 * L('warp')) * (1 + 0.05 * P('p_power'));
-    const eCap = 0.80 + 0.008 * L('hover'), thrust = L('rocket') ? (3 + 0.4 * L('rocket') + power * (0.05 + 0.004 * L('rocket'))) * (1 + 0.03 * L('jet')) : 0;
+    const eCap = 0.80 + 0.008 * L('hover'), thrust = L('rocket') ? (3 + 0.4 * L('rocket') + power * (0.05 + 0.004 * L('rocket'))) * (1 + 0.03 * L('jet')) * (1 + 0.04 * L('amp')) : 0;
     return {
       power, angle: (14 + 2.8 * L('ramp')) * Math.PI / 180,
       perfect: 1.10 + 0.02 * L('timing') + 0.03 * P('r_focus'), window: (0.025 + 0.006 * L('timing')) * (1 + 0.15 * P('p_meter')), meter: 1.6, kickB: 0.01 * L('rail2'),
@@ -195,9 +198,9 @@ const CORE = (() => {
       wear: (1 - 0.02 * L('wheel')) * (1 - 0.03 * L('tail')), drag: 0.012 * Math.pow(0.92, L('aero')) * (1 - 0.03 * L('heat')) * (1 - 0.06 * P('r_feather')), bumper: L('bumper'), wide: L('wide'), float: L('float'), heat: L('heat'), gyro: L('gyro'), rubber: 1 + 0.05 * L('rubber'),
       thrust, fuel: L('rocket') ? 1.5 + 0.15 * L('fuel') + 0.5 * P('p_fuel') : 0, nozzle: 0.05 * L('nozzle'),
       spring: L('spring'), springN: L('spring') ? 1 + Math.floor(L('spring') / 4) + P('r_spring') + Math.floor(L('over') / 5) : 0, airjump: L('airjump') ? Math.min(1, 0.4 + 0.06 * L('airjump')) : 0,
-      dash: L('dash'), dashN: L('dash') ? 1 + Math.floor(L('dash') / 5) + P('r_dash') + Math.floor(L('over') / 5) : 0, dashpow: 1 + 0.12 * L('dashpow'),
+      dash: L('dash'), dashN: L('dash') ? 1 + Math.floor(L('dash') / 5) + P('r_dash') + Math.floor(L('over') / 5) : 0, dashpow: (1 + 0.12 * L('dashpow')) * (1 + 0.04 * L('amp')),
       dive: L('dive'), diveN: L('dive') ? 1 + Math.floor(L('dive') / 3) + Math.floor(L('over') / 5) : 0, glide: Math.min(0.35, 0.035 * L('wing')), convert: 0.08 * L('convert'), grav: Math.max(0.6, 1 - 0.02 * L('grav')),
-      double: P('r_double'), phoenix: P('r_phoenix'), encore: 1 + 0.05 * L('encore'), refuel: 0.1 + 0.02 * L('refuel'), time: 10 * P('r_time'),
+      double: P('r_double'), phoenix: P('r_phoenix'), encore: 1 + 0.05 * L('encore'), refuel: 0.1 + 0.02 * L('refuel'), leap: 0.02 + 0.01 * L('leap'), crater: 0.02 + 0.008 * L('crater'), time: 10 * P('r_time'),
       perfB: 0.3 * (1 + 0.5 * P('r_perf')), landG: 0.03 * (1 + 0.5 * P('r_land')), landP: 0.08 * (1 + 0.5 * P('r_land')), slamB: 0.08 * (1 + 0.5 * P('r_land')),
       rate: (1 + 0.06 * L('ad')) * (1 + 0.25 * P('p_gold')) * (1 + STAR_GOLD * bless * s.starsTotal) * (1 + 0.01 * L('sponsor') * s.zone) * (1 + 0.03 * achCount(s)),
       coin: (1 + 0.08 * L('coin')) * (1 + 0.4 * P('r_coin')), magnet: L('magnet'), magR: L('magnet') ? 0.9 + 0.3 * L('magnet') : 0, style: 0.0025 * L('style'), alt: 0.005 * L('alt'), crate: L('crate'), combo: 0.002 * L('combo'),
@@ -260,7 +263,7 @@ const CORE = (() => {
     const n = Math.min(80, Math.max(1, Math.ceil(Math.max(sp0 * dt / (0.25 * U), dtReal * 120)))), h = dt / n;
     r.boosting = !!(inp.boost && r.fuel > 0);
     const gk = Math.sqrt(gZ * (1 - st.glide) / 9.8), alt0 = r.y - ground(r.x, U), grounded0 = alt0 < Math.max(1.2, 0.5 * r.S), vRef = Math.max(sp0, 0.5 * r.v0);
-    const doSpring = k => { const pf = k === 1 && r.tr - r.lastBounce < 0.22 ? 1.35 : 1; r.spring--; let up = (5 + 0.5 * st.spring + Math.min(1.2 * r.v0, Math.max(sp0, 0.8 * r.v0)) * (0.26 + 0.012 * st.spring)) * pf * k; if (k === 1) up = Math.max(up, Math.sqrt(2.3 * gZ * river(r, r.x + 0.5 * r.cw)) * pf); r.vy = Math.min(0.85 * r.v0 * gk + 8, Math.max(r.vy, 0) + up); r.vx *= 1.03; if (k < 1) r.vx += 0.02 * r.v0; r.air = true; if (k === 1) r.rotAcc = 0; r.ev.push({ k: k < 1 ? 'airspring' : pf > 1 ? 'pspring' : 'spring', x: r.x, y: r.y }); };
+    const doSpring = k => { const pf = k === 1 && r.tr - r.lastBounce < 0.22 ? 1.35 : 1; r.spring--; let up = (5 + 0.5 * st.spring + Math.min(1.2 * r.v0, Math.max(sp0, 0.8 * r.v0)) * (0.26 + 0.012 * st.spring)) * pf * k; if (k === 1) up = Math.max(up, Math.sqrt(2.3 * gZ * river(r, r.x + 0.5 * r.cw)) * pf); r.vy = Math.min(0.85 * r.v0 * gk + 8, Math.max(r.vy, 0) + up); r.vx *= 1.03; if (k < 1) r.vx += st.leap * r.v0; r.air = true; if (k === 1) r.rotAcc = 0; r.ev.push({ k: k < 1 ? 'airspring' : pf > 1 ? 'pspring' : 'spring', x: r.x, y: r.y }); };
     const doDash = () => { r.dash--; const add = (6 + st.dash + Math.max(sp0, 0.8 * r.v0) * (0.08 + 0.006 * st.dash)) * st.dashpow; r.vx += add; r.vy = grounded0 ? Math.max(r.vy, 0.18 * r.v0 + 3) : Math.max(r.vy, -0.12 * sp0); if (grounded0) r.air = true; r.ev.push({ k: 'dash', x: r.x, y: r.y }); };
     if (inp.skill) { if (grounded0 && r.spring > 0) doSpring(1); else if (r.dash > 0 && !grounded0) doDash(); else if (!grounded0 && st.airjump && r.spring > 0) doSpring(st.airjump); }
     if (inp.spring && r.spring > 0) { if (grounded0) doSpring(1); else if (st.airjump) doSpring(st.airjump); }
@@ -300,7 +303,7 @@ const CORE = (() => {
           if (water && !st.float) { if (Math.abs(vt) > 0.25 * r.v0 && imp < Math.abs(vt) * 0.55) { vn = imp * 0.45; vt *= 0.86; r.bounces++; r.air = true; r.ev.push({ k: 'skip', x: r.x, y: r.y }); } else { r.over = true; r.why = '물에 빠졌어요'; r.ev.push({ k: 'sink', x: r.x, y: r.y }); break; } }
           else {
             const rough = Z.loss > 1 ? 1 + (Z.loss - 1) * soft : Z.loss, eZ = Z.e < 1 ? 1 - (1 - Z.e) * soft : Z.e, e = water ? 0.4 + 0.035 * st.float : Math.min(st.eCap + 0.02, st.e * eZ);
-            if (r.slam && !water) { r.slam = false; r.slams++; r.combo = r.tr - r.comboT < 3 ? r.combo + 1 : 1; r.comboT = r.tr; if (r.combo > r.maxCombo) r.maxCombo = r.combo; vn = Math.min(0.85 * r.v0 * gk, imp * Math.min(0.97, e + 0.08 + 0.02 * st.dive)); vt = vt * 1.02 + 0.02 * r.v0; r.bounces++; r.air = true; r.ev.push({ k: 'slam', x: r.x, y: r.y, imp, combo: r.combo }); }
+            if (r.slam && !water) { r.slam = false; r.slams++; r.combo = r.tr - r.comboT < 3 ? r.combo + 1 : 1; r.comboT = r.tr; if (r.combo > r.maxCombo) r.maxCombo = r.combo; vn = Math.min(0.85 * r.v0 * gk, imp * Math.min(0.97, e + 0.08 + 0.02 * st.dive)); vt = vt * 1.02 + st.crater * r.v0; r.bounces++; r.air = true; r.ev.push({ k: 'slam', x: r.x, y: r.y, imp, combo: r.combo }); }
             else if (imp > 0.05 * r.v0 + 0.8 + Math.abs(vt) * 0.02) { vn = Math.min(0.72 * r.v0 * gk + 2, imp * e); vt *= (1 - Math.min(0.9, (water ? 0.16 - 0.01 * st.float : st.loss * rough) * (al > 0 ? 0.35 : 1) * Math.min(1, imp / (Math.abs(vt) + 1) * 3 + 0.25))) ; r.bounces++; r.air = true; r.ev.push({ k: 'bounce', x: r.x, y: r.y, imp }); }
             else { vn = 0; r.air = false; r.slam = false; r.ang = Math.atan(sl); const muZ = Z.mu > 1 ? 1 + (Z.mu - 1) * soft : Z.mu, mu = water ? 0.5 / (1 + 0.6 * st.float) : st.mu * muZ, dec = mu * g * h; vt = Math.abs(vt) <= dec ? 0 : vt - Math.sign(vt) * dec; }
           }
