@@ -417,7 +417,7 @@ const mix = (a, b, f) => { const p = c => [parseInt(c.slice(1, 3), 16), parseInt
 function zoneMix(x, key, idx) { const z = C.zoneAt(x); if (z === 0) return idx == null ? Z[0][key] : Z[0][key][idx]; const w = Math.max(40, Z[z].at * 0.06), f = Math.min(1, (x - Z[z].at) / w), a = idx == null ? Z[z - 1][key] : Z[z - 1][key][idx], b = idx == null ? Z[z][key] : Z[z][key][idx]; return mix(a, b, f); }
 let ppm = 20, ox = 0, oy = 0, dollJolt = 0;
 // --- juice: screen-space sparks, rings, coins flying to the counter, a ribbon behind the cart, flashes ---
-let zoneIn = 0, zoneSaid = true, jingleT = -9e9, landT = -9e9, fuelShown = 1, fuelUpT = -9e9;
+let zoneIn = 0, zoneSaid = true, jingleT = -9e9, landT = -9e9, fuelShown = 1, fuelUpT = -9e9, liveG = 0, liveT = -9e9;
 let fxs = [], trail = [], flash = 0, flashCol = '#fff', goldPopT = 0, dashT = 0, sonicLv = 0, cartX = 200, cartY = 200;
 const burst = (x, y, n, cols, spd, life, o = {}) => { for (let i = 0; i < n; i++) { const a = (o.a0 ?? 0) + (o.spread ?? 6.283) * (Math.random() - 0.5), v = spd * (0.35 + Math.random() * 0.65); fxs.push({ k: 's', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: life * (0.6 + Math.random() * 0.6), c: cols[i % cols.length], g: o.g ?? 500, z: (o.z ?? 5) * (0.6 + Math.random() * 0.8), sq: o.sq }); } };
 const ringFx = (x, y, c, r1, life = 0.45, w = 5, delay = 0) => fxs.push({ k: 'r', x, y, t: -delay, life, c, r1, w });
@@ -673,8 +673,10 @@ function hud(r) {
     const grounded = alt < Math.max(1.2, 0.5 * r.S); skillBtn.firstChild.textContent = grounded || !st.airjump ? '도약' : '공중도약'; skillBtn.querySelector('small').textContent = r.spring + '회'; skillBtn.disabled = !(r.spring > 0 && (grounded || st.airjump));
     dashBtn.querySelector('small').textContent = r.dash + '회'; dashBtn.disabled = !(r.dash > 0); diveBtn.querySelector('small').textContent = r.dive + '회'; diveBtn.disabled = !(r.dive > 0 && !grounded);
     // live gold + combo
-    const cg = r.coinGold * st.rate; if (cg > 0) { const pz = 1 + 0.35 * Math.max(0, 1 - (performance.now() - goldPopT) / 180); g.textAlign = 'left'; txt('+' + fmt(cg), 34, 86 + 2, 15 * pz, '#ffd24a'); g.fillStyle = '#f5b014'; g.strokeStyle = '#2b2233'; g.lineWidth = 2; g.beginPath(); g.arc(23, 86 - 4, 6, 0, 7); g.fill(); g.stroke(); }
-    if (r.golden) { g.textAlign = 'left'; txt('황금 판 ×3', 16, 86 + 22, 13, '#ffd24a'); }
+    { const pv = C.payout(r, S), nowT = performance.now(); if (pv.total > liveG * 1.002 + 0.5) liveT = nowT; liveG = pv.total;   // what this run would pay if it ended now
+      const pz = 1 + 0.3 * Math.max(0, 1 - (nowT - liveT) / 220); g.fillStyle = '#f5b014'; g.strokeStyle = '#2b2233'; g.lineWidth = 2.5; g.beginPath(); g.arc(25, 83, 8, 0, 7); g.fill(); g.stroke(); g.textAlign = 'left'; txt(fmt(pv.total), 39, 91, 21 * pz, '#ffd24a');
+      g.font = `21px ${D}`; const wv = g.measureText(fmt(pv.total)).width; txt(`보너스 ×${pv.mult.toFixed(2)}`, 46 + wv, 90, 12, '#fff6e6'); }
+    if (r.golden) { g.textAlign = 'left'; txt('황금 판 ×3', 16, 112, 13, '#ffd24a'); }
     const cl = 3 - (r.tr - r.comboT); if (r.combo >= 1 && cl > 0 && (r.combo >= 2 || r.slams)) { const pz = 1 + 0.4 * Math.max(0, 1 - (performance.now() - goldPopT) / 160); g.textAlign = 'center'; txt(r.combo + ' 콤보', W / 2, H * 0.24, 26 * pz, r.combo >= 20 ? '#ff5a8a' : r.combo >= 10 ? '#ffd24a' : '#fff'); g.fillStyle = '#2b2233'; g.fillRect(W / 2 - 42, H * 0.24 + 8, 84, 6); g.fillStyle = '#ffd24a'; g.fillRect(W / 2 - 40, H * 0.24 + 10, 80 * cl / 3, 2); }
   } else if (state === 'aim' || state === 'charge' || state === 'push') {
     g.textAlign = 'center'; txt(state === 'aim' ? '꾹 눌러서 당기기!' : state === 'charge' ? '흰 구간에서 손을 떼세요' : '발사대 끝에서 한 번 더 탭!', W / 2, H * 0.2, 28);
@@ -784,7 +786,7 @@ function frame(now) {
     const pins = dollStep(Math.max(0.008, dt), rot, fx2, state === 'fly' ? ay : 0, state === 'fly' ? Math.min(900, sp * 14) : 0, dollJolt + (state === 'charge' ? charge * charge * 1.2 : 0)); dollJolt *= 0.8;
     drawDoll(cxp, cyp, csc, pins, false); drawCart(cxp, cyp, rot, csc); drawDoll(cxp, cyp, csc, pins, true); }
   g.textAlign = 'center'; g.font = `15px ${getComputedStyle(root).getPropertyValue('--disp')}`;
-  { let ai = 0; for (const p of pops) { p.t += dt; const life = p.a ? 1.3 : 0.9, x2 = p.a ? Math.max(120, cartX + 20) : SX(p.x), y2 = p.a ? Math.max(96, cartY - 44) - 20 * ai++ - p.t * 26 : SY(p.y) - p.t * 50; g.font = `${p.a ? 17 : 15}px ${getComputedStyle(root).getPropertyValue('--disp')}`; g.globalAlpha = Math.max(0, Math.min(1, (life - p.t) * 3)); g.lineWidth = 3.5; g.strokeStyle = '#2b2233'; g.strokeText(p.txt, x2, y2); g.fillStyle = p.col || '#ffd24a'; g.fillText(p.txt, x2, y2); } } g.globalAlpha = 1; pops = pops.filter(p => p.t < (p.a ? 1.3 : 0.9));
+  { let ai = 0; for (const p of pops) { p.t += dt; const life = p.a ? 1.3 : 0.9, x2 = p.a ? Math.max(120, cartX + 20) : SX(p.x), y2 = p.a ? Math.max(150, cartY - 44) - 20 * ai++ - p.t * 26 : SY(p.y) - p.t * 50; g.font = `${p.a ? 17 : 15}px ${getComputedStyle(root).getPropertyValue('--disp')}`; g.globalAlpha = Math.max(0, Math.min(1, (life - p.t) * 3)); g.lineWidth = 3.5; g.strokeStyle = '#2b2233'; g.strokeText(p.txt, x2, y2); g.fillStyle = p.col || '#ffd24a'; g.fillText(p.txt, x2, y2); } } g.globalAlpha = 1; pops = pops.filter(p => p.t < (p.a ? 1.3 : 0.9));
   g.restore();
   drawFx(dt);
   if (state !== 'shop') hud(state === 'fly' || state === 'result' ? r : null);
