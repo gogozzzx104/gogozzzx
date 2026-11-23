@@ -26,11 +26,11 @@ const CORE = (() => {
     { id: 'star', name: '은하 고속도로', at: 7500000, g: 7, drag: 0.8, amp: 0.93, wl: 44, sk: 0.35, la: 3, mu: 0.6, e: 1.05, loss: 0.7, sky: ['#0a0220', '#3a0f66'], ground: '#5b2bd6', deco: 'star' },
     { id: 'hole', name: '블랙홀 가장자리', at: 20000000, g: 14, drag: 1.3, amp: 1.69, wl: 36, sk: 0.5, la: 3, mu: 1.2, e: 0.9, loss: 1.2, rough: 1, spec: ['pool', 'geyser'], sky: ['#000000', '#3a0a16'], ground: '#1a1020', deco: 'hole' },
     { id: 'end', name: '우주의 끝', at: 50000000, g: 6, drag: 0.9, amp: 1.6, wl: 40, sk: 0.3, la: 3.5, mu: 1.5, e: 0.95, loss: 1.3, rough: 1, spec: ['pool'], sky: ['#b8e8ff', '#f6f0ff'], ground: '#2b2233', deco: 'end' },
-    { id: 'rift', name: '차원의 틈', at: 1.2e8, g: 9, drag: 1, amp: 1.4, wl: 34, sk: 0.6, la: 3, mu: 1.3, e: 0.95, loss: 1.2, rough: 1, spec: ['geyser'], sky: ['#12002b', '#6a1fb5'], ground: '#2a0f4a', deco: 'hole' },
-    { id: 'crystal', name: '수정 행성', at: 3e8, g: 7, drag: 0.8, amp: 1.1, wl: 26, sk: 0.4, la: 2.5, mu: 0.3, e: 1.05, loss: 0.6, spec: ['tramp'], sky: ['#0b3a4a', '#7ff0e0'], ground: '#bff5ee', deco: 'ice' },
-    { id: 'sun', name: '태양 표면', at: 7.5e8, g: 12, drag: 1.3, amp: 1.3, wl: 30, sk: 0.7, la: 2.5, mu: 1.2, e: 0.9, loss: 1.1, spec: ['pool', 'geyser'], sky: ['#ff7a1a', '#ffe27a'], ground: '#7a2a0a', deco: 'lava' },
-    { id: 'nebula', name: '무지개 성운', at: 2e9, g: 6, drag: 0.8, amp: 1, wl: 38, sk: 0.2, la: 3, mu: 0.5, e: 1.1, loss: 0.6, spec: ['tramp'], sky: ['#3a1a6a', '#ff9ec7'], ground: '#e8d9ff', deco: 'cloud' },
-    { id: 'omega', name: '시간의 끝', at: 5e9, g: 8, drag: 1, amp: 1.6, wl: 42, sk: 0.3, la: 3.5, mu: 1, e: 1, loss: 1, rough: 1, spec: ['pool'], sky: ['#000010', '#1a3a6a'], ground: '#101830', deco: 'star' },
+    { id: 'rift', fx: 'rift', name: '차원의 틈', at: 1.2e8, g: 9, drag: 1, amp: 1.4, wl: 34, sk: 0.6, la: 3, mu: 1.3, e: 0.95, loss: 1.2, rough: 1, spec: ['geyser'], sky: ['#12002b', '#6a1fb5'], ground: '#2a0f4a', deco: 'hole' },
+    { id: 'crystal', fx: 'crystal', name: '수정 행성', at: 3e8, g: 7, drag: 0.8, amp: 1.1, wl: 26, sk: 0.4, la: 2.5, mu: 0.3, e: 1.05, loss: 0.6, spec: ['tramp'], sky: ['#0b3a4a', '#7ff0e0'], ground: '#bff5ee', deco: 'ice' },
+    { id: 'sun', fx: 'sun', name: '태양 표면', at: 7.5e8, g: 12, drag: 1.3, amp: 1.3, wl: 30, sk: 0.7, la: 2.5, mu: 1.2, e: 0.9, loss: 1.1, spec: ['pool', 'geyser'], sky: ['#ff7a1a', '#ffe27a'], ground: '#7a2a0a', deco: 'lava' },
+    { id: 'nebula', fx: 'nebula', name: '무지개 성운', at: 2e9, g: 6, drag: 0.8, amp: 1, wl: 38, sk: 0.2, la: 3, mu: 0.5, e: 1.1, loss: 0.6, spec: ['tramp'], sky: ['#3a1a6a', '#ff9ec7'], ground: '#e8d9ff', deco: 'cloud' },
+    { id: 'omega', fx: 'omega', name: '시간의 끝', at: 5e9, g: 8, drag: 1, amp: 1.6, wl: 42, sk: 0.3, la: 3.5, mu: 1, e: 1, loss: 1, rough: 1, spec: ['pool'], sky: ['#000010', '#1a3a6a'], ground: '#101830', deco: 'star' },
   ];
   const ZI = id => ZONES.findIndex(z => z.id === id);
   const zoneAt = x => { let z = 0; for (let i = 1; i < ZONES.length; i++) if (x >= ZONES[i].at) z = i; return z; };
@@ -95,6 +95,7 @@ const CORE = (() => {
     U_('jet', 'gear', '제트 엔진', 20, 7, 6, '부스트 추진력 +3%', [['rocket', 15]], 'ice'),
     U_('grav', 'gear', '반중력 코어', 15, 10, 4, '중력 -2%', [['wing', 10]], 'moon'),
 
+    U_('refuel', 'gear', '재급유 장치', 20, 3, 10, '완벽 착지 연료 회복 +0.02초 (좋은 착지는 절반)', [['fuel', 5]]),
     U_('tail', 'gear', '순풍 장치', 15, 10, 7, '자연 감속 -3%', [['wing', 10]], 'cloud', 1),
     U_('over', 'gear', '오버클럭', 10, 12, 6, '5Lv마다 도약·대시·급강하 +1회', [['dash', 10]], 'rock', 3),
 
@@ -196,7 +197,7 @@ const CORE = (() => {
       spring: L('spring'), springN: L('spring') ? 1 + Math.floor(L('spring') / 4) + P('r_spring') + Math.floor(L('over') / 5) : 0, airjump: L('airjump') ? Math.min(1, 0.4 + 0.06 * L('airjump')) : 0,
       dash: L('dash'), dashN: L('dash') ? 1 + Math.floor(L('dash') / 5) + P('r_dash') + Math.floor(L('over') / 5) : 0, dashpow: 1 + 0.12 * L('dashpow'),
       dive: L('dive'), diveN: L('dive') ? 1 + Math.floor(L('dive') / 3) + Math.floor(L('over') / 5) : 0, glide: Math.min(0.35, 0.035 * L('wing')), convert: 0.08 * L('convert'), grav: Math.max(0.6, 1 - 0.02 * L('grav')),
-      double: P('r_double'), phoenix: P('r_phoenix'), encore: 1 + 0.05 * L('encore'), time: 10 * P('r_time'),
+      double: P('r_double'), phoenix: P('r_phoenix'), encore: 1 + 0.05 * L('encore'), refuel: 0.1 + 0.02 * L('refuel'), time: 10 * P('r_time'),
       perfB: 0.3 * (1 + 0.5 * P('r_perf')), landG: 0.03 * (1 + 0.5 * P('r_land')), landP: 0.08 * (1 + 0.5 * P('r_land')), slamB: 0.08 * (1 + 0.5 * P('r_land')),
       rate: (1 + 0.06 * L('ad')) * (1 + 0.25 * P('p_gold')) * (1 + STAR_GOLD * bless * s.starsTotal) * (1 + 0.01 * L('sponsor') * s.zone) * (1 + 0.03 * achCount(s)),
       coin: (1 + 0.08 * L('coin')) * (1 + 0.4 * P('r_coin')), magnet: L('magnet'), magR: L('magnet') ? 0.9 + 0.3 * L('magnet') : 0, style: 0.0025 * L('style'), alt: 0.005 * L('alt'), crate: L('crate'), combo: 0.002 * L('combo'),
@@ -292,7 +293,7 @@ const CORE = (() => {
             if (trick) { r.tricks += flips; vt *= 1 + Math.min(0.25, 0.05 * flips); r.ev.push({ k: 'trick', x: r.x, y: r.y, n: flips, clean: Math.abs(dd) < 0.2 }); }
             if (crash) { vt *= 0.75; r.crashes++; r.ev.push({ k: 'crash', x: r.x, y: r.y }); }
             if (long && Math.abs(dd) < 0.26 + 0.01 * st.gyro) { const pf = Math.abs(dd) < 0.11 + 0.004 * st.gyro; al = pf ? 2 : 1; r.cleans++; if (pf) r.perfLands++; r.landStreak++; if (r.landStreak > r.maxStreak) r.maxStreak = r.landStreak;
-              if (st.fuel) r.fuel = Math.min(st.fuel, r.fuel + (pf ? 0.3 : 0.15)); r.ev.push({ k: 'clean', x: r.x, y: r.y, pf, n: r.landStreak }); }
+              if (st.fuel) r.fuel = Math.min(st.fuel, r.fuel + (pf ? st.refuel : st.refuel / 2)); r.ev.push({ k: 'clean', x: r.x, y: r.y, pf, n: r.landStreak }); }
             else if (long && !crash && Math.abs(dd) > 1.1) { al = -1; r.landStreak = 0; r.ev.push({ k: 'badland', x: r.x, y: r.y }); }
             else if (long && !trick) r.landStreak = 0;
             r.airT = 0; r.rotAcc = 0; r.spin = 0; r.ang = sa; r.lastBounce = r.tr; }
