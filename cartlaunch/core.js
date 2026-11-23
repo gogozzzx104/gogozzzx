@@ -154,6 +154,8 @@ const CORE = (() => {
     for (let l = 0; l < base; l++) { const t = base > 1 ? l / (base - 1) : 0, z = u.zs + u.span * t; u.tab.push(PRICE.first * Math.pow(PRICE.last / PRICE.first, t) * pr(z) * gref(z) * Math.pow(k0, 1 - t)); }
     if (EXT[u.id]) { u.base = base; u.max = EXT[u.id]; const gr = u.max - base > 12 ? 1.45 : 1.7; for (let l = base; l < u.max; l++) u.tab.push(u.tab[l - 1] * gr); } }   // long extensions climb a little more gently
   const UP = Object.fromEntries(UPS.map(u => [u.id, u]));
+  // the last two launchers form one ladder: the big bang's extra levels climb gently, and every level of the cosmic accelerator costs more than any big-bang level
+  { const b = UP.bang, c = UP.cosmos; for (let l = b.base; l < b.max; l++) b.tab[l] = b.tab[l - 1] * 1.12; const c0 = b.tab[b.max - 1] * 1.3; c.tab = Array.from({ length: c.max }, (_, l) => c0 * Math.pow(1.04, l)); }
   const BRANCH = [['launch', '발사'], ['body', '차체'], ['gear', '장치'], ['money', '수익']];
 
   // ---- rebirth tree (bought with stars) ----------------------------------------------------------------
