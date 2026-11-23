@@ -273,7 +273,7 @@ const CORE = (() => {
       else { r.spin *= Math.pow(0.02, dtReal); if (Math.abs(r.rotAcc) < 0.6 && r.tr - r.spinT > 1) { const want = Math.max(-0.9, Math.min(0.9, Math.atan2(r.vy, Math.max(1, r.vx)))); let d = want - r.ang; d = Math.atan2(Math.sin(d), Math.cos(d)); r.ang += d * Math.min(1, dtReal * 4); } }
       r.ang += r.spin * dtReal; r.rotAcc += r.spin * dtReal;
       if (st.double && !r.doubled && r.vy < 0 && r.tr > 0.3) { r.doubled = true; const add = 0.25 * r.v0; r.vx += add * 0.92; r.vy += add * 0.4 + Math.max(0, -r.vy) * 0.5; r.ev.push({ k: 'double', x: r.x, y: r.y }); } }
-    if (r.boosting) { r.usedBoost = true; r.fuel -= dtReal; const dv = st.thrust * dtReal; r.vx += dv * (1 + st.nozzle); r.vy += dv * (grounded0 ? 0.45 : 0.16) + (r.vy < 0 ? Math.min(-r.vy, dv * 0.5) : 0); if (grounded0 && r.vy > 0) r.air = true; }
+    if (r.boosting) { r.usedBoost = true; r.fuel -= dtReal; const ff = dt / (dtReal * r.tw * Math.sqrt(9.8 / (gZ * (1 - st.glide)))), dv = st.thrust * dtReal * ff * (grounded0 ? 1.8 : 1) * (1 + Math.max(0, 1 - sp0 / (0.6 * r.v0))); r.vx += dv * (1 + st.nozzle); r.vy += dv * (grounded0 ? 0.45 : 0.16) + (r.vy < 0 ? Math.min(-r.vy, dv * 0.5) : 0); if (grounded0 && r.vy > 0) r.air = true; }
     const xPrev = r.x, dg = 0.1 * U;
     for (let i = 0; i < n; i++) {
       const g = gZ * (r.air ? 1 - st.glide * Math.min(1, Math.abs(r.vx) / (0.05 * r.v0 + 1)) : 1), dk = st.drag * lerpZ(r.x, 'drag') + WEAR * st.wear * (1 + r.tr * r.tr / 1600) * 9.8 / (r.v0 + 20);
