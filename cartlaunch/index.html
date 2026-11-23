@@ -86,6 +86,7 @@ button{font-family:var(--disp);touch-action:manipulation}
 .nd u.poor{color:#8479b8}
 .pop{position:absolute;width:236px;z-index:5;border:2px solid var(--bc);border-radius:14px;background:linear-gradient(160deg,#322867,#1c1640);box-shadow:0 8px 0 rgba(0,0,0,.45),0 0 22px rgba(0,0,0,.55);padding:10px;display:flex;flex-direction:column;gap:7px;box-sizing:border-box}
 .pop p{margin:0;font-size:12px;line-height:1.4;color:#cfc6f5}
+.pop .eff i{display:inline-block;min-width:40px;margin-right:4px;font:700 10px var(--body);font-style:normal;color:#9d92d6}
 .pop .eff{color:#fff;font-weight:700;background:rgba(255,255,255,.08);border-radius:8px;padding:5px 8px;font-variant-numeric:tabular-nums}
 .rbar{display:flex;align-items:center;gap:10px;margin:8px 10px 0;padding:7px 10px;border:2px solid #9a66ff;border-radius:12px;background:rgba(154,102,255,.14)}
 .rbar div{flex:1;min-width:0}
@@ -325,7 +326,7 @@ const PEFF = { r_perf: l => `퍼펙트 +${Math.round(30 * (1 + 0.5 * l))}%`, r_l
 // value lines of the newer cards: one plainly labelled number each
 Object.assign(EFF, { tractor: s => s.tractor ? `${s.tractor.toFixed(1)}초마다 상자 1개` : '견인 없음', tail: s => `속도 손실 -${100 - Math.round(s.wear * 100)}%`, refuel: s => `완벽 착지 시 부스트 +${s.refuel.toFixed(2)}초`, leap: s => `발사 속도의 ${Math.round(s.leap * 100)}%만큼 밀어줌`, crater: s => `발사 속도의 ${(s.crater * 100).toFixed(1)}%만큼 밀어줌`,
   amp: s => `부스트·대시 힘 +${s.ampP}%`, turbine: s => `5연속 시 잃은 속도의 ${Math.round(s.turbine * 100)}% 회복`, draft: s => `콤보 10부터 속도 손실 -${Math.round(s.draft * 100)}%`, pslam: s => `튕기는 힘 +${(s.pslam * 100).toFixed(1)}%`, pit: s => `한 판에 최대 ${s.pit}회`,
-  jspring: s => `도약 타이밍 여유 ${(0.22 + 0.008 * s.jspring).toFixed(2)}초`, burn: s => `부스트 힘 +${s.burnP}% · 연료 소모 +${Math.round((s.burnK - 1) * 100)}%`, streak: s => `10번 연속이면 골드 +${Math.round(s.streakB * 1000)}% (40번까지)`, multi: s => `2바퀴째부터 공중제비 골드 +${Math.round(s.multi * 100)}%`,
+  jspring: s => `도약 타이밍 여유 ${(0.22 + 0.008 * s.jspring).toFixed(2)}초`, burn: s => `부스트 힘 +${s.burnP}% · 연료 소모 +${Math.round((s.burnK - 1) * 100)}%`, streak: s => `10연속이면 골드 +${Math.round(s.streakB * 1000)}%`, multi: s => `2바퀴째부터 공중제비 골드 +${Math.round(s.multi * 100)}%`,
   allr: s => `가장 적게 한 것 1회당 골드 +${(s.allB * 100).toFixed(1)}%`, magnet: s => s.magR ? `끌어당기는 범위 ${Math.round(s.magR / 1.2 * 100)}%` : '자석 없음', heat: s => `용암 통과 가속 +${(1.2 * s.heat).toFixed(1)}%`, wide: s => `숲·모래·바위 통과 가속 +${(1.2 * s.wide).toFixed(1)}%` });
 Object.assign(PEFF, { r_perf: l => `퍼펙트 발사 골드 +${Math.round(30 * (1 + 0.5 * l))}%`, r_land: l => `완벽 착지 골드 +${(8 * (1 + 0.5 * l)).toFixed(0)}%` });
 const fmt2 = v => v >= 1000 ? fmt(v) : v.toFixed(2);
@@ -384,11 +385,11 @@ function treeHTML(items, perk) {
   return `<div class="tw" style="height:${ht}px;--cw:${cw - 4}px"><svg class="edges" width="100%" height="100%">${svg}</svg>${h}${pop}</div>`;
 }
 function upDetail(u) { const l = C.lvl(S, u.id), lock = C.lockReason(S, u.id), mx = l >= u.max, can = C.canBuy(S, u.id);
-  let eff = ''; if (EFF[u.id]) { const a = EFF[u.id](st); if (mx || lock) eff = a; else { const s2 = JSON.parse(JSON.stringify(S)); s2.lv[u.id] = l + 1; const b = EFF[u.id](C.stats(s2)); eff = a === b ? a : arrow(a, b); } }
+  let eff = ''; if (EFF[u.id]) { const a = EFF[u.id](st); if (mx || lock) eff = a; else { const s2 = JSON.parse(JSON.stringify(S)); s2.lv[u.id] = l + 1; const b = EFF[u.id](C.stats(s2)); eff = a === b ? a : `<i>지금</i>${a}<br><i>다음 Lv</i>${b}`; } }
   const reqs = u.req.map(([r, n]) => `<span class="${C.lvl(S, r) >= n ? 'ok' : ''}">${C.UP[r].name} Lv${n}</span>`).concat(u.zone ? [`<span class="${S.zone >= u.zone ? 'ok' : ''}">${Z[u.zone].name} 도달</span>`] : []).concat(u.re ? [`<span class="${S.rebirths >= u.re ? 'ok' : ''}">환생 ${u.re}회</span>`] : []).join('');
   return `<div class="dh" style="--bc:${BCOL[u.br]}"><div class="di">${icon(u.id)}</div><div><h3>${u.name}</h3><span>Lv ${l} / ${u.max}</span></div></div><p>${u.desc}</p>${eff ? `<p class="eff">${eff}</p>` : ''}${reqs ? `<div class="dr">${reqs}</div>` : ''}<div class="brow"><button class="buy" data-up="${u.id}" ${can ? '' : 'disabled'}>${mx ? '최대 레벨' : lock ? '잠김' : fmt(C.cost(S, u.id)) + '<small>골드</small>'}</button><button class="buy sm" data-max="${u.id}" ${can ? '' : 'disabled'}>최대로</button></div>`; }
 function perkDetail(q) { const l = S.perks[q.id] || 0, mx = l >= q.max, lock = C.perkLock(S, q.id), c = C.perkCost(q, l), reqs = q.req.map(([r, n]) => `<span class="${(S.perks[r] || 0) >= n ? 'ok' : ''}">${C.PK[r].name} Lv${n}</span>`).join('');
-  return `<div class="dh" style="--bc:${BCOL[q.br]}"><div class="di">${icon(q.id)}</div><div><h3>${q.name}</h3><span>${q.cap ? '궁극' : 'Lv ' + l + ' / ' + q.max}</span></div></div><p>${q.desc}</p>${PEFF[q.id] ? `<p class="eff">${mx ? PEFF[q.id](l) : arrow(PEFF[q.id](l), PEFF[q.id](l + 1))}</p>` : ''}${reqs ? `<div class="dr">${reqs}</div>` : ''}<button class="buy star" data-perk="${q.id}" ${perkCan(q) ? '' : 'disabled'}>${mx ? '완료' : lock ? '잠김' : '★ ' + c}</button>`; }
+  return `<div class="dh" style="--bc:${BCOL[q.br]}"><div class="di">${icon(q.id)}</div><div><h3>${q.name}</h3><span>${q.cap ? '궁극' : 'Lv ' + l + ' / ' + q.max}</span></div></div><p>${q.desc}</p>${PEFF[q.id] ? `<p class="eff">${mx ? PEFF[q.id](l) : `<i>지금</i>${PEFF[q.id](l)}<br><i>다음 Lv</i>${PEFF[q.id](l + 1)}`}</p>` : ''}${reqs ? `<div class="dr">${reqs}</div>` : ''}<button class="buy star" data-perk="${q.id}" ${perkCan(q) ? '' : 'disabled'}>${mx ? '완료' : lock ? '잠김' : '★ ' + c}</button>`; }
 function renderShop() {
   st = C.stats(S); $('#sGold').textContent = fmt(S.gold);
   $('#sZones').innerHTML = Z.map((z, i) => `<i class="${i <= S.zone ? 'on' : ''}" title="${z.name}"></i>`).join('');
