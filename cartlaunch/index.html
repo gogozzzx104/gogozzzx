@@ -57,6 +57,7 @@ button{font-family:var(--disp);touch-action:manipulation}
 .zonebar{flex:1;display:flex;gap:3px;min-width:0}
 .zonebar i{flex:1;height:8px;border-radius:4px;background:#0f0b22;border:1px solid #4a3d8a}
 .zonebar i.on{background:linear-gradient(#5af0d0,#12a594);border-color:#5af0d0}
+#sAll{background:linear-gradient(#7df3da,#12a594)!important}
 #shop .pill{background:linear-gradient(#ffd75e,#f5a614);border-color:#0d0a1c;box-shadow:0 3px 0 #0d0a1c;white-space:nowrap}
 .sbody{position:relative;display:grid;grid-template-columns:86px 1fr;min-height:0}
 #sDet{display:none}
@@ -163,7 +164,7 @@ button{font-family:var(--disp);touch-action:manipulation}
   </section>
 
   <section id="shop" hidden>
-    <div class="shead"><h2>업그레이드</h2><span class="goldv" id="sGold"></span><div class="zonebar" id="sZones"></div><button class="pill" id="sClose" type="button">밀러 가기</button></div>
+    <div class="shead"><h2>업그레이드</h2><span class="goldv" id="sGold"></span><div class="zonebar" id="sZones"></div><button class="pill" id="sAll" type="button">모두 구매</button><button class="pill" id="sClose" type="button">밀러 가기</button></div>
     <div class="sbody"><div class="tabs" id="sTabs"></div><div class="tree" id="sList"></div><div class="dp" id="sDet"></div></div>
   </section>
 </div>
@@ -332,7 +333,7 @@ const EFF = { push: pw, runup: pw, sling: pw, cannon: pw, rail: pw, warp: pw, an
   ad: s => `수익 ×${fmt2(s.rate)}`, sponsor: s => `수익 ×${fmt2(s.rate)}`, coin: s => `코인 ×${fmt2(s.coin)}`, magnet: s => s.magR ? `끌어당기는 범위 ${Math.round(s.magR / 1.2 * 100)}%` : '자석 없음', style: s => `튕김당 +${(s.style * 100).toFixed(2)}%`, alt: s => `고도 계수 ${(s.alt * 100).toFixed(1)}%`,
   combo: s => `콤보당 +${(s.combo * 100).toFixed(1)}%`, trickpay: s => `바퀴당 +${(s.trick * 100).toFixed(1)}%`, lucky: s => `황금 판 확률 ${Math.round(s.lucky * 100)}%`, crate: s => `상자 등장 ×${(1 + 0.3 * s.crate).toFixed(1)}` };
 const PEFF = { r_perf: l => `퍼펙트 +${Math.round(30 * (1 + 0.5 * l))}%`, r_land: l => `완벽 착지 +${(8 * (1 + 0.5 * l)).toFixed(0)}%`, r_time: l => `제한 시간 +${l * 10}초`, p_power: l => `발사 속도 +${l * 5}%`, p_meter: l => `퍼펙트 구간 +${l * 15}%`, r_focus: l => `퍼펙트 보너스 +${l * 3}%`, r_mem: l => `레벨의 ${l * 8}% 유지`, r_skip: l => `개척 골드 +${l * 50}%`, p_fuel: l => `부스트 +${(l * 0.5).toFixed(1)}초`, r_trick: l => `묘기 보너스 +${l * 50}%`,
-  r_spring: l => `도약 +${l}회`, r_dash: l => `대시 +${l}회`, r_feather: l => `공기 저항 -${l * 6}%`, p_gold: l => `모든 골드 +${l * 25}%`, p_seed: l => l ? `시작 골드 ${fmt(100 * Math.pow(10, l))}` : '시작 골드 없음', r_coin: l => `코인 가치 +${l * 40}%`, r_disc: l => `가격 -${l * 5}%` };
+  r_spring: l => `도약 +${l}회`, r_dash: l => `대시 +${l}회`, r_feather: l => `공기 저항 -${l * 6}%`, p_gold: l => `모든 골드 +${l * 25}%`, p_seed: l => l ? `최고 판 수익의 ${l}배` : '시작 골드 없음', r_coin: l => `코인 가치 +${l * 40}%`, r_disc: l => `가격 -${l * 5}%` };
 // value lines of the newer cards: one plainly labelled number each
 Object.assign(EFF, { tractor: s => s.tractor ? `${s.tractor.toFixed(1)}초마다 상자 1개` : '견인 없음', tail: s => `속도 손실 -${100 - Math.round(s.wear * 100)}%`, refuel: s => `완벽 착지 시 부스트 +${s.refuel.toFixed(2)}초`, leap: s => `발사 속도의 ${Math.round(s.leap * 100)}%만큼 밀어줌`, crater: s => `발사 속도의 ${(s.crater * 100).toFixed(1)}%만큼 밀어줌`,
   amp: s => `부스트·대시 힘 +${s.ampP}%`, turbine: s => `5연속 시 잃은 속도의 ${Math.round(s.turbine * 100)}% 회복`, draft: s => `콤보 10부터 속도 손실 -${Math.round(s.draft * 100)}%`, pslam: s => `튕기는 힘 +${(s.pslam * 100).toFixed(1)}%`, pit: s => `한 판에 최대 ${s.pit}회`,
@@ -405,7 +406,7 @@ function treeHTML(items, perk) {
 }
 function upDetail(u) { const l = C.lvl(S, u.id), lock = C.lockReason(S, u.id), mx = l >= u.max, can = C.canBuy(S, u.id);
   let eff = ''; if (EFF[u.id]) { const a = EFF[u.id](st); if (mx) eff = a; else { const s2 = JSON.parse(JSON.stringify(S)); s2.lv[u.id] = l + 1; const b = EFF[u.id](C.stats(s2)); eff = a === b ? a : arrow(a, b); } }
-  const reqs = u.req.map(([r, n]) => `<span class="${C.lvl(S, r) >= n ? 'ok' : ''}">${C.UP[r].name} Lv${n}</span>`).concat(u.zone ? [`<span class="${S.zone >= u.zone ? 'ok' : ''}">${Z[u.zone].name} 도달</span>`] : []).concat(u.re ? [`<span class="${S.rebirths >= u.re ? 'ok' : ''}">환생 ${u.re}회</span>`] : []).join('');
+  const reqs = u.req.map(([r, n]) => `<span class="${C.lvl(S, r) >= n ? 'ok' : ''}">${C.UP[r].name} Lv${n}</span>`).concat(u.zone ? [`<span class="${C.gateZone(S) >= u.zone ? 'ok' : ''}">${Z[u.zone].name} 도달</span>`] : []).concat(u.re ? [`<span class="${S.rebirths >= u.re ? 'ok' : ''}">환생 ${u.re}회</span>`] : []).join('');
   return `<div class="dh" style="--bc:${BCOL[u.br]}"><div class="di">${icon(u.id)}</div><div><h3>${u.name}</h3><span>Lv ${l} / ${u.max}</span></div></div><p>${u.desc}</p>${eff ? `<p class="eff">${eff}</p>` : ''}${reqs ? `<div class="dr">${reqs}</div>` : ''}<div class="brow"><button class="buy" data-up="${u.id}" ${can ? '' : 'disabled'}>${mx ? '최대 레벨' : lock ? '잠김' : fmt(C.cost(S, u.id)) + '<small>골드</small>'}</button><button class="buy sm" data-max="${u.id}" ${can ? '' : 'disabled'}>최대로</button></div>`; }
 function perkDetail(q) { const l = S.perks[q.id] || 0, mx = l >= q.max, lock = C.perkLock(S, q.id), c = C.perkCost(q, l), reqs = q.req.map(([r, n]) => `<span class="${(S.perks[r] || 0) >= n ? 'ok' : ''}">${C.PK[r].name} Lv${n}</span>`).join('');
   return `<div class="dh" style="--bc:${BCOL[q.br]}"><div class="di">${icon(q.id)}</div><div><h3>${q.name}</h3><span>${q.cap ? '궁극' : 'Lv ' + l + ' / ' + q.max}</span></div></div><p>${q.desc}</p>${PEFF[q.id] ? `<p class="eff">${mx ? PEFF[q.id](l) : arrow(PEFF[q.id](l), PEFF[q.id](l + 1))}</p>` : ''}${reqs ? `<div class="dr">${reqs}</div>` : ''}<button class="buy star" data-perk="${q.id}" ${perkCan(q) ? '' : 'disabled'}>${mx ? '완료' : lock ? '잠김' : '★ ' + c}</button>`; }
@@ -417,7 +418,7 @@ function renderShop() {
   list.className = isUp || tab === 'star' ? 'tree' : 'tree grid';
   if (isUp) list.innerHTML = treeHTML(C.UPS.filter(u => u.br === tab), false);
   else if (tab === 'star') { const gain = C.starsFor(S.bestLife), per = Math.round(C.STAR_GOLD * (S.perks.r_bless ? 1.5 : 1) * 100), keep = (S.perks.r_mem || 0) * 8;
-    list.innerHTML = `<div class="rbar"><div><h3>환생 · 보유 ★ ${S.stars} · 별 보너스 골드 +${S.starsTotal * per}%</h3><p>골드·업그레이드${keep ? `(${keep}% 유지)` : ''}를 비우고 ★을 받아요. ★ 하나당 골드 +${per}%. 별·트리·업적은 남습니다.</p><p>이번 생 ${fmtD(S.bestLife)} · 다음 ★ ${fmtD(C.nextStarAt(S.bestLife))}</p></div><button class="buy star" data-rebirth="1" ${gain > 0 ? '' : 'disabled'}>${confirmKey === 'rebirth' ? '정말요?<small>한 번 더 누르기</small>' : '환생하기<small>★ +' + gain + '</small>'}</button></div>` + treeHTML(C.PERKS, true); }
+    list.innerHTML = `<div class="rbar"><div><h3>환생 · 보유 ★ ${S.stars} · 별 보너스 골드 +${S.starsTotal * per}%</h3><p>골드·업그레이드${keep ? `(${keep}% 유지)` : ''}를 비우고 ★을 받아요. ★ 하나당 골드 +${per}%. 별·트리·업적은 남습니다.</p><p>이번 생 ${fmtD(S.bestLife)} · 다음 ★ ${fmtD(C.nextStarAt(S.bestLife))}${S.rebirths >= 2 ? ' · 환생 3회부터 구역 조건은 유지' : ''}</p></div><button class="buy star" data-rebirth="1" ${gain > 0 ? '' : 'disabled'}>${confirmKey === 'rebirth' ? '정말요?<small>한 번 더 누르기</small>' : '환생하기<small>★ +' + gain + '</small>'}</button></div>` + treeHTML(C.PERKS, true); }
   else if (tab === 'skin') { const cur = skinNow().id;
     list.innerHTML = `<div class="bh">스킨</div>` + SKINS.map(k => `<button type="button" class="sk${k.id === cur ? ' on' : ''}${skinOpen(k) ? '' : ' lock'}" data-skin="${k.id}"><canvas width="220" height="140" data-skin="${k.id}"></canvas>${k.name}<small>${skinOpen(k) ? (k.id === cur ? '사용 중' : '눌러서 변경') : Z[k.z].name + ' 도달 시'}</small></button>`).join('');
     for (const c2 of list.querySelectorAll('canvas')) { const g0 = g; g = c2.getContext('2d'); pvSkin = SKINS.find(k => k.id === c2.dataset.skin); g.setTransform(2, 0, 0, 2, 0, 0); drawCart(64, 54, 0, 1.25); pvSkin = null; g = g0; } }
@@ -442,6 +443,7 @@ const shopClick = e => { const nd = e.target.closest('.nd'), sk = e.target.close
   else return;
   save(); renderShop(); $('#sList').scrollTop = k1; };
 addEventListener('resize', () => { if (state === 'shop') renderShop(); });
+$('#sAll').addEventListener('click', () => { const n = tab === 'star' ? C.buyAllPerks(S) : C.buyAll(S); if (n) { SFX.buy(); toast(`${n}레벨 구매`, 1200); } else toast('살 수 있는 게 없어요', 1000); save(); renderShop(); });
 $('#sList').addEventListener('click', shopClick); $('#sDet').addEventListener('click', shopClick);
 
 /* ---------------- render ---------------- */
