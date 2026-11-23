@@ -34,7 +34,7 @@ button{font-family:var(--disp);touch-action:manipulation}
 #topbar{position:absolute;top:8px;right:10px;display:flex;gap:6px}
 .pill{border:2px solid var(--ink);border-radius:999px;background:var(--paper);padding:4px 12px;font:15px var(--disp);color:var(--ink);box-shadow:0 3px 0 var(--ink)}
 .pill:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
-.card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(var(--k,1));width:min(560px,calc((100% - 32px) / var(--k,1)));max-height:calc((100% - 20px) / var(--k,1));overflow:auto;background:var(--paper);border:3px solid var(--ink);border-radius:14px;box-shadow:0 8px 0 var(--ink);padding:14px 18px}
+.card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(var(--ck,1));width:min(560px,calc((100% - 32px) / var(--ck,1)));max-height:calc((100% - 20px) / var(--ck,1));overflow:auto;background:var(--paper);border:3px solid var(--ink);border-radius:14px;box-shadow:0 8px 0 var(--ink);padding:14px 18px}
 .card h2{font:26px/1.1 var(--disp);margin:0;color:var(--red)}
 .big{font:44px/1 var(--disp);font-variant-numeric:tabular-nums}
 .big small{font-size:18px;color:var(--dim)}
@@ -140,6 +140,7 @@ button{font-family:var(--disp);touch-action:manipulation}
 #toast{position:absolute;left:50%;top:33%;transform:translateX(-50%);font:30px var(--disp);color:#fff;text-shadow:0 3px 0 var(--ink),0 0 12px rgba(0,0,0,.4);pointer-events:none;opacity:0;transition:opacity .3s;white-space:nowrap;text-align:center}
 #toast.show{opacity:1}
 .kb .hbtn::after{content:attr(data-key);position:absolute;top:-6px;right:-2px;background:#2b2233;color:#fff;font:700 11px sans-serif;padding:2px 7px;border-radius:9px;pointer-events:none}
+.hbtn,#topbar,#endBtn,#toast{zoom:var(--hk,1)}
 </style>
 
 <div id="root">
@@ -183,8 +184,8 @@ const fmtD = m => m < 1000 ? m.toFixed(1) + 'm' : m < 1e6 ? (m / 1000).toFixed(2
 
 /* ---------------- stage ---------------- */
 const root = $('#root'), cv = $('#cv'); let g = cv.getContext('2d');
-let W = 800, H = 400, portrait = false, DPR = 1, uiK = 1;
-function layout() { const vw = innerWidth, vh = innerHeight; portrait = vh > vw; W = portrait ? vh : vw; H = portrait ? vw : vh; uiK = Math.max(1, Math.min(2.2, W / 940, H / 470)); root.style.setProperty('--k', uiK.toFixed(3));
+let W = 800, H = 400, portrait = false, DPR = 1, uiK = 1, hudK = 1;
+function layout() { const vw = innerWidth, vh = innerHeight; portrait = vh > vw; W = portrait ? vh : vw; H = portrait ? vw : vh; uiK = Math.max(1, Math.min(2.2, W / 940, H / 470)); root.style.setProperty('--k', uiK.toFixed(3)); hudK = Math.max(1, Math.min(1.7, W / 1100, H / 560)); root.style.setProperty('--hk', hudK.toFixed(3)); root.style.setProperty('--ck', (1 + (uiK - 1) * 0.45).toFixed(3));   // big screens: shop, result card and flight HUD each get their own scale
   root.style.width = W + 'px'; root.style.height = H + 'px'; root.style.transform = portrait ? `rotate(90deg) translateY(-${H}px)` : 'none';
   DPR = Math.min(devicePixelRatio || 1, 2); cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); }
 addEventListener('resize', layout); layout();
@@ -293,7 +294,7 @@ addEventListener('blur', () => { keys.clear(); ptrSide = 0; boostHeld = false; }
 // Scrolling by drag, in stage coordinates, so it also works while the stage is rotated for a portrait-locked phone.
 function dragScroll(el) { let id = null, y0 = 0, s0 = 0, moved = false, vy = 0, ly = 0, lt = 0, raf = 0;
   el.addEventListener('pointerdown', e => { id = e.pointerId; y0 = ly = locY(e); s0 = el.scrollTop; moved = false; vy = 0; lt = e.timeStamp; cancelAnimationFrame(raf); });
-  el.addEventListener('pointermove', e => { if (e.pointerId !== id) return; const y = locY(e); if (Math.abs(y - y0) > 8) moved = true; if (moved) { el.scrollTop = s0 - (y - y0) / uiK; const d = Math.max(1, e.timeStamp - lt); vy = vy * 0.6 + (ly - y) / uiK / d * 0.4; ly = y; lt = e.timeStamp; } });
+  el.addEventListener('pointermove', e => { if (e.pointerId !== id) return; const y = locY(e); if (Math.abs(y - y0) > 8) moved = true; if (moved) { el.scrollTop = s0 - (y - y0) / (el.id === 'result' ? 1 + (uiK - 1) * 0.45 : uiK); const d = Math.max(1, e.timeStamp - lt); vy = vy * 0.6 + (ly - y) / uiK / d * 0.4; ly = y; lt = e.timeStamp; } });
   const up = e => { if (e.pointerId !== id) return; id = null; if (!moved) return; const glide = () => { if (Math.abs(vy) < 0.02) return; el.scrollTop += vy * 16; vy *= 0.95; raf = requestAnimationFrame(glide); }; glide(); };
   el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
   el.addEventListener('click', e => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true); }
@@ -675,7 +676,7 @@ function hud(r) {
     // live gold + combo
     { const pv = C.payout(r, S), nowT = performance.now(); if (pv.total > liveG * 1.002 + 0.5) liveT = nowT; liveG = pv.total;   // what this run would pay if it ended now
       const pz = 1 + 0.3 * Math.max(0, 1 - (nowT - liveT) / 220); g.fillStyle = '#f5b014'; g.strokeStyle = '#2b2233'; g.lineWidth = 2.5; g.beginPath(); g.arc(25, 83, 8, 0, 7); g.fill(); g.stroke(); g.textAlign = 'left'; txt(fmt(pv.total), 39, 91, 21 * pz, '#ffd24a');
-      g.font = `21px ${D}`; const wv = g.measureText(fmt(pv.total)).width; txt(`보너스 ×${pv.mult.toFixed(2)}`, 46 + wv, 90, 12, '#fff6e6'); }
+      g.font = `21px ${D}`; const wv = g.measureText(fmt(pv.total)).width; txt(`보너스 ×${pv.mult.toFixed(2)}`, 50 + wv * 1.3, 90, 12, '#fff6e6'); }
     if (r.golden) { g.textAlign = 'left'; txt('황금 판 ×3', 16, 112, 13, '#ffd24a'); }
     const cl = 3 - (r.tr - r.comboT); if (r.combo >= 1 && cl > 0 && (r.combo >= 2 || r.slams)) { const pz = 1 + 0.4 * Math.max(0, 1 - (performance.now() - goldPopT) / 160); g.textAlign = 'center'; txt(r.combo + ' 콤보', W / 2, H * 0.24, 26 * pz, r.combo >= 20 ? '#ff5a8a' : r.combo >= 10 ? '#ffd24a' : '#fff'); g.fillStyle = '#2b2233'; g.fillRect(W / 2 - 42, H * 0.24 + 8, 84, 6); g.fillStyle = '#ffd24a'; g.fillRect(W / 2 - 40, H * 0.24 + 10, 80 * cl / 3, 2); }
   } else if (state === 'aim' || state === 'charge' || state === 'push') {
@@ -789,7 +790,7 @@ function frame(now) {
   { let ai = 0; for (const p of pops) { p.t += dt; const life = p.a ? 1.3 : 0.9, x2 = p.a ? Math.max(120, cartX + 20) : SX(p.x), y2 = p.a ? Math.max(150, cartY - 44) - 20 * ai++ - p.t * 26 : SY(p.y) - p.t * 50; g.font = `${p.a ? 17 : 15}px ${getComputedStyle(root).getPropertyValue('--disp')}`; g.globalAlpha = Math.max(0, Math.min(1, (life - p.t) * 3)); g.lineWidth = 3.5; g.strokeStyle = '#2b2233'; g.strokeText(p.txt, x2, y2); g.fillStyle = p.col || '#ffd24a'; g.fillText(p.txt, x2, y2); } } g.globalAlpha = 1; pops = pops.filter(p => p.t < (p.a ? 1.3 : 0.9));
   g.restore();
   drawFx(dt);
-  if (state !== 'shop') hud(state === 'fly' || state === 'result' ? r : null);
+  if (state !== 'shop') { const W0 = W, H0 = H; g.save(); g.scale(hudK, hudK); W = W0 / hudK; H = H0 / hudK; hud(state === 'fly' || state === 'result' ? r : null); W = W0; H = H0; g.restore(); }
   if (banner) { const a = (now - banner.t) / 1000; if (a > 2.2) banner = null; else { const D = getComputedStyle(root).getPropertyValue('--disp'), al = Math.min(1, a * 4) * Math.min(1, (2.2 - a) * 2); g.globalAlpha = al; g.fillStyle = '#f0452f'; g.fillRect(0, H * 0.3, W, 54); g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = `32px ${D}`; g.fillText(banner.txt + ' 진입!', W / 2, H * 0.3 + 38); g.globalAlpha = 1; } }
 }
 toAim(); requestAnimationFrame(frame);
