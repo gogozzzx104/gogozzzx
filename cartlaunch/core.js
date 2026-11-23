@@ -64,7 +64,7 @@ const CORE = (() => {
   const gd = (d, zi) => 9 * Math.pow(d, 0.55) * Math.pow(1.15, zi);
   // typical gold of one run while working in zone z (measured with tools/sim.js; beyond the last zone it keeps growing)
   const GT = [40, 330, 1100, 3300, 8500, 2.2e4, 4.8e4, 1.4e5, 3.7e5, 1.9e6, 6e6, 3.2e7, 8.5e7, 5e8, 1.6e9];
-  const gref = z => { const f = k => k < GT.length ? GT[Math.max(0, k)] : GT[GT.length - 1] * Math.pow(2.6, Math.min(k, 16) - GT.length + 1) * Math.pow(3.4, Math.max(0, k - 16)), a = Math.floor(z), t = z - a; return Math.exp(Math.log(f(a)) * (1 - t) + Math.log(f(a + 1)) * t); };
+  const gref = z => { const f = k => k < GT.length ? GT[Math.max(0, k)] : GT[GT.length - 1] * Math.pow(2.6, Math.min(k, 16) - GT.length + 1) * Math.pow(5, Math.max(0, k - 16)), a = Math.floor(z), t = z - a; return Math.exp(Math.log(f(a)) * (1 - t) + Math.log(f(a + 1)) * t); };
   // prices in "runs of gold": the first level of an upgrade costs about PRICE.first runs, its last level PRICE.last runs; past the sea everything gets steeper
   const PRICE = { first: 3, last: 12, late: 1.9, from: 5 };
   const pr = z => Math.pow(PRICE.late, Math.max(0, Math.min(z, 14) - PRICE.from)) * Math.pow(0.75, Math.max(0, z - 14));   // steeper up to zone 14, then easing so the far zones stay reachable
@@ -87,7 +87,7 @@ const CORE = (() => {
     U_('anti', 'launch', '반물질 사출기', 25, 15, 5, '발사 속도 +5%', [['warp', 20]], 'saturn', 3),
     U_('singu', 'launch', '특이점 엔진', 30, 18.5, 5, '발사 속도 +6%', [['anti', 25]], 'pleiades', 5),
     U_('bang', 'launch', '빅뱅 점화', 30, 22, 5, '발사 속도 +7%', [['singu', 30]], 'hole', 8),
-    U_('cosmos', 'launch', '우주 가속기', 60, 26, 4, '발사 속도 +8%', [['bang', 30]], 'end', 12),
+    U_('cosmos', 'launch', '우주 가속기', 60, 26, 4, '발사 속도 +8%', [['bang', 30]], 'end', 8),
     U_('wheel', 'body', '바퀴 윤활', 18, 0, 2.5, '땅에서 굴러갈 때 덜 느려짐'),
     U_('tire', 'body', '탄성 타이어', 20, 0.3, 3.5, '땅에서 더 높이 튕김', [['wheel', 3]]),
     U_('frame', 'body', '경량 프레임', 20, 0.6, 4, '착지 때 잃는 속도 -14%', [['wheel', 5]]),
@@ -242,7 +242,9 @@ const CORE = (() => {
 
   // ---- one run ------------------------------------------------------------------------------------
   const hash = n => { let t = (n + 0x6D2B79F5) | 0; t = Math.imul(t ^ (t >>> 15), 1 | t); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-  const RAMP = 4, WEAR = 0.12, VCAP = 3;
+  const RAMP = 4, WEAR = 0.12, VCAP = 3; let TIRE = 30;
+  // top speed allowed at a moment of the run: three times launch speed at first, tiring as the run goes on, so even a maxed cart's run winds down
+  const vcap = r => VCAP * r.v0 * Math.max(0.085, Math.exp(-r.tr / TIRE));
   // scale of a launch at speed v: U (length unit), c (height of the coin stream), S (object size), cw (cell width), tw (time warp)
   function scaleOf(st, v) { const U = Math.max(1, v * v / 588), apex = Math.pow(v * Math.sin(st.angle), 2) / 19.6, c = Math.min(4.5 * U, Math.max(0.6, 0.5 * apex)); return { U, c, S: Math.max(1, 0.7 * U), cw: 5 * U, tw: Math.max(1, 0.03 * v) }; }
   function newRun(st, meter, kick, seed) {   // meter 0..1 from the charge gauge (>= 1-window is perfect); kick = multiplier from the ramp-edge tap
@@ -311,9 +313,9 @@ const CORE = (() => {
     if (r.boosting) { r.usedBoost = true; r.fuel -= dtReal * st.burnK; const dv = st.thrust * dtReal * 1.15; r.vx += dv * (1 + st.nozzle); r.vy += dv * (grounded0 ? 0.45 : 0.16) + (r.vy < 0 ? Math.min(-r.vy, dv * 0.5) : 0); if (grounded0 && r.vy > 0) r.air = true; }
     const xPrev = r.x, dg = 0.1 * U;
     for (let i = 0; i < n; i++) {
-      const g = gZ * (r.air ? 1 - st.glide * Math.min(1, Math.abs(r.vx) / (0.05 * r.v0 + 1)) : 1), dk = (st.drag * lerpZ(r.x, 'drag') + WEAR * st.wear * (1 + r.tr * r.tr / 1600) * 9.8 / (r.v0 + 20)) * (st.draft && r.tr - r.comboT < st.comboT ? 1 - st.draft * Math.min(r.combo, 10) / 10 : 1);
+      const g = gZ * (r.air ? 1 - st.glide * Math.min(1, Math.abs(r.vx) / (0.05 * r.v0 + 1)) : 1), dk = (st.drag * lerpZ(r.x, 'drag') * Math.min(1, 300 / r.tw) + WEAR * st.wear * (1 + r.tr * r.tr / 1600) * 9.8 / (r.v0 + 20)) * (st.draft && r.tr - r.comboT < st.comboT ? 1 - st.draft * Math.min(r.combo, 10) / 10 : 1);
       r.vy -= g * h; const d = Math.exp(-dk * h); r.vx *= d; r.vy *= d;
-      { const s2 = Math.hypot(r.vx, r.vy), cap = VCAP * r.v0; if (s2 > cap) { r.vx *= cap / s2; r.vy *= cap / s2; r.capT = r.tr; } }
+      { const s2 = Math.hypot(r.vx, r.vy), cap = vcap(r); if (s2 > cap) { r.vx *= cap / s2; r.vy *= cap / s2; r.capT = r.tr; } }
       if (st.convert && r.air && r.vy < 0) { const f = 1 - Math.exp(-st.convert * h * gZ / (r.v0 + 1)), vy0 = r.vy; r.vy *= 1 - f; r.vx = Math.sqrt(Math.max(0, r.vx) * Math.max(0, r.vx) + (vy0 * vy0 - r.vy * r.vy) * 0.8); }
       r.x += r.vx * h; r.y += r.vy * h;
       const gy = ground(r.x, U);
@@ -356,7 +358,7 @@ const CORE = (() => {
       if (c.length) { const o = c[Math.floor(hash(r.seed + Math.floor(r.tr * 20)) * c.length)]; r.used.add(o.id); r.mag.push({ o, t0: r.tr, d: 0.6, beam: 1 }); r.tracT = r.tr + st.tractor; r.ev.push({ k: 'tractor', x: o.x, y: o.y }); } }
     for (let k = r.mag.length - 1; k >= 0; k--) if (r.over || r.tr - r.mag[k].t0 >= (r.mag[k].d || 0.3)) { hit(r, Object.assign({}, r.mag[k].o, { x: r.x, y: r.y + 0.5 * r.S })); r.mag.splice(k, 1); }
     for (let z = zoneAt(r.x); r.zc < z;) { const Z = ZONES[++r.zc], lv = Math.max(Z.water ? st.float : 0, Z.spec && Z.spec.includes('pool') ? st.heat : 0, Z.rough ? st.wide : 0); if (lv) { const add = 0.012 * lv * r.v0 * Math.pow(0.94, r.tops++); r.vx += add; r.ev.push({ k: 'zboost', x: r.x, y: r.y, z: r.zc, pct: Math.round(1.2 * lv) }); } }
-    { const s2 = Math.hypot(r.vx, r.vy), cap = VCAP * r.v0; if (s2 > cap) { r.vx *= cap / s2; r.vy *= cap / s2; r.capT = r.tr; } }   // pads, rings and zone boosts obey the ceiling too
+    { const s2 = Math.hypot(r.vx, r.vy), cap = vcap(r); if (s2 > cap) { r.vx *= cap / s2; r.vy *= cap / s2; r.capT = r.tr; } }   // pads, rings and zone boosts obey the ceiling too
     r.t += dt; r.tr += dtReal; if (r.x > r.maxX) r.maxX = r.x;
     const sp = Math.hypot(r.vx, r.vy); if (sp > r.maxV) r.maxV = sp;
     if (!r.over) {
@@ -379,6 +381,6 @@ const CORE = (() => {
     s.stars += gain; s.starsTotal += gain; s.rebirths++; s.gold = seed; const lv = {}; if (keep) for (const k in s.lv) { const n = Math.floor(s.lv[k] * keep); if (n) lv[k] = n; } s.lv = lv; s.bestLife = 0; s.zone = 0; checkAch(s, null); return gain; }
   function buyPerk(s, id) { const p = PK[id], l = s.perks[id] || 0; if (!p || l >= p.max || perkLock(s, id) || s.stars < perkCost(p, l)) return false; s.stars -= perkCost(p, l); s.perks[id] = l + 1; return true; }
   return { ZONES, ZI, zoneAt, zoneProg, lerpZ, ground, isWater, UPS, UP, BRANCH, PERKS, PK, PBRANCH, perkCost, perkLock, STAR_GOLD, starsFor, nextStarAt, ACH, checkAch, achCount,
-    newSave, migrate, lvl, total, cost, lockReason, canBuy, buy, stats, RAMP, scaleOf, newRun, river, cellObjs, step, payout, finish, rebirth, buyPerk, gd, gref };
+    setTire: v => { TIRE = v; }, vcap, newSave, migrate, lvl, total, cost, lockReason, canBuy, buy, stats, RAMP, scaleOf, newRun, river, cellObjs, step, payout, finish, rebirth, buyPerk, gd, gref };
 })();
 if (typeof module !== 'undefined') module.exports = CORE;
