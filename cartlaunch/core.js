@@ -82,6 +82,9 @@ const CORE = (() => {
     U_('hover', 'body', '호버 스커트', 15, 6.5, 7, '반발력과 한도 +0.8%p', [['tire', 15]], 'sea'),
     U_('heat', 'body', '내열 코팅', 10, 8, 5, '용암 피해 감소 · 용암 구역을 지날 때 가속', [], 'lava'),
 
+    U_('turbine', 'body', '연속 착지 터빈', 10, 13.5, 6, '완벽 착지를 이어갈수록 속도 회복', [['gyro', 10]], 'star', 1),
+    U_('draft', 'body', '콤보 기류', 10, 12, 6, '콤보 유지 중 감속 -2%', [['aero', 20]], 'rock'),
+
     U_('rocket', 'gear', '로켓 부스터', 30, 1, 8, '부스트 추진력 증가', [['push', 8]]),
     U_('fuel', 'gear', '연료 탱크', 15, 1.5, 7, '부스트 시간 +0.15초', [['rocket', 1]]),
     U_('nozzle', 'gear', '벡터 노즐', 15, 2, 7, '부스트 전진력 +5%', [['rocket', 3]]),
@@ -96,9 +99,13 @@ const CORE = (() => {
     U_('grav', 'gear', '반중력 코어', 15, 10, 4, '중력 -2%', [['wing', 10]], 'moon'),
 
     U_('refuel', 'gear', '재급유 장치', 20, 3, 10, '완벽 착지 연료 회복 +0.02초 (좋은 착지는 절반)', [['fuel', 5]]),
-    U_('leap', 'gear', '추진 스프링', 15, 11, 6, '공중 도약의 전진력 +1%', [['airjump', 10]], 'rock'),
-    U_('crater', 'gear', '충격 추진기', 15, 11, 6, '슬램 후 전진력 +0.8%', [['dive', 12]], 'rock'),
-    U_('amp', 'gear', '증폭 코어', 20, 12, 6, '부스트·대시 힘 +4%', [['jet', 15], ['dashpow', 15]], 'star', 1),
+    U_('leap', 'gear', '추진 스프링', 15, 10, 6, '공중 도약의 전진력 +1%', [['airjump', 10]], 'moon'),
+    U_('crater', 'gear', '충격 추진기', 15, 10, 6, '슬램 후 전진력 +0.8%', [['dive', 12]], 'moon'),
+    U_('amp', 'gear', '증폭 코어', 20, 14.5, 6, '부스트·대시 힘 +4%', [['jet', 15], ['dashpow', 15]], 'hole', 2),
+    U_('pslam', 'gear', '정밀 슬램', 10, 10, 6, '바퀴로 내리꽂으면 더 높이 튕김', [['dive', 12]], 'moon'),
+    U_('pit', 'gear', '정비 착지', 5, 13.5, 6, '깨끗한 착지 3연속마다 대시 충전 (판당 Lv회)', [['dash', 10]], 'star', 2),
+    U_('jspring', 'gear', '저스트 스프링', 10, 10, 6, '착지 직후 도약 타이밍 확대 · 전진력 추가', [['spring', 20]], 'moon'),
+    U_('burn', 'gear', '과급 연소', 10, 10.5, 6, '부스트 힘 +5% · 연료 소모 +4%', [['fuel', 15]], 'moon'),
     U_('tail', 'gear', '순풍 장치', 15, 10, 7, '자연 감속 -3%', [['wing', 10]], 'cloud', 1),
     U_('over', 'gear', '오버클럭', 10, 12, 6, '5Lv마다 도약·대시·급강하 +1회', [['dash', 10]], 'rock', 3),
 
@@ -112,6 +119,10 @@ const CORE = (() => {
     U_('trickpay', 'money', '묘기 전속 계약', 15, 2.5, 6, '공중제비 보너스 +20%', [['style', 2]]),
     U_('lucky', 'money', '황금 카트', 10, 3, 9, '2% 확률로 골드 3배 판', [['ad', 15]], 'forest'),
     U_('crate', 'money', '보물 드론', 10, 4, 8, '상자 등장 +30%', [['coin', 10]], 'sand'),
+    U_('streak', 'money', '연승 착지', 15, 12, 6, '최고 연속 착지 1회당 골드 +0.6% (40회까지)', [['style', 10]], 'rock', 1),
+    U_('ctime', 'money', '콤보 타이머', 10, 12.5, 6, '콤보 유지 시간 +0.15초', [['combo', 10]], 'rock', 1),
+    U_('multi', 'money', '다회전 계약', 10, 12, 6, '한 번에 여러 바퀴 돌면 추가 바퀴 +15%', [['trickpay', 10]], 'rock'),
+    U_('allr', 'money', '만능 곡예단', 10, 13, 6, '슬램·공중제비·완벽 착지·콤보를 고루 할수록 골드', [['combo', 10], ['trickpay', 10]], 'star', 3),
     U_('encore', 'money', '앙코르', 20, 11, 7, '묘기·착지·콤보·퍼펙트 보너스 +5%', [['style', 10]], 'moon', 2),
   ];
   // the first purchases are priced by hand (gold in the first minutes does not follow the zone rule); their last level still does
@@ -190,7 +201,7 @@ const CORE = (() => {
   function stats(s) {
     const L = id => lvl(s, id), P = id => s.perks[id] || 0, bless = P('r_bless') ? 1.5 : 1;
     const power = 7 * Math.pow(1.05, L('push')) * (1 + 0.02 * L('runup')) * (1 + 0.03 * L('sling')) * (1 + 0.03 * L('cannon')) * (1 + 0.03 * L('rail')) * (1 + 0.04 * L('warp')) * (1 + 0.05 * P('p_power'));
-    const eCap = 0.80 + 0.008 * L('hover'), thrust = L('rocket') ? (3 + 0.4 * L('rocket') + power * (0.05 + 0.004 * L('rocket'))) * (1 + 0.03 * L('jet')) * (1 + 0.04 * L('amp')) : 0;
+    const eCap = 0.80 + 0.008 * L('hover'), thrust = L('rocket') ? (3 + 0.4 * L('rocket') + power * (0.05 + 0.004 * L('rocket'))) * (1 + 0.03 * L('jet')) * (1 + 0.04 * L('amp')) * (1 + 0.05 * L('burn')) : 0;
     return {
       power, angle: (14 + 2.8 * L('ramp')) * Math.PI / 180,
       perfect: 1.10 + 0.02 * L('timing') + 0.03 * P('r_focus'), window: (0.025 + 0.006 * L('timing')) * (1 + 0.15 * P('p_meter')), meter: 1.6, kickB: 0.01 * L('rail2'),
@@ -200,7 +211,8 @@ const CORE = (() => {
       spring: L('spring'), springN: L('spring') ? 1 + Math.floor(L('spring') / 4) + P('r_spring') + Math.floor(L('over') / 5) : 0, airjump: L('airjump') ? Math.min(1, 0.4 + 0.06 * L('airjump')) : 0,
       dash: L('dash'), dashN: L('dash') ? 1 + Math.floor(L('dash') / 5) + P('r_dash') + Math.floor(L('over') / 5) : 0, dashpow: (1 + 0.12 * L('dashpow')) * (1 + 0.04 * L('amp')),
       dive: L('dive'), diveN: L('dive') ? 1 + Math.floor(L('dive') / 3) + Math.floor(L('over') / 5) : 0, glide: Math.min(0.35, 0.035 * L('wing')), convert: 0.08 * L('convert'), grav: Math.max(0.6, 1 - 0.02 * L('grav')),
-      double: P('r_double'), phoenix: P('r_phoenix'), encore: 1 + 0.05 * L('encore'), refuel: 0.1 + 0.02 * L('refuel'), leap: 0.02 + 0.01 * L('leap'), crater: 0.02 + 0.008 * L('crater'), time: 10 * P('r_time'),
+      double: P('r_double'), phoenix: P('r_phoenix'), encore: 1 + 0.05 * L('encore'), refuel: 0.1 + 0.02 * L('refuel'), turbine: 0.02 * L('turbine'), pit: L('pit'), pslam: 0.012 * L('pslam'), jspring: L('jspring'), draft: 0.02 * L('draft'), streakB: 0.006 * L('streak'), burnK: 1 + 0.04 * L('burn'), comboT: 3 + 0.15 * L('ctime'), multi: 0.15 * L('multi'), allB: 0.012 * L('allr'),
+      leap: 0.02 + 0.01 * L('leap'), crater: 0.02 + 0.008 * L('crater'), time: 10 * P('r_time'),
       perfB: 0.3 * (1 + 0.5 * P('r_perf')), landG: 0.03 * (1 + 0.5 * P('r_land')), landP: 0.08 * (1 + 0.5 * P('r_land')), slamB: 0.08 * (1 + 0.5 * P('r_land')),
       rate: (1 + 0.06 * L('ad')) * (1 + 0.25 * P('p_gold')) * (1 + STAR_GOLD * bless * s.starsTotal) * (1 + 0.01 * L('sponsor') * s.zone) * (1 + 0.03 * achCount(s)),
       coin: (1 + 0.08 * L('coin')) * (1 + 0.4 * P('r_coin')), magnet: L('magnet'), magR: L('magnet') ? 0.9 + 0.3 * L('magnet') : 0, style: 0.0025 * L('style'), alt: 0.005 * L('alt'), crate: L('crate'), combo: 0.002 * L('combo'),
@@ -218,7 +230,7 @@ const CORE = (() => {
     return Object.assign({ st, kick: kick || 1, seed: sd, x: 0, y: RAMP * Math.tan(st.angle) + 0.3, vx: v * Math.cos(st.angle), vy: v * Math.sin(st.angle), v0: v, perfect, dbl, airT: 0, fuel: st.fuel, spring: st.springN, dash: st.dashN, dive: st.diveN,
       t: 0, tr: 0, air: true, rest: 0, back: 0, maxX: 0, maxAlt: 0, maxV: v, bounces: 0, coins: 0, crates: 0, coinGold: 0, broke: 0, used: new Set(), over: false, why: '', ev: [], boosting: false,
       tops: 0, mag: [], zc: 0, slam: false, slams: 0, combo: 0, comboT: -9, maxCombo: 0, golden: hash(sd * 13 + 5) < st.lucky, ph: hash(sd) * 6.283, ph2: hash(sd + 1) * 6.283,
-      ang: st.angle, spin: 0, rotAcc: 0, tricks: 0, crashes: 0, cleans: 0, perfLands: 0, landStreak: 0, maxStreak: 0, spinT: -9, usedBoost: false, doubled: false, risen: false, lastBounce: -9 }, sc);
+      ang: st.angle, spin: 0, rotAcc: 0, tricks: 0, crashes: 0, refills: 0, cleans: 0, perfLands: 0, landStreak: 0, maxStreak: 0, spinT: -9, usedBoost: false, doubled: false, risen: false, lastBounce: -9 }, sc);
   }
   // height of the coin stream above the ground at x
   const river = (r, x) => Math.max(0.6 * r.S, r.c * (1 + 0.45 * Math.sin(x / (9 * r.U) + r.ph) + 0.18 * Math.sin(x / (3.7 * r.U) + r.ph2)));
@@ -238,7 +250,7 @@ const CORE = (() => {
   function hit(r, o) {
     const st = r.st, sp = Math.hypot(r.vx, r.vy), cv = 0.03 * gd(Math.max(30, r.v0 * r.v0 / 9.8), o.z) * st.coin;
     const vr = Math.min(sp, 1.2 * r.v0); r.used.add(o.id);
-    if (o.type !== 'haz' && o.type !== 'pool') { r.combo = r.tr - r.comboT < 3 ? r.combo + 1 : 1; r.comboT = r.tr; if (r.combo > r.maxCombo) r.maxCombo = r.combo; }
+    if (o.type !== 'haz' && o.type !== 'pool') { r.combo = r.tr - r.comboT < st.comboT ? r.combo + 1 : 1; r.comboT = r.tr; if (r.combo > r.maxCombo) r.maxCombo = r.combo; }
     if (o.type === 'coin') { r.coins++; r.coinGold += cv; r.ev.push({ k: 'coin', x: o.x, y: o.y, g: cv }); }
     else if (o.type === 'crate') { r.crates++; r.coinGold += cv * 12; r.ev.push({ k: 'crate', x: o.x, y: o.y, g: cv * 12 }); }
     else if (o.type === 'pad') { r.vx += Math.max(sp * 0.02, 0.35 * (1.15 * r.v0 * Math.pow(0.94, r.tops++) - sp)) * st.rubber; r.ev.push({ k: 'pad', x: o.x, y: o.y }); }
@@ -263,7 +275,7 @@ const CORE = (() => {
     const n = Math.min(80, Math.max(1, Math.ceil(Math.max(sp0 * dt / (0.25 * U), dtReal * 120)))), h = dt / n;
     r.boosting = !!(inp.boost && r.fuel > 0);
     const gk = Math.sqrt(gZ * (1 - st.glide) / 9.8), alt0 = r.y - ground(r.x, U), grounded0 = alt0 < Math.max(1.2, 0.5 * r.S), vRef = Math.max(sp0, 0.5 * r.v0);
-    const doSpring = k => { const pf = k === 1 && r.tr - r.lastBounce < 0.22 ? 1.35 : 1; r.spring--; let up = (5 + 0.5 * st.spring + Math.min(1.2 * r.v0, Math.max(sp0, 0.8 * r.v0)) * (0.26 + 0.012 * st.spring)) * pf * k; if (k === 1) up = Math.max(up, Math.sqrt(2.3 * gZ * river(r, r.x + 0.5 * r.cw)) * pf); r.vy = Math.min(0.85 * r.v0 * gk + 8, Math.max(r.vy, 0) + up); r.vx *= 1.03; if (k < 1) r.vx += st.leap * r.v0; r.air = true; if (k === 1) r.rotAcc = 0; r.ev.push({ k: k < 1 ? 'airspring' : pf > 1 ? 'pspring' : 'spring', x: r.x, y: r.y }); };
+    const doSpring = k => { const pf = k === 1 && r.tr - r.lastBounce < 0.22 + 0.008 * st.jspring ? 1.35 : 1; if (pf > 1 && st.jspring) r.vx += 0.008 * st.jspring * r.v0 * Math.pow(0.94, r.tops++); r.spring--; let up = (5 + 0.5 * st.spring + Math.min(1.2 * r.v0, Math.max(sp0, 0.8 * r.v0)) * (0.26 + 0.012 * st.spring)) * pf * k; if (k === 1) up = Math.max(up, Math.sqrt(2.3 * gZ * river(r, r.x + 0.5 * r.cw)) * pf); r.vy = Math.min(0.85 * r.v0 * gk + 8, Math.max(r.vy, 0) + up); r.vx *= 1.03; if (k < 1) r.vx += st.leap * r.v0; r.air = true; if (k === 1) r.rotAcc = 0; r.ev.push({ k: k < 1 ? 'airspring' : pf > 1 ? 'pspring' : 'spring', x: r.x, y: r.y }); };
     const doDash = () => { r.dash--; const add = (6 + st.dash + Math.max(sp0, 0.8 * r.v0) * (0.08 + 0.006 * st.dash)) * st.dashpow; r.vx += add; r.vy = grounded0 ? Math.max(r.vy, 0.18 * r.v0 + 3) : Math.max(r.vy, -0.12 * sp0); if (grounded0) r.air = true; r.ev.push({ k: 'dash', x: r.x, y: r.y }); };
     if (inp.skill) { if (grounded0 && r.spring > 0) doSpring(1); else if (r.dash > 0 && !grounded0) doDash(); else if (!grounded0 && st.airjump && r.spring > 0) doSpring(st.airjump); }
     if (inp.spring && r.spring > 0) { if (grounded0) doSpring(1); else if (st.airjump) doSpring(st.airjump); }
@@ -276,10 +288,10 @@ const CORE = (() => {
       else { r.spin *= Math.pow(0.02, dtReal); if (Math.abs(r.rotAcc) < 0.6 && r.tr - r.spinT > 1) { const want = Math.max(-0.9, Math.min(0.9, Math.atan2(r.vy, Math.max(1, r.vx)))); let d = want - r.ang; d = Math.atan2(Math.sin(d), Math.cos(d)); r.ang += d * Math.min(1, dtReal * 4); } }
       r.ang += r.spin * dtReal; r.rotAcc += r.spin * dtReal;
       if (st.double && !r.doubled && r.vy < 0 && r.tr > 0.3) { r.doubled = true; const add = 0.25 * r.v0; r.vx += add * 0.92; r.vy += add * 0.4 + Math.max(0, -r.vy) * 0.5; r.ev.push({ k: 'double', x: r.x, y: r.y }); } }
-    if (r.boosting) { r.usedBoost = true; r.fuel -= dtReal; const dv = st.thrust * dtReal * 1.15; r.vx += dv * (1 + st.nozzle); r.vy += dv * (grounded0 ? 0.45 : 0.16) + (r.vy < 0 ? Math.min(-r.vy, dv * 0.5) : 0); if (grounded0 && r.vy > 0) r.air = true; }
+    if (r.boosting) { r.usedBoost = true; r.fuel -= dtReal * st.burnK; const dv = st.thrust * dtReal * 1.15; r.vx += dv * (1 + st.nozzle); r.vy += dv * (grounded0 ? 0.45 : 0.16) + (r.vy < 0 ? Math.min(-r.vy, dv * 0.5) : 0); if (grounded0 && r.vy > 0) r.air = true; }
     const xPrev = r.x, dg = 0.1 * U;
     for (let i = 0; i < n; i++) {
-      const g = gZ * (r.air ? 1 - st.glide * Math.min(1, Math.abs(r.vx) / (0.05 * r.v0 + 1)) : 1), dk = st.drag * lerpZ(r.x, 'drag') + WEAR * st.wear * (1 + r.tr * r.tr / 1600) * 9.8 / (r.v0 + 20);
+      const g = gZ * (r.air ? 1 - st.glide * Math.min(1, Math.abs(r.vx) / (0.05 * r.v0 + 1)) : 1), dk = (st.drag * lerpZ(r.x, 'drag') + WEAR * st.wear * (1 + r.tr * r.tr / 1600) * 9.8 / (r.v0 + 20)) * (st.draft && r.tr - r.comboT < st.comboT ? 1 - st.draft * Math.min(r.combo, 10) / 10 : 1);
       r.vy -= g * h; const d = Math.exp(-dk * h); r.vx *= d; r.vy *= d;
       if (st.convert && r.air && r.vy < 0) { const f = 1 - Math.exp(-st.convert * h * gZ / (r.v0 + 1)), vy0 = r.vy; r.vy *= 1 - f; r.vx = Math.sqrt(Math.max(0, r.vx) * Math.max(0, r.vx) + (vy0 * vy0 - r.vy * r.vy) * 0.8); }
       r.x += r.vx * h; r.y += r.vy * h;
@@ -293,21 +305,21 @@ const CORE = (() => {
           if (r.air) { const sa = Math.atan(sl), dd = Math.atan2(Math.sin(r.ang - sa), Math.cos(r.ang - sa)), flips = Math.round(Math.abs(r.rotAcc) / 6.2832);
             // flips and landing attitude are judged separately: a flip that ends wheels-down earns the trick bonus and the landing bonus
             const trick = flips >= 1 && Math.abs(dd) < 0.7 + 0.04 * st.gyro, crash = !trick && Math.abs(r.rotAcc) > 1.2 && Math.abs(dd) > 1.4, long = r.airT > 0.35;
-            if (trick) { r.tricks += flips; vt *= 1 + Math.min(0.25, 0.05 * flips); r.ev.push({ k: 'trick', x: r.x, y: r.y, n: flips, clean: Math.abs(dd) < 0.2 }); }
+            if (trick) { r.tricks += flips + st.multi * (Math.min(flips, 5) - 1); vt *= 1 + Math.min(0.25, 0.05 * flips); r.ev.push({ k: 'trick', x: r.x, y: r.y, n: flips, clean: Math.abs(dd) < 0.2 }); }
             if (crash) { vt *= 0.75; r.crashes++; r.ev.push({ k: 'crash', x: r.x, y: r.y }); }
             if (long && Math.abs(dd) < 0.26 + 0.01 * st.gyro) { const pf = Math.abs(dd) < 0.11 + 0.004 * st.gyro; al = pf ? 2 : 1; r.cleans++; if (pf) r.perfLands++; r.landStreak++; if (r.landStreak > r.maxStreak) r.maxStreak = r.landStreak;
-              if (st.fuel) r.fuel = Math.min(st.fuel, r.fuel + (pf ? st.refuel : st.refuel / 2)); r.ev.push({ k: 'clean', x: r.x, y: r.y, pf, n: r.landStreak }); }
+              if (st.fuel) r.fuel = Math.min(st.fuel, r.fuel + (pf ? st.refuel : st.refuel / 2)); r.ev.push({ k: 'clean', x: r.x, y: r.y, pf, n: r.landStreak }); if (st.pit && r.landStreak % 3 === 0 && r.refills < st.pit && r.dash < st.dashN) { r.dash++; r.refills++; r.ev.push({ k: 'recharge', x: r.x, y: r.y }); } }
             else if (long && !crash && Math.abs(dd) > 1.1) { al = -1; r.landStreak = 0; r.ev.push({ k: 'badland', x: r.x, y: r.y }); }
             else if (long && !trick) r.landStreak = 0;
             r.airT = 0; r.rotAcc = 0; r.spin = 0; r.ang = sa; r.lastBounce = r.tr; }
           if (water && !st.float) { if (Math.abs(vt) > 0.25 * r.v0 && imp < Math.abs(vt) * 0.55) { vn = imp * 0.45; vt *= 0.86; r.bounces++; r.air = true; r.ev.push({ k: 'skip', x: r.x, y: r.y }); } else { r.over = true; r.why = '물에 빠졌어요'; r.ev.push({ k: 'sink', x: r.x, y: r.y }); break; } }
           else {
             const rough = Z.loss > 1 ? 1 + (Z.loss - 1) * soft : Z.loss, eZ = Z.e < 1 ? 1 - (1 - Z.e) * soft : Z.e, e = water ? 0.4 + 0.035 * st.float : Math.min(st.eCap + 0.02, st.e * eZ);
-            if (r.slam && !water) { r.slam = false; r.slams++; r.combo = r.tr - r.comboT < 3 ? r.combo + 1 : 1; r.comboT = r.tr; if (r.combo > r.maxCombo) r.maxCombo = r.combo; vn = Math.min(0.85 * r.v0 * gk, imp * Math.min(0.97, e + 0.08 + 0.02 * st.dive)); vt = vt * 1.02 + st.crater * r.v0; r.bounces++; r.air = true; r.ev.push({ k: 'slam', x: r.x, y: r.y, imp, combo: r.combo }); }
+            if (r.slam && !water) { r.slam = false; r.slams++; r.combo = r.tr - r.comboT < st.comboT ? r.combo + 1 : 1; r.comboT = r.tr; if (r.combo > r.maxCombo) r.maxCombo = r.combo; vn = Math.min(0.85 * r.v0 * gk, imp * Math.min(0.99, e + 0.08 + 0.02 * st.dive + (al > 1 ? st.pslam : al > 0 ? st.pslam / 2 : 0))); vt = vt * 1.02 + st.crater * r.v0; r.bounces++; r.air = true; r.ev.push({ k: 'slam', x: r.x, y: r.y, imp, combo: r.combo }); }
             else if (imp > 0.05 * r.v0 + 0.8 + Math.abs(vt) * 0.02) { vn = Math.min(0.72 * r.v0 * gk + 2, imp * e); vt *= (1 - Math.min(0.9, (water ? 0.16 - 0.01 * st.float : st.loss * rough) * (al > 0 ? 0.35 : 1) * Math.min(1, imp / (Math.abs(vt) + 1) * 3 + 0.25))) ; r.bounces++; r.air = true; r.ev.push({ k: 'bounce', x: r.x, y: r.y, imp }); }
             else { vn = 0; r.air = false; r.slam = false; r.ang = Math.atan(sl); const muZ = Z.mu > 1 ? 1 + (Z.mu - 1) * soft : Z.mu, mu = water ? 0.5 / (1 + 0.6 * st.float) : st.mu * muZ, dec = mu * g * h; vt = Math.abs(vt) <= dec ? 0 : vt - Math.sign(vt) * dec; }
           }
-          if (al) vt *= al > 1 ? 1.03 : al > 0 ? 1.01 : 0.88;
+          if (al) vt *= al > 1 ? 1.03 : al > 0 ? 1.01 : 0.88; if (al > 1 && st.turbine && vt > 0) vt += Math.max(0, 1.1 * r.v0 - vt) * st.turbine * Math.min(r.landStreak, 5) / 5;
           r.vx = vn * nx + vt * tx; r.vy = vn * ny + vt * ty;
         }
       } else if (r.y - gy > 0.3 * r.S) r.air = true;
@@ -330,7 +342,7 @@ const CORE = (() => {
   }
   function payout(r, s) {
     const st = r.st, D = r.maxX, z = zoneAt(D), dist = gd(D, z) * st.rate, coins = r.coinGold * st.rate;
-    const style = st.style * r.bounces, alt = st.alt * Math.log2(1 + r.maxAlt / (2 * r.U)), perfect = r.perfect ? st.perfB : 0, kickB = r.kick > 1.05 ? st.perfB : r.kick > 1 ? st.perfB / 3 : 0, dbl = r.dbl ? 2 * st.perfB : 0, land = st.landG * (r.cleans - r.perfLands) + st.landP * r.perfLands, slam = st.slamB * r.slams, trick = st.trick * r.tricks, combo = st.combo * r.maxCombo, gold = r.golden ? 3 : 1;
+    const style = st.style * r.bounces, alt = st.alt * Math.log2(1 + r.maxAlt / (2 * r.U)), perfect = r.perfect ? st.perfB : 0, kickB = r.kick > 1.05 ? st.perfB : r.kick > 1 ? st.perfB / 3 : 0, dbl = r.dbl ? 2 * st.perfB : 0, land = st.landG * (r.cleans - r.perfLands) + st.landP * r.perfLands, slam = st.slamB * r.slams + st.streakB * Math.min(40, r.maxStreak) + st.allB * Math.min(2 * r.slams, r.tricks, r.perfLands, Math.floor(r.maxCombo / 5), 15), trick = st.trick * r.tricks, combo = st.combo * r.maxCombo, gold = r.golden ? 3 : 1;
     let first = 0; for (let i = s.zone + 1; i <= z; i++) first += 3 * gd(ZONES[i].at, i) * st.rate;   // base gold for zones reached for the first time this life; bonuses multiply it too
     const mult = 1 + (style + alt + perfect + kickB + dbl + land + slam + trick + combo) * st.encore;
     return { dist, coins, style, alt, perfect, kickB, dbl, land, slam, trick, combo, gold, first, mult, total: Math.floor((dist + coins + first) * mult * gold), zone: z };
