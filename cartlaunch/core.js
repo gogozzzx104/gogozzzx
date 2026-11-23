@@ -89,8 +89,8 @@ const CORE = (() => {
     U_('ad', 'money', '전단지 광고', 60, 0, 13, '모든 골드 +6% (최대 +360%)'),
     U_('coin', 'money', '코인 감정사', 60, 0.5, 12, '코인·상자 가치 +8%', [['ad', 3]]),
     U_('magnet', 'money', '코인 자석', 10, 1, 6, '코인을 끌어오는 범위 +16%', [['coin', 3]]),
-    U_('style', 'money', '묘기 보너스', 20, 1, 7, '튕길 때마다 골드 +0.25% (최대 12회)', [['ad', 8]]),
-    U_('combo', 'money', '콤보 미터', 15, 1.5, 7, '3초 안에 연달아 먹으면 콤보, 최고 콤보당 골드 +0.2% (최대 50콤보)', [['coin', 5]]),
+    U_('style', 'money', '묘기 보너스', 20, 1, 7, '튕길 때마다 골드 +0.25% (횟수 제한 없음)', [['ad', 8]]),
+    U_('combo', 'money', '콤보 미터', 15, 1.5, 7, '3초 안에 연달아 먹으면 콤보, 최고 콤보당 골드 +0.2% (제한 없음)', [['coin', 5]]),
     U_('alt', 'money', '고도 수당', 20, 2, 7, '그 판의 최고 고도에 따라 골드 보너스', [['style', 3]]),
     U_('sponsor', 'money', '스폰서 계약', 20, 2, 11, '도달한 구역 하나당 골드 +1%', [['ad', 12]], 'hill'),
     U_('trickpay', 'money', '묘기 전속 계약', 15, 2.5, 6, '공중 묘기 보너스 +20%', [['style', 2]]),
@@ -296,7 +296,7 @@ const CORE = (() => {
   }
   function payout(r, s) {
     const st = r.st, D = r.maxX, z = zoneAt(D), dist = gd(D, z) * st.rate, coins = r.coinGold * st.rate;
-    const style = st.style * Math.min(12, r.bounces), alt = st.alt * Math.log2(1 + r.maxAlt / (2 * r.U)), perfect = r.perfect ? 0.1 : 0, trick = st.trick * Math.min(30, r.tricks), combo = st.combo * Math.min(50, r.maxCombo), gold = r.golden ? 3 : 1;
+    const style = st.style * r.bounces, alt = st.alt * Math.log2(1 + r.maxAlt / (2 * r.U)), perfect = r.perfect ? 0.1 : 0, trick = st.trick * r.tricks, combo = st.combo * r.maxCombo, gold = r.golden ? 3 : 1;
     let first = 0; for (let i = s.zone + 1; i <= z; i++) first += 3 * gd(ZONES[i].at, i) * st.rate;
     const mult = 1 + style + alt + perfect + trick + combo;
     return { dist, coins, style, alt, perfect, trick, combo, gold, first, mult, total: Math.floor(((dist + coins) * mult + first) * gold), zone: z };
