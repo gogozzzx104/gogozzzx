@@ -124,7 +124,7 @@ const CORE = (() => {
   const K = (id, br, name, max, desc, req, cap) => ({ id, br, name, max, desc, req: req || [], cap: cap || 0 });
   const PERKS = [
     K('p_power', 'might', '전설의 팔뚝', 20, '발사 속도 +5%'),
-    K('p_meter', 'might', '느긋한 호흡', 5, '차지 게이지 15% 느려짐', [['p_power', 1]]),
+    K('p_meter', 'might', '느긋한 호흡', 5, '퍼펙트 구간 +15%', [['p_power', 1]]),
     K('r_focus', 'might', '무아지경', 5, '퍼펙트 보너스 +3%', [['p_meter', 2]]),
     K('r_mem', 'might', '전생의 기억', 5, '환생 때 레벨 8% 유지', [['p_power', 2]]),
     K('r_skip', 'might', '지름길 지도', 4, '환생 때 구역 기록 2개 유지', [['p_power', 3]]),
@@ -190,7 +190,7 @@ const CORE = (() => {
     const eCap = 0.80 + 0.008 * L('hover'), thrust = L('rocket') ? (3 + 0.4 * L('rocket') + power * (0.05 + 0.004 * L('rocket'))) * (1 + 0.03 * L('jet')) : 0;
     return {
       power, angle: (14 + 2.8 * L('ramp')) * Math.PI / 180,
-      perfect: 1.10 + 0.02 * L('timing') + 0.03 * P('r_focus'), window: 0.06 + 0.012 * L('timing'), meter: 1.6 / (1 + 0.15 * P('p_meter')), kickB: 0.01 * L('rail2'),
+      perfect: 1.10 + 0.02 * L('timing') + 0.03 * P('r_focus'), window: (0.025 + 0.006 * L('timing')) * (1 + 0.15 * P('p_meter')), meter: 1.6, kickB: 0.01 * L('rail2'),
       mu: Math.max(0.06, 0.35 * Math.pow(0.9, L('wheel'))), e: Math.min(eCap, 0.28 + 0.026 * L('tire') + 0.004 * L('float') + 0.008 * L('hover')), eCap, loss: 0.30 * Math.pow(0.86, L('frame')) * (1 - 0.02 * L('wide')),
       wear: (1 - 0.02 * L('wheel')) * (1 - 0.03 * L('tail')), drag: 0.012 * Math.pow(0.92, L('aero')) * (1 - 0.03 * L('heat')) * (1 - 0.06 * P('r_feather')), bumper: L('bumper'), wide: L('wide'), float: L('float'), heat: L('heat'), gyro: L('gyro'), rubber: 1 + 0.05 * L('rubber'),
       thrust, fuel: L('rocket') ? 1.5 + 0.15 * L('fuel') + 0.5 * P('p_fuel') : 0, nozzle: 0.05 * L('nozzle'),
