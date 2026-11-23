@@ -323,7 +323,7 @@ const EFF = { push: pw, runup: pw, sling: pw, cannon: pw, rail: pw, warp: pw, tu
 const PEFF = { r_perf: l => `퍼펙트 +${Math.round(30 * (1 + 0.5 * l))}%`, r_land: l => `완벽 착지 +${(8 * (1 + 0.5 * l)).toFixed(0)}%`, r_time: l => `제한 시간 +${l * 10}초`, p_power: l => `발사 속도 +${l * 5}%`, p_meter: l => `퍼펙트 구간 +${l * 15}%`, r_focus: l => `퍼펙트 보너스 +${l * 3}%`, r_mem: l => `레벨의 ${l * 8}% 유지`, r_skip: l => `구역 기록 ${l * 2}개 유지`, p_fuel: l => `부스트 +${(l * 0.5).toFixed(1)}초`, r_trick: l => `묘기 보너스 +${l * 50}%`,
   r_spring: l => `도약 +${l}회`, r_dash: l => `대시 +${l}회`, r_feather: l => `공기 저항 -${l * 6}%`, p_gold: l => `모든 골드 +${l * 25}%`, p_seed: l => l ? `시작 골드 ${fmt(100 * Math.pow(10, l))}` : '시작 골드 없음', r_coin: l => `코인 가치 +${l * 40}%`, r_disc: l => `가격 -${l * 5}%` };
 // value lines of the newer cards: one plainly labelled number each
-Object.assign(EFF, { tail: s => `속도 손실 -${100 - Math.round(s.wear * 100)}%`, refuel: s => `완벽 착지 시 부스트 +${s.refuel.toFixed(2)}초`, leap: s => `발사 속도의 ${Math.round(s.leap * 100)}%만큼 밀어줌`, crater: s => `발사 속도의 ${(s.crater * 100).toFixed(1)}%만큼 밀어줌`,
+Object.assign(EFF, { tractor: s => s.tractor ? `${s.tractor.toFixed(1)}초마다 상자 1개` : '견인 없음', tail: s => `속도 손실 -${100 - Math.round(s.wear * 100)}%`, refuel: s => `완벽 착지 시 부스트 +${s.refuel.toFixed(2)}초`, leap: s => `발사 속도의 ${Math.round(s.leap * 100)}%만큼 밀어줌`, crater: s => `발사 속도의 ${(s.crater * 100).toFixed(1)}%만큼 밀어줌`,
   amp: s => `부스트·대시 힘 +${s.ampP}%`, turbine: s => `5연속 시 잃은 속도의 ${Math.round(s.turbine * 100)}% 회복`, draft: s => `콤보 10부터 속도 손실 -${Math.round(s.draft * 100)}%`, pslam: s => `튕기는 힘 +${(s.pslam * 100).toFixed(1)}%`, pit: s => `한 판에 최대 ${s.pit}회`,
   jspring: s => `도약 타이밍 여유 ${(0.22 + 0.008 * s.jspring).toFixed(2)}초`, burn: s => `부스트 힘 +${s.burnP}% · 연료 소모 +${Math.round((s.burnK - 1) * 100)}%`, streak: s => `1연속당 골드 +${(s.streakB * 100).toFixed(1)}% · 최대 40연속`, multi: s => `2바퀴째부터 공중제비 골드 +${Math.round(s.multi * 100)}%`,
   allr: s => `가장 적게 한 것 1회당 골드 +${(s.allB * 100).toFixed(1)}%`, magnet: s => s.magR ? `끌어당기는 범위 ${Math.round(s.magR / 1.2 * 100)}%` : '자석 없음', heat: s => `용암 통과 가속 +${(1.2 * s.heat).toFixed(1)}%`, wide: s => `숲·모래·바위 통과 가속 +${(1.2 * s.wide).toFixed(1)}%` });
@@ -352,6 +352,7 @@ const IC = {
   r_bless: p_('M12 6l1.8 3.7 4 .5-3 2.8.8 4L12 15l-3.6 2 .8-4-3-2.8 4-.5zM12 1v2M3 5l1.5 1.5M21 5l-1.5 1.5M2 14h2M20 14h2'),
   turbine: c_(12, 12, 3) + p_('M12 9V3q4 1 4 5M15 12h6q-1 4-5 4M12 15v6q-4-1-4-5M9 12H3q1-4 5-4'), draft: p_('M3 8h9M3 12h13M3 16h9M17 7l4 5-4 5'), pslam: p_('M12 2v10M8 8l4 4 4-4M4 20h16') + c_(8, 17, 2) + c_(16, 17, 2), pit: p_('M4 7l5 5-5 5M10 7l5 5-5 5') + c_(19, 6, 3) + p_('M19 4.5v3M17.5 6h3'), jspring: p_('M6 21h10M7 21l8-3-8-3 8-3') + c_(17, 6, 4) + p_('M17 4v2l1.5 1'), burn: p_(FLAME) + p_('M19 3v6M16 6h6'),
   streak: p_('M4 18l4-5 4 3 4-7 4 4M4 21h16'), ctime: c_(12, 13, 7) + p_('M12 13V9M12 13l3 2M9 3h6M19 6l1.5-1.5'), multi: p_(LOOP) + p_('M9 10l2 2 4-4M9 15h6'), allr: c_(7, 7, 3) + c_(17, 7, 3) + c_(7, 17, 3) + c_(17, 17, 3) + p_('M10 7h4M10 17h4M7 10v4M17 10v4'),
+  tractor: r_(13, 3, 8, 7, 1) + p_('M13 6h8M4 21l9-11M8 21l7-11M4 21h4') + c_(6, 21, 1),
   leap: p_('M5 21l7-3-7-3 7-3M14 9h7m0 0l-3-3m3 3l-3 3'), crater: p_('M12 2v9M8 8l4 4 4-4M3 20q9-8 18 0M15 15h6m0 0l-2-2m2 2l-2 2'), amp: c_(12, 12, 4) + p_('M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3'),
   refuel: CAN + p_('M19 14V8M16.5 10.5L19 8l2.5 2.5'),
   warp: e_(12, 12, 9, 4) + e_(12, 12, 5, 2) + p_('M12 2v4M12 18v4'), tail: p_('M3 7h10a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 17h7'), over: c_(12, 12, 9) + p_('M12 12l4-5M12 5v2M5 12h2M17 12h2'), encore: p_(LOOP) + p_('M12 8v8M8 12h8'),
@@ -469,7 +470,7 @@ function drawWorld(cx, cy, dt) {
   // objects
   if (run) { const i0 = Math.max(0, Math.floor(x0 / run.cw - 1.2)), i1 = Math.min(i0 + 40, Math.floor(x1 / run.cw - 1.2));
     for (let i = i0; i <= i1; i++) for (const o of C.cellObjs(run, i)) if (!run.used.has(o.id)) drawObj(o);
-    for (const m of run.mag) { const f = Math.min(1, (run.tr - m.t0) / 0.3), e = f * f, o = m.o, tx = o.x + (run.x - o.x) * e, ty = o.y + (run.y + 0.5 * run.S - o.y) * e; g.strokeStyle = `rgba(255,90,90,${0.5 * (1 - f)})`; g.lineWidth = 2; g.beginPath(); g.moveTo(SX(tx), SY(ty)); g.lineTo(SX(run.x), SY(run.y + 0.5 * run.S)); g.stroke(); drawObj(Object.assign({}, o, { x: tx, y: ty })); } }
+    for (const m of run.mag) { const f = Math.min(1, (run.tr - m.t0) / (m.d || 0.3)), e = f * f, o = m.o, tx = o.x + (run.x - o.x) * e, ty = o.y + (run.y + 0.5 * run.S - o.y) * e; g.strokeStyle = m.beam ? `rgba(255,226,122,${0.85 * (1 - f * 0.5)})` : `rgba(255,90,90,${0.5 * (1 - f)})`; g.lineWidth = m.beam ? 4 : 2; g.beginPath(); g.moveTo(SX(tx), SY(ty)); g.lineTo(SX(run.x), SY(run.y + 0.5 * run.S)); g.stroke(); drawObj(Object.assign({}, o, { x: tx, y: ty })); } }
 }
 // --- scenery: sky bodies, clouds and two parallax layers per zone, all placed by hash so they never flicker ---
 const DISP = () => getComputedStyle(root).getPropertyValue('--disp');
@@ -738,6 +739,7 @@ function frame(now) {
         else { pops.push({ a: 1, t: 0, col: '#b9f29a', txt: `좋은 착지${e.n > 1 ? ' ×' + e.n : ''} · 골드 +${Math.round(st.landG * 100)}%` }); tone(660 * up, 880 * up, 0.1, 0.1); ringFx(cartX, cartY + 12, '#9be37a', 46, 0.3, 3); } }
       else if (e.k === 'badland') { pops.push({ a: 1, t: 0, col: '#ff9d9d', txt: '삐끗! 속도 -12%' }); shake = Math.max(shake, 5); }
       else if (e.k === 'pull') tone(1100, 1500, 0.05, 0.05);
+      else if (e.k === 'tractor') { tone(500, 1400, 0.3, 0.1, 'sine'); pops.push({ a: 1, t: 0, col: '#ffe27a', txt: '견인 광선!' }); }
       else if (e.k === 'recharge') { pops.push({ a: 1, t: 0, col: '#8fe8ff', txt: '대시 충전!' }); tone(600, 1200, 0.15, 0.12); }
       else if (e.k === 'zboost') { if (pops.length < 4) pops.push({ a: 1, t: 0, col: '#8fe8ff', txt: `${Z[e.z].name} 통과 가속 +${e.pct}%` }); ringFx(cartX, cartY, '#8fe8ff', 60, 0.35, 4); }
       else if (e.k === 'crash') { toast('쿵! 착지 실패', 900); shake = 12; SFX.bonk(); dollJolt = 14; }

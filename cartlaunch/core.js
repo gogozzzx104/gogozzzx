@@ -123,6 +123,7 @@ const CORE = (() => {
     U_('ctime', 'money', '콤보 타이머', 10, 12.5, 6, '콤보 유지 시간 +0.15초', [['combo', 10]], 'rock', 1),
     U_('multi', 'money', '다회전 계약', 10, 12, 6, '한 번에 2바퀴 이상 돌면 골드 추가', [['trickpay', 10]], 'rock'),
     U_('allr', 'money', '만능 곡예단', 10, 13, 6, '슬램·공중제비·완벽 착지·콤보를 골고루', [['combo', 10], ['trickpay', 10]], 'star', 3),
+    U_('tractor', 'money', '견인 광선', 10, 14, 6, '화면에 보이는 골드 상자를 하나씩 끌어옴', [['magnet', 15], ['crate', 10]], 'hole', 2),
     U_('encore', 'money', '앙코르', 20, 11, 7, '묘기·착지·콤보·퍼펙트 보너스 +5%', [['style', 10]], 'moon', 2),
   ];
   // the first purchases are priced by hand (gold in the first minutes does not follow the zone rule); their last level still does
@@ -211,7 +212,7 @@ const CORE = (() => {
       spring: L('spring'), springN: L('spring') ? 1 + Math.floor(L('spring') / 4) + P('r_spring') + Math.floor(L('over') / 5) : 0, airjump: L('airjump') ? Math.min(1, 0.4 + 0.06 * L('airjump')) : 0,
       dash: L('dash'), dashN: L('dash') ? 1 + Math.floor(L('dash') / 5) + P('r_dash') + Math.floor(L('over') / 5) : 0, dashpow: (1 + 0.12 * L('dashpow')) * (1 + 0.04 * L('amp')),
       dive: L('dive'), diveN: L('dive') ? 1 + Math.floor(L('dive') / 3) + Math.floor(L('over') / 5) : 0, glide: Math.min(0.35, 0.035 * L('wing')), convert: 0.08 * L('convert'), grav: Math.max(0.6, 1 - 0.02 * L('grav')),
-      double: P('r_double'), phoenix: P('r_phoenix'), encore: 1 + 0.05 * L('encore'), refuel: 0.1 + 0.02 * L('refuel'), ampP: 4 * L('amp'), burnP: 5 * L('burn'), turbine: 0.02 * L('turbine'), pit: L('pit'), pslam: 0.012 * L('pslam'), jspring: L('jspring'), draft: 0.02 * L('draft'), streakB: 0.006 * L('streak'), burnK: 1 + 0.04 * L('burn'), comboT: 3 + 0.15 * L('ctime'), multi: 0.15 * L('multi'), allB: 0.012 * L('allr'),
+      double: P('r_double'), phoenix: P('r_phoenix'), encore: 1 + 0.05 * L('encore'), refuel: 0.1 + 0.02 * L('refuel'), tractor: L('tractor') ? 8 - 0.5 * L('tractor') : 0, ampP: 4 * L('amp'), burnP: 5 * L('burn'), turbine: 0.02 * L('turbine'), pit: L('pit'), pslam: 0.012 * L('pslam'), jspring: L('jspring'), draft: 0.02 * L('draft'), streakB: 0.006 * L('streak'), burnK: 1 + 0.04 * L('burn'), comboT: 3 + 0.15 * L('ctime'), multi: 0.15 * L('multi'), allB: 0.012 * L('allr'),
       leap: 0.02 + 0.01 * L('leap'), crater: 0.02 + 0.008 * L('crater'), time: 10 * P('r_time'),
       perfB: 0.3 * (1 + 0.5 * P('r_perf')), landG: 0.03 * (1 + 0.5 * P('r_land')), landP: 0.08 * (1 + 0.5 * P('r_land')), slamB: 0.08 * (1 + 0.5 * P('r_land')),
       rate: (1 + 0.06 * L('ad')) * (1 + 0.25 * P('p_gold')) * (1 + STAR_GOLD * bless * s.starsTotal) * (1 + 0.01 * L('sponsor') * s.zone) * (1 + 0.03 * achCount(s)),
@@ -229,7 +230,7 @@ const CORE = (() => {
     const perfect = meter >= 1 - st.window, m = perfect ? st.perfect : 0.55 + 0.45 * meter / (1 - st.window), dbl = perfect && (kick || 1) > 1.05, v = st.power * m * (kick || 1) * (dbl ? 1.03 : 1), sc = scaleOf(st, v), sd = seed == null ? Math.floor(Math.random() * 1e6) : seed;
     return Object.assign({ st, kick: kick || 1, seed: sd, x: 0, y: RAMP * Math.tan(st.angle) + 0.3, vx: v * Math.cos(st.angle), vy: v * Math.sin(st.angle), v0: v, perfect, dbl, airT: 0, fuel: st.fuel, spring: st.springN, dash: st.dashN, dive: st.diveN,
       t: 0, tr: 0, air: true, rest: 0, back: 0, maxX: 0, maxAlt: 0, maxV: v, bounces: 0, coins: 0, crates: 0, coinGold: 0, broke: 0, used: new Set(), over: false, why: '', ev: [], boosting: false,
-      tops: 0, mag: [], zc: 0, slam: false, slams: 0, combo: 0, comboT: -9, maxCombo: 0, golden: hash(sd * 13 + 5) < st.lucky, ph: hash(sd) * 6.283, ph2: hash(sd + 1) * 6.283,
+      tops: 0, mag: [], tracT: 2, zc: 0, slam: false, slams: 0, combo: 0, comboT: -9, maxCombo: 0, golden: hash(sd * 13 + 5) < st.lucky, ph: hash(sd) * 6.283, ph2: hash(sd + 1) * 6.283,
       ang: st.angle, spin: 0, rotAcc: 0, tricks: 0, crashes: 0, refills: 0, cleans: 0, perfLands: 0, landStreak: 0, maxStreak: 0, spinT: -9, usedBoost: false, doubled: false, risen: false, lastBounce: -9 }, sc);
   }
   // height of the coin stream above the ground at x
@@ -329,7 +330,11 @@ const CORE = (() => {
     if (st.magR && !r.over) { const R = st.magR * r.S, cy = r.y + 0.5 * r.S, i0 = Math.max(0, Math.floor((xPrev - R) / r.cw - 1.2)), i1 = Math.floor((r.x + R) / r.cw - 1.2);
       for (let i = i0; i <= i1; i++) for (const o of cellObjs(r, i)) { if ((o.type !== 'coin' && o.type !== 'crate') || r.used.has(o.id)) continue; const dx = o.x < xPrev ? xPrev - o.x : o.x > r.x ? o.x - r.x : 0;
         if (Math.hypot(dx, o.y - cy) < R) { r.used.add(o.id); r.mag.push({ o, t0: r.tr }); r.ev.push({ k: 'pull', x: o.x, y: o.y }); } } }
-    for (let k = r.mag.length - 1; k >= 0; k--) if (r.over || r.tr - r.mag[k].t0 >= 0.3) { hit(r, Object.assign({}, r.mag[k].o, { x: r.x, y: r.y + 0.5 * r.S })); r.mag.splice(k, 1); }
+    // tractor beam: every few seconds one gold crate anywhere on screen is reeled in, however far above or below it is
+    if (st.tractor && !r.over && r.tr >= r.tracT) { const c = [], i0 = Math.max(0, Math.floor((r.x - 4 * U) / r.cw - 1.2)), i1 = Math.floor((r.x + 15 * U) / r.cw - 1.2);
+      for (let i = i0; i <= i1; i++) for (const o of cellObjs(r, i)) if (o.type === 'crate' && !r.used.has(o.id)) c.push(o);
+      if (c.length) { const o = c[Math.floor(hash(r.seed + Math.floor(r.tr * 20)) * c.length)]; r.used.add(o.id); r.mag.push({ o, t0: r.tr, d: 0.6, beam: 1 }); r.tracT = r.tr + st.tractor; r.ev.push({ k: 'tractor', x: o.x, y: o.y }); } }
+    for (let k = r.mag.length - 1; k >= 0; k--) if (r.over || r.tr - r.mag[k].t0 >= (r.mag[k].d || 0.3)) { hit(r, Object.assign({}, r.mag[k].o, { x: r.x, y: r.y + 0.5 * r.S })); r.mag.splice(k, 1); }
     for (let z = zoneAt(r.x); r.zc < z;) { const Z = ZONES[++r.zc], lv = Math.max(Z.water ? st.float : 0, Z.spec && Z.spec.includes('pool') ? st.heat : 0, Z.rough ? st.wide : 0); if (lv) { const add = 0.012 * lv * r.v0 * Math.pow(0.94, r.tops++); r.vx += add; r.ev.push({ k: 'zboost', x: r.x, y: r.y, z: r.zc, pct: Math.round(1.2 * lv) }); } }
     r.t += dt; r.tr += dtReal; if (r.x > r.maxX) r.maxX = r.x;
     const sp = Math.hypot(r.vx, r.vy); if (sp > r.maxV) r.maxV = sp;
