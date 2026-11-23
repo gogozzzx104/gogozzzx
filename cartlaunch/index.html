@@ -184,7 +184,7 @@ const fmtD = m => m < 1000 ? m.toFixed(1) + 'm' : m < 1e6 ? (m / 1000).toFixed(2
 /* ---------------- stage ---------------- */
 const root = $('#root'), cv = $('#cv'); let g = cv.getContext('2d');
 let W = 800, H = 400, portrait = false, DPR = 1, uiK = 1;
-function layout() { const vw = innerWidth, vh = innerHeight; portrait = vh > vw; W = portrait ? vh : vw; H = portrait ? vw : vh; uiK = Math.max(1, Math.min(2.6, W / 800, H / 400)); root.style.setProperty('--k', uiK.toFixed(3));
+function layout() { const vw = innerWidth, vh = innerHeight; portrait = vh > vw; W = portrait ? vh : vw; H = portrait ? vw : vh; uiK = Math.max(1, Math.min(2.2, W / 940, H / 470)); root.style.setProperty('--k', uiK.toFixed(3));
   root.style.width = W + 'px'; root.style.height = H + 'px'; root.style.transform = portrait ? `rotate(90deg) translateY(-${H}px)` : 'none';
   DPR = Math.min(devicePixelRatio || 1, 2); cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); }
 addEventListener('resize', layout); layout();
@@ -385,7 +385,7 @@ function renderShop() {
     list.innerHTML = `<div class="rbar"><div><h3>환생 · 보유 ★ ${S.stars} · 별 보너스 골드 +${S.starsTotal * per}%</h3><p>골드·업그레이드${keep ? `(${keep}% 유지)` : ''}를 비우고 ★을 받아요. ★ 하나당 골드 +${per}%. 별·트리·업적은 남습니다.</p><p>이번 생 ${fmtD(S.bestLife)} · 다음 ★ ${fmtD(C.nextStarAt(S.bestLife))}</p></div><button class="buy star" data-rebirth="1" ${gain > 0 ? '' : 'disabled'}>${confirmKey === 'rebirth' ? '정말요?<small>한 번 더 누르기</small>' : '환생하기<small>★ +' + gain + '</small>'}</button></div>` + treeHTML(C.PERKS, true); }
   else if (tab === 'skin') { const cur = skinNow().id;
     list.innerHTML = `<div class="bh">스킨</div>` + SKINS.map(k => `<button type="button" class="sk${k.id === cur ? ' on' : ''}${skinOpen(k) ? '' : ' lock'}" data-skin="${k.id}"><canvas width="220" height="140" data-skin="${k.id}"></canvas>${k.name}<small>${skinOpen(k) ? (k.id === cur ? '사용 중' : '눌러서 변경') : Z[k.z].name + ' 도달 시'}</small></button>`).join('');
-    for (const c2 of list.querySelectorAll('canvas')) { const g0 = g; g = c2.getContext('2d'); pvSkin = SKINS.find(k => k.id === c2.dataset.skin); g.setTransform(2, 0, 0, 2, 0, 0); drawCart(55, 54, 0, 1.3); pvSkin = null; g = g0; } }
+    for (const c2 of list.querySelectorAll('canvas')) { const g0 = g; g = c2.getContext('2d'); pvSkin = SKINS.find(k => k.id === c2.dataset.skin); g.setTransform(2, 0, 0, 2, 0, 0); drawCart(64, 54, 0, 1.25); pvSkin = null; g = g0; } }
   else { const n = C.achCount(S);
     list.innerHTML = `<div class="ac done"><h3>최고 ${fmtD(S.best)}</h3><p>${S.runs}판 · 업그레이드 ${C.total(S)}Lv · 환생 ${S.rebirths}회</p><p>업적 ${n}개 → 골드 +${n * 3}%</p></div>` +
       `<div class="bh">구역</div>` + Z.map((z, i) => `<div class="ac${i <= S.zone ? ' done' : ' off'}"><h3>${i + 1}. ${i <= S.zone + 1 ? z.name : '???'}</h3><p>${fmtD(z.at)}부터${i === S.zone + 1 ? ' · 다음 목표' : ''}</p></div>`).join('') +
@@ -610,10 +610,11 @@ function drawCart(x, y, ang, sc) {
   g.beginPath(); g.moveTo(-12, -6); g.lineTo(-11, -1); g.moveTo(12, -6); g.lineTo(11, -1); g.stroke();
   g.fillStyle = L('hover') ? '#3f8cff' : '#2b2233'; g.beginPath(); g.arc(-11, 0, 3.6, 0, 7); g.arc(11, 0, 3.6, 0, 7); g.fill();
   }
-  if (L('bumper')) { g.fillStyle = '#7a6f80'; g.fillRect(17, -22, 4, 15); g.strokeRect(17, -22, 4, 15); }
+  if (L('bumper')) { g.fillStyle = '#7a6f80'; if (sk.car) { g.beginPath(); g.rect(26.5, -13 - (sk.big ? 2.4 : 0), 3, 9); g.fill(); g.stroke(); } else { g.fillRect(17, -22, 4, 15); g.strokeRect(17, -22, 4, 15); } }
   if (L('magnet')) { g.strokeStyle = '#f0452f'; g.lineWidth = 3.5; g.beginPath(); g.arc(0, -28, 5, Math.PI, 0); g.stroke(); g.strokeStyle = '#2b2233'; g.lineWidth = 2.5; }
-  if (L('rocket')) { g.fillStyle = L('jet') ? '#3f8cff' : '#f0452f'; g.beginPath(); g.roundRect(-20, -15, 26, 8, 3); g.fill(); g.stroke(); g.beginPath(); g.moveTo(6, -15); g.lineTo(12, -11); g.lineTo(6, -7); g.fill(); g.stroke();
-    if (run && run.boosting) { const f = 14 + Math.random() * 12; g.fillStyle = '#ffd24a'; g.beginPath(); g.moveTo(-20, -14); g.lineTo(-20 - f, -11); g.lineTo(-20, -8); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.moveTo(-20, -13); g.lineTo(-20 - f * 0.5, -11); g.lineTo(-20, -9); g.fill(); } }
+  if (L('rocket')) { g.save(); if (sk.car) g.translate(-32, -2 - (sk.big ? 2.4 : 0)); else g.translate(-30, -8); g.scale(0.6, 0.8);   // rear-mounted, so the body stays in view
+    g.fillStyle = L('jet') ? '#3f8cff' : '#f0452f'; g.beginPath(); g.roundRect(-20, -15, 26, 8, 3); g.fill(); g.stroke(); g.beginPath(); g.moveTo(6, -15); g.lineTo(12, -11); g.lineTo(6, -7); g.fill(); g.stroke();
+    if (run && run.boosting) { const f = 14 + Math.random() * 12; g.fillStyle = '#ffd24a'; g.beginPath(); g.moveTo(-20, -14); g.lineTo(-20 - f, -11); g.lineTo(-20, -8); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.moveTo(-20, -13); g.lineTo(-20 - f * 0.5, -11); g.lineTo(-20, -9); g.fill(); } g.restore(); }
   g.restore();
 }
 function hud(r) {
@@ -725,7 +726,7 @@ function frame(now) {
   if (r && state === 'fly') { const ca = Math.cos(rot), sa = Math.sin(rot);
     // ribbon behind the cart
     g.lineCap = 'round'; for (let i = 1; i < trail.length; i++) { const a = trail[i - 1], b = trail[i], f = i / trail.length; g.globalAlpha = f * 0.55; g.strokeStyle = b.c; g.lineWidth = 2 + f * 10 * csc; g.beginPath(); g.moveTo(Math.max(-50, SX(a.x)), SY(a.y) - 14 * csc); g.lineTo(SX(b.x), SY(b.y) - 14 * csc); g.stroke(); } g.globalAlpha = 1; g.lineCap = 'butt';
-    if (r.boosting) { const bx2 = cxp - ca * 22 * csc - sa * -11 * csc, by2 = cyp - sa * 22 * csc + ca * -11 * csc; burst(bx2, by2, 3, ['#ffd24a', '#ff8a1f', '#ffffff'], 520, 0.35, { a0: Math.PI + rot, spread: 0.5, g: 0, z: 6 }); if (Math.random() < 0.5) fxs.push({ k: 's', x: bx2, y: by2, vx: -260, vy: -30, t: 0, life: 0.7, c: 'rgba(120,110,130,.5)', g: -60, z: 9 }); }
+    if (r.boosting) { const nz = 43, ny = skinNow().car ? -11 : -17, bx2 = cxp - ca * nz * csc - sa * ny * csc, by2 = cyp - sa * nz * csc + ca * ny * csc; burst(bx2, by2, 3, ['#ffd24a', '#ff8a1f', '#ffffff'], 520, 0.35, { a0: Math.PI + rot, spread: 0.5, g: 0, z: 6 }); if (Math.random() < 0.5) fxs.push({ k: 's', x: bx2, y: by2, vx: -260, vy: -30, t: 0, life: 0.7, c: 'rgba(120,110,130,.5)', g: -60, z: 9 }); }
     if (r.golden && Math.random() < 0.5) burst(cxp + (Math.random() - 0.5) * 40, cyp - 20 + (Math.random() - 0.5) * 30, 1, ['#ffd24a', '#fff3b0'], 60, 0.6, { g: -80, z: 3 });
     if (r.v0 > 150 && sp > 0.9 * r.v0) { const k = Math.min(1, (sp / r.v0 - 0.9) * 3), gx = cxp + ca * 26 * csc, gy = cyp + sa * 26 * csc - 14 * csc, gr2 = g.createRadialGradient(gx, gy, 2, gx, gy, 46 * csc); gr2.addColorStop(0, `rgba(255,${200 - k * 90 | 0},${120 - k * 80 | 0},${0.25 + k * 0.5})`); gr2.addColorStop(1, 'rgba(255,120,60,0)'); g.fillStyle = gr2; g.beginPath(); g.arc(gx, gy, 46 * csc, rot - 1.5, rot + 1.5); g.fill(); }
     if (dashT > 0) for (let k = 3; k >= 1; k--) { g.globalAlpha = dashT / 0.4 * 0.4 / k; drawCart(cxp - ca * k * 30 * csc, cyp - sa * k * 30 * csc, rot, csc); } g.globalAlpha = 1; }
