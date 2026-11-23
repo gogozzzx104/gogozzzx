@@ -56,6 +56,7 @@ button{font-family:var(--disp);touch-action:manipulation}
 .goldv::before{content:"";display:inline-block;width:15px;height:15px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3b0,#f5b014 60%);border:2px solid #0d0a1c;margin-right:6px;vertical-align:-2px}
 .zonebar{flex:1;display:flex;gap:3px;min-width:0}
 .zonebar i{flex:1;height:8px;border-radius:4px;background:#0f0b22;border:1px solid #4a3d8a}
+.zonebar b{flex:none;font:13px var(--disp);color:#7df3da;margin-left:6px;white-space:nowrap;font-weight:400}
 .zonebar i.on{background:linear-gradient(#5af0d0,#12a594);border-color:#5af0d0}
 #sAll{background:linear-gradient(#7df3da,#12a594)!important}
 #shop .pill{background:linear-gradient(#ffd75e,#f5a614);border-color:#0d0a1c;box-shadow:0 3px 0 #0d0a1c;white-space:nowrap}
@@ -180,8 +181,8 @@ let S = C.newSave();
 try { const j = JSON.parse(localStorage.getItem('cart.save') || 'null'); if (j && j.lv) { S = Object.assign(C.newSave(), j); S.v = j.v; C.migrate(S); } } catch (e) {}   // older saves are converted by the core
 const save = () => { try { localStorage.setItem('cart.save', JSON.stringify(S)); } catch (e) {} };
 if (S.migrated != null) { const n = S.migrated; delete S.migrated; save(); setTimeout(() => toast(`밸런스 대개편! 업그레이드·골드는 초기화되고${n ? ' 보상으로 ★ ' + n + '개를 받았어요' : ', 별·환생 트리·업적은 그대로예요'}`, 5000), 800); }
-const UNIT = ['', '만', '억', '조', '경', '해'];
-function fmt(n) { n = Math.floor(n); if (n < 10000) return n.toLocaleString('ko-KR'); let u = 0; while (n >= 10000 && u < UNIT.length - 1) { n /= 10000; u++; } return (n >= 100 ? n.toFixed(0) : n >= 10 ? n.toFixed(1) : n.toFixed(2)) + UNIT[u]; }
+const UNIT = ['', '만', '억', '조', '경', '해', '자', '양', '구', '간', '정', '재', '극'];
+function fmt(n) { n = Math.floor(n); if (n >= 1e52) return n.toExponential(2).replace('e+', '×10^'); if (n < 10000) return n.toLocaleString('ko-KR'); let u = 0; while (n >= 10000 && u < UNIT.length - 1) { n /= 10000; u++; } return (n >= 100 ? n.toFixed(0) : n >= 10 ? n.toFixed(1) : n.toFixed(2)) + UNIT[u]; }
 const fmtD = m => m < 1000 ? m.toFixed(1) + 'm' : m < 1e6 ? (m / 1000).toFixed(2) + 'km' : fmt(m / 1000) + 'km';
 
 /* ---------------- stage ---------------- */
@@ -283,7 +284,7 @@ function launch() {
   for (let i = 0; i < 16; i++) parts.push({ x: 0, y: run.y, vx: -2 - Math.random() * 7, vy: (Math.random() - 0.3) * 6, t: 0, life: 0.6, c: '#fff', s: 1 });
 }
 function endRun() {
-  pay = C.finish(run, S); save(); state = 'result'; flyUI(false);
+  pay = C.finish(run, S); if (C.tl(S, 't_auto')) C.buyAll(S); save(); state = 'result'; flyUI(false);
   $('#rWhy').textContent = run.why; $('#rDist').innerHTML = fmtD(run.maxX);
   const tags = []; for (const a of pay.ach) tags.push('업적: ' + a.name); if (pay.record) tags.push('신기록'); if (pay.newZone) tags.push(Z[pay.zone].name + ' 첫 도달'); if (run.dbl) tags.push('더블 퍼펙트'); else if (run.perfect) tags.push('퍼펙트 발사'); if (run.kick > 1) tags.push((run.kick > 1.05 ? '퍼펙트 킥 +' : '굿 킥 +') + Math.round((run.kick - 1) * 100) + '%'); if (run.golden) tags.push('황금 판 ×3');
   $('#rTags').innerHTML = tags.map(t => `<span class="tagx">${t}</span>`).join('');
@@ -335,7 +336,7 @@ const EFF = { push: pw, runup: pw, sling: pw, cannon: pw, rail: pw, warp: pw, an
 const PEFF = { r_perf: l => `퍼펙트 +${Math.round(30 * (1 + 0.5 * l))}%`, r_land: l => `완벽 착지 +${(8 * (1 + 0.5 * l)).toFixed(0)}%`, r_time: l => `제한 시간 +${l * 10}초`, p_power: l => `발사 속도 +${l * 5}%`, p_meter: l => `퍼펙트 구간 +${l * 15}%`, r_focus: l => `퍼펙트 보너스 +${l * 3}%`, r_mem: l => `레벨의 ${l * 8}% 유지`, r_skip: l => `개척 골드 +${l * 50}%`, p_fuel: l => `부스트 +${(l * 0.5).toFixed(1)}초`, r_trick: l => `묘기 보너스 +${l * 50}%`,
   r_spring: l => `도약 +${l}회`, r_dash: l => `대시 +${l}회`, r_feather: l => `공기 저항 -${l * 6}%`, p_gold: l => `모든 골드 +${l * 25}%`, p_seed: l => l ? `최고 판 수익의 ${l}배` : '시작 골드 없음', r_coin: l => `코인 가치 +${l * 40}%`, r_disc: l => `가격 -${l * 5}%` };
 // value lines of the newer cards: one plainly labelled number each
-Object.assign(EFF, { tractor: s => s.tractor ? `${s.tractor.toFixed(1)}초마다 상자 1개` : '견인 없음', tail: s => `속도 손실 -${100 - Math.round(s.wear * 100)}%`, refuel: s => `완벽 착지 시 부스트 +${s.refuel.toFixed(2)}초`, leap: s => `발사 속도의 ${Math.round(s.leap * 100)}%만큼 밀어줌`, crater: s => `발사 속도의 ${(s.crater * 100).toFixed(1)}%만큼 밀어줌`,
+Object.assign(EFF, { haul: s => `거리 수익 ×${s.haul.toFixed(2)}`, tractor: s => s.tractor ? `${s.tractor.toFixed(1)}초마다 상자 1개` : '견인 없음', tail: s => `속도 손실 -${100 - Math.round(s.wear * 100)}%`, refuel: s => `완벽 착지 시 부스트 +${s.refuel.toFixed(2)}초`, leap: s => `발사 속도의 ${Math.round(s.leap * 100)}%만큼 밀어줌`, crater: s => `발사 속도의 ${(s.crater * 100).toFixed(1)}%만큼 밀어줌`,
   amp: s => `부스트·대시 힘 +${s.ampP}%`, turbine: s => `5연속 시 잃은 속도의 ${Math.round(s.turbine * 100)}% 회복`, draft: s => `콤보 10부터 속도 손실 -${Math.round(s.draft * 100)}%`, pslam: s => `튕기는 힘 +${(s.pslam * 100).toFixed(1)}%`, pit: s => `한 판에 최대 ${s.pit}회`,
   jspring: s => `도약 타이밍 여유 ${(0.22 + 0.008 * s.jspring).toFixed(2)}초`, burn: s => `부스트 힘 +${s.burnP}% · 연료 소모 +${Math.round((s.burnK - 1) * 100)}%`, streak: s => `연속 1번마다 골드 +${(s.streakB * 100).toFixed(1)}%`, multi: s => `2바퀴째부터 공중제비 골드 +${Math.round(s.multi * 100)}%`,
   allr: s => `가장 적게 한 것 1회당 골드 +${(s.allB * 100).toFixed(1)}%`, magnet: s => s.magR ? `끌어당기는 범위 ${Math.round(s.magR / 1.2 * 100)}%` : '자석 없음', heat: s => `용암 통과 가속 +${(1.2 * s.heat).toFixed(1)}%`, wide: s => `숲·모래·바위 통과 가속 +${(1.2 * s.wide).toFixed(1)}%` });
@@ -372,15 +373,18 @@ const IC = {
   streak: p_('M4 18l4-5 4 3 4-7 4 4M4 21h16'), ctime: c_(12, 13, 7) + p_('M12 13V9M12 13l3 2M9 3h6M19 6l1.5-1.5'), multi: p_(LOOP) + p_('M9 10l2 2 4-4M9 15h6'), allr: c_(7, 7, 3) + c_(17, 7, 3) + c_(7, 17, 3) + c_(17, 17, 3) + p_('M10 7h4M10 17h4M7 10v4M17 10v4'),
   cosmos: c_(12, 12, 9) + e_(12, 12, 9, 3.5) + e_(12, 12, 3.5, 9) + c_(12, 12, 1.5),
   anti: c_(8, 12, 5) + c_(16, 12, 5) + p_('M6 12h4M14 12h4M16 10v4'), singu: c_(12, 12, 2) + e_(12, 12, 9, 3) + p_('M12 3v3M12 18v3M4 5l2 2M18 17l2 2'), bang: p_('M12 2l2 6 6-3-3 6 6 2-6 2 3 6-6-3-2 6-2-6-6 3 3-6-6-2 6-2-3-6 6 3z'),
+  haul: p_('M2 7h11v9H2zM13 10h5l3 3v3h-8zM2 19h2M20 19h2') + c_(7, 18, 2) + c_(17, 18, 2),
   tractor: r_(13, 3, 8, 7, 1) + p_('M13 6h8M4 21l9-11M8 21l7-11M4 21h4') + c_(6, 21, 1),
   leap: p_('M5 21l7-3-7-3 7-3M14 9h7m0 0l-3-3m3 3l-3 3'), crater: p_('M12 2v9M8 8l4 4 4-4M3 20q9-8 18 0M15 15h6m0 0l-2-2m2 2l-2 2'), amp: c_(12, 12, 4) + p_('M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3'),
   refuel: CAN + p_('M19 14V8M16.5 10.5L19 8l2.5 2.5'),
   warp: e_(12, 12, 9, 4) + e_(12, 12, 5, 2) + p_('M12 2v4M12 18v4'), tail: p_('M3 7h10a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 17h7'), over: c_(12, 12, 9) + p_('M12 12l4-5M12 5v2M5 12h2M17 12h2'), encore: p_(LOOP) + p_('M12 8v8M8 12h8'),
   r_perf: p_('M12 2l3 6 6 1-4.5 4 1 6-5.5-3-5.5 3 1-6L3 9l6-1z') + c_(12, 12, 1.5), r_land: p_('M4 20h16M7 16l5-10 5 10M9 12h6'), r_time: c_(12, 13, 8) + p_('M12 13V8M12 13l3 2M9 2h6'),
+  t_trans: p_('M12 2l8 5v10l-8 5-8-5V7zM12 2v20M4 7l16 10M20 7L4 17'),
   t_skin: p_('M8 3l-5 4 3 4 2-1v11h8V10l2 1 3-4-5-4q-2 3-4 3t-4-3z'), t_info: p_('M7 4h10v5a5 5 0 0 1-10 0zM7 6H3q0 5 4 5M17 6h4q0 5-4 5M12 14v4M8 21h8') };
 const icon = id => `<svg class="ic" viewBox="0 0 24 24">${IC[id] || c_(12, 12, 7)}</svg>`;
-const BCOL = { launch: '#ff8a66', body: '#6cbcff', gear: '#3fe6c5', money: '#ffcf4a', star: '#c59bff', skin: '#ff9de0', info: '#9fb0ff', might: '#ff8a66', flight: '#6cbcff', wealth: '#ffcf4a' };
-const TABS = [['launch', '발사', 'ramp'], ['body', '차체', 'frame'], ['gear', '장치', 'rocket'], ['money', '수익', 'coin'], ['star', '환생', 'style'], ['skin', '스킨', 't_skin'], ['info', '기록', 't_info']];
+const BCOL = { launch: '#ff8a66', body: '#6cbcff', gear: '#3fe6c5', money: '#ffcf4a', star: '#c59bff', trans: '#7df3da', skin: '#ff9de0', info: '#9fb0ff', might: '#ff8a66', flight: '#6cbcff', wealth: '#ffcf4a' };
+const transOpen = () => (S.trans || 0) > 0 || (S.shards || 0) > 0 || C.cycleBest(S) >= Z[C.LAST].at;
+const TABS = [['launch', '발사', 'ramp'], ['body', '차체', 'frame'], ['gear', '장치', 'rocket'], ['money', '수익', 'coin'], ['star', '환생', 'style'], ['trans', '초월', 't_trans'], ['skin', '스킨', 't_skin'], ['info', '기록', 't_info']];
 const NUM = /[+\-×]?\d[\d,.]*(?:만|억|조|경|해)?(?:%p|%|초|회|°|m\/s|개|번)?/g;
 const arrow = (a, b) => { const na = a.match(NUM) || [], nb = b.match(NUM) || [], ta = a.split(NUM), tb = b.split(NUM), same = na.length === nb.length && ta.join('|') === tb.join('|'), nx = same ? nb.filter((v, i) => v !== na[i]).join(' · ') : b; return `${a}<br><i>다음 Lv</i>${nx}`; };   // the current line in full, then only the numbers the next level changes
 const sel = {}, perkCan = q => { const l = S.perks[q.id] || 0; return l < q.max && !C.perkLock(S, q.id) && S.stars >= C.perkCost(q, l); };
@@ -412,19 +416,22 @@ function perkDetail(q) { const l = S.perks[q.id] || 0, mx = l >= q.max, lock = C
   return `<div class="dh" style="--bc:${BCOL[q.br]}"><div class="di">${icon(q.id)}</div><div><h3>${q.name}</h3><span>${q.cap ? '궁극' : 'Lv ' + l + ' / ' + q.max}</span></div></div><p>${q.desc}</p>${PEFF[q.id] ? `<p class="eff">${mx ? PEFF[q.id](l) : arrow(PEFF[q.id](l), PEFF[q.id](l + 1))}</p>` : ''}${reqs ? `<div class="dr">${reqs}</div>` : ''}<button class="buy star" data-perk="${q.id}" ${perkCan(q) ? '' : 'disabled'}>${mx ? '완료' : lock ? '잠김' : '★ ' + c}</button>`; }
 function renderShop() {
   st = C.stats(S); $('#sGold').textContent = fmt(S.gold);
-  $('#sZones').innerHTML = Z.map((z, i) => `<i class="${i <= S.zone ? 'on' : ''}" title="${z.name}"></i>`).join('');
+  $('#sZones').innerHTML = Z.slice(0, C.LAST + 1).map((z, i) => `<i class="${i <= S.zone ? 'on' : ''}" title="${z.name}"></i>`).join('') + (S.zone > C.LAST ? `<b>미지 ${S.zone - C.LAST}</b>` : '');
   const isUp = C.BRANCH.some(b => b[0] === tab), list = $('#sList'), det = $('#sDet');
-  $('#sTabs').innerHTML = TABS.map(([id, name, ic]) => { const n = id === 'star' ? C.PERKS.filter(perkCan).length : C.UPS.filter(u => u.br === id && C.canBuy(S, u.id)).length; return `<button type="button" class="tab${tab === id ? ' on' : ''}" data-t="${id}" style="--bc:${BCOL[id]}">${icon(ic)}${name}${n ? `<i>${n}</i>` : ''}</button>`; }).join('');
+  $('#sTabs').innerHTML = TABS.filter(t => t[0] !== 'trans' || transOpen()).map(([id, name, ic]) => { const n = id === 'trans' ? C.TPERKS.filter(q => C.tl(S, q.id) < q.max && S.shards >= C.tCost(q, C.tl(S, q.id))).length : id === 'star' ? C.PERKS.filter(perkCan).length : C.UPS.filter(u => u.br === id && C.canBuy(S, u.id)).length; return `<button type="button" class="tab${tab === id ? ' on' : ''}" data-t="${id}" style="--bc:${BCOL[id]}">${icon(ic)}${name}${n ? `<i>${n}</i>` : ''}</button>`; }).join('');
   list.className = isUp || tab === 'star' ? 'tree' : 'tree grid';
   if (isUp) list.innerHTML = treeHTML(C.UPS.filter(u => u.br === tab), false);
-  else if (tab === 'star') { const gain = C.starsFor(S.bestLife), per = Math.round(C.STAR_GOLD * (S.perks.r_bless ? 1.5 : 1) * 100), keep = (S.perks.r_mem || 0) * 8;
+  else if (tab === 'star') { const gain = C.starGain(S), per = Math.round(C.STAR_GOLD * (S.perks.r_bless ? 1.5 : 1) * 100), keep = (S.perks.r_mem || 0) * 8;
     list.innerHTML = `<div class="rbar"><div><h3>환생 · 보유 ★ ${S.stars} · 별 보너스 골드 +${S.starsTotal * per}%</h3><p>골드·업그레이드${keep ? `(${keep}% 유지)` : ''}를 비우고 ★을 받아요. ★ 하나당 골드 +${per}%. 별·트리·업적은 남습니다.</p><p>이번 생 ${fmtD(S.bestLife)} · 다음 ★ ${(d => isFinite(d) ? fmtD(d) : '더 없음')(C.nextStarAt(S.bestLife))}${S.rebirths >= 2 ? ' · 환생 3회부터 구역 조건은 유지' : ''}</p></div><button class="buy star" data-rebirth="1" ${gain > 0 ? '' : 'disabled'}>${confirmKey === 'rebirth' ? '정말요?<small>한 번 더 누르기</small>' : '환생하기<small>★ +' + gain + '</small>'}</button></div>` + treeHTML(C.PERKS, true); }
+  else if (tab === 'trans') { const g2 = C.shardsFor(S), TE = { t_speed: l => `발사 속도 ×${Math.pow(1.25, l).toFixed(2)}`, t_gold: l => `모든 골드 ×${fmt(Math.pow(2, l))}`, t_star: l => `별 +${l * 50}%`, t_cap: l => `한도 ${(3 + 0.2 * l).toFixed(1)}배`, t_time: l => `+${l * 10}%`, t_keep: l => `${50 + l * 10}% 유지`, t_auto: l => l ? '켜짐' : '꺼짐' };
+    list.innerHTML = `<div class="rbar" style="grid-column:1/-1;margin:0"><div><h3>초월 · 차원석 ◆ ${S.shards || 0} · 초월 ${S.trans || 0}회</h3><p>골드·업그레이드·별을 비우고 차원석을 받아요. 환생 트리는 ${50 + 10 * C.tl(S, 't_keep')}% 남고, 환생 횟수·업적·스킨·차원 능력은 그대로예요.</p><p>${g2 ? `지금 초월하면 ◆ +${g2} · 미지의 영역을 더 깊이 갈수록 많이 받아요` : `${Z[C.LAST].name}에 도달해야 초월할 수 있어요`}</p></div><button class="buy star" data-trans="1" ${g2 ? '' : 'disabled'}>${confirmKey === 'trans' ? '정말요?<small>한 번 더 누르기</small>' : '초월하기<small>◆ +' + g2 + '</small>'}</button></div>` +
+      `<div class="bh">차원 능력 · 초월해도 남음</div>` + C.TPERKS.map(q => { const l = C.tl(S, q.id), mx = l >= q.max, c = C.tCost(q, l); return `<div class="ac${l ? ' done' : ''}"><h3>${q.name} <small style="color:#7df3da">Lv ${l}/${q.max}</small></h3><p>${q.desc}</p><p style="color:#fff;font-weight:700">${TE[q.id](l)}${mx ? '' : ' → ' + TE[q.id](l + 1)}</p><button class="buy sm" data-tp="${q.id}" ${!mx && S.shards >= c ? '' : 'disabled'}>${mx ? '완료' : '◆ ' + c}</button></div>`; }).join(''); }
   else if (tab === 'skin') { const cur = skinNow().id;
     list.innerHTML = `<div class="bh">스킨</div>` + SKINS.map(k => `<button type="button" class="sk${k.id === cur ? ' on' : ''}${skinOpen(k) ? '' : ' lock'}" data-skin="${k.id}"><canvas width="220" height="140" data-skin="${k.id}"></canvas>${k.name}<small>${skinOpen(k) ? (k.id === cur ? '사용 중' : '눌러서 변경') : Z[k.z].name + ' 도달 시'}</small></button>`).join('');
     for (const c2 of list.querySelectorAll('canvas')) { const g0 = g; g = c2.getContext('2d'); pvSkin = SKINS.find(k => k.id === c2.dataset.skin); g.setTransform(2, 0, 0, 2, 0, 0); drawCart(64, 54, 0, 1.25); pvSkin = null; g = g0; } }
   else { const n = C.achCount(S);
     list.innerHTML = `<div class="ac done"><h3>최고 ${fmtD(S.best)}</h3><p>${S.runs}판 · 업그레이드 ${C.total(S)}Lv · 환생 ${S.rebirths}회</p><p>업적 ${n}개 → 골드 +${n * 3}%</p></div>` +
-      `<div class="bh">구역</div>` + Z.map((z, i) => `<div class="ac${i <= S.zone ? ' done' : ' off'}"><h3>${i + 1}. ${i <= S.zone + 1 ? z.name : '???'}</h3><p>${fmtD(z.at)}부터${i === S.zone + 1 ? ' · 다음 목표' : ''}</p></div>`).join('') +
+      `<div class="bh">구역</div>` + Z.filter((z, i) => i <= Math.max(C.LAST, S.zone + 1)).map((z, i) => `<div class="ac${i <= S.zone ? ' done' : ' off'}"><h3>${i + 1}. ${i <= S.zone + 1 ? z.name : '???'}</h3><p>${fmtD(z.at)}부터${i === S.zone + 1 ? ' · 다음 목표' : ''}</p></div>`).join('') +
       `<div class="bh">업적 · 하나당 골드 +3%</div>` + C.ACH.map(a => `<div class="ac${S.ach[a.id] ? ' done' : ' off'}"><h3>${a.name}</h3><p>${a.desc}</p></div>`).join('') +
       `<div class="bh">기타</div><p class="note">코인은 공중에 2~3개씩 떠 있어요. 부스트·도약·대시·급강하로 높이를 맞춰 보세요.</p><div class="ac"><h3>골드만 비우기</h3><p>업그레이드·별은 그대로 두고 보유 골드만 0으로. 이 기기의 내 기록에만 적용됩니다.</p><button class="buy sm" data-zero="1">${confirmKey === 'zero' ? '정말요? 한 번 더' : '골드 0으로'}</button></div><div class="ac"><h3>처음부터 다시</h3><p>별·업적까지 모두 지웁니다.</p><button class="buy sm" data-wipe="1">${confirmKey === 'wipe' ? '정말요? 한 번 더' : '초기화'}</button></div>`; }
 }
@@ -437,6 +444,8 @@ const shopClick = e => { const nd = e.target.closest('.nd'), sk = e.target.close
     else if (b.dataset.max) { let n = 0; while (n < 300 && C.buy(S, b.dataset.max)) n++; if (n) SFX.buy(); }
     else if (b.dataset.perk) { if (C.buyPerk(S, b.dataset.perk)) SFX.buy(); }
     else if (b.dataset.rebirth) { if (confirmKey !== 'rebirth') confirmKey = 'rebirth'; else { const n = C.rebirth(S); confirmKey = ''; SFX.zone(); toast('환생! ★ +' + n, 2200); } }
+    else if (b.dataset.tp) { if (C.buyT(S, b.dataset.tp)) SFX.buy(); }
+    else if (b.dataset.trans) { if (confirmKey !== 'trans') confirmKey = 'trans'; else { const n = C.transcend(S); confirmKey = ''; SFX.zone(); SFX.perfect(); toast('초월! ◆ +' + n, 2400); } }
     else if (b.dataset.zero) { if (confirmKey !== 'zero') confirmKey = 'zero'; else { S.gold = 0; confirmKey = ''; toast('골드를 비웠어요', 1500); } }
     else if (b.dataset.wipe) { if (confirmKey !== 'wipe') confirmKey = 'wipe'; else { S = C.newSave(); confirmKey = ''; } } }
   else if (sel[tab] && !e.target.closest('.pop') && e.target.closest('.tw')) sel[tab] = null;   // tap on empty space closes the card
@@ -826,7 +835,7 @@ function frame(now) {
     }
     const zn = C.zoneAt(run.x); if (zn !== lastZone) { lastZone = zn; zoneIn = run.tr; zoneSaid = false; }
     if (!zoneSaid && zn > 0 && (run.tr - zoneIn > 0.8 || zn > S.zone)) { zoneSaid = true; banner = { t: now, txt: Z[zn].name }; if (now - jingleT > 2500) { jingleT = now; SFX.zone(); } }
-    if (run.tr - zoneIn > 1.5) { MUS.want(Z[zn].deco); MUS.want(Z[zn].id); }
+    if (run.tr - zoneIn > 1.5) { MUS.want(Z[zn].deco); MUS.want(Z[zn].fx); MUS.want(Z[zn].id); }
     BST.set(run.boosting);
     { const spN = Math.hypot(run.vx, run.vy), lv = spN > 34000 ? 3 : spN > 3400 ? 2 : spN > 340 ? 1 : 0; if (lv > sonicLv && run.tr > 1.8) { sonicLv = lv; toast(['', '음속 돌파!', '마하 10!', '마하 100!'][lv], 1000); SFX.dash(); noise(0.4, 0.5, 300); shake = 6; ringFx(cartX, cartY, '#ffffff', 150, 0.55, 6); } }
     dashT = Math.max(0, dashT - dt);

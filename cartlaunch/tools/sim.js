@@ -25,7 +25,8 @@ const W = { push: +(process.env.PUSHW || 2), runup: 1.5, ad: 1.5, sling: 1.5, ca
 function buyAll(s) { for (;;) { let best = null, bv = Infinity; for (const u of C.UPS) if (C.canBuy(s, u.id)) { const v = C.cost(s, u.id) / (W[u.id] || 0.3); if (v < bv) { bv = v; best = u.id; } } if (!best) break; C.buy(s, best); } }
 function buyPerks(s) { for (;;) { let best = null, bc = 1e9; for (const p of C.PERKS) { const l = s.perks[p.id] || 0, c = C.perkCost(p, l); if (l < p.max && !C.perkLock(s, p.id) && c <= s.stars && c < bc) { best = p.id; bc = c; } } if (!best) break; C.buyPerk(s, best); } }
 if (require.main === module) {
-  const s = C.newSave(); let time = 0, life = 1, lifeRun = 0, lastGain = 0, lifeBest = 0, lifeTime = 0, coinShare = 0, coinN = 0, durSum = 0, durMax = 0, ga = 0, da = 0, ca = 0; const fmt = n => n.toExponential(1);
+  const s = C.newSave(); if (process.env.TP) { Object.assign(s, JSON.parse(process.env.TP)); }   // e.g. TP='{"tperks":{"t_gold":3},"rebirths":12}' to start a post-transcendence cycle
+  let time = 0, life = 1, lifeRun = 0, lastGain = 0, lifeBest = 0, lifeTime = 0, coinShare = 0, coinN = 0, durSum = 0, durMax = 0, ga = 0, da = 0, ca = 0; const fmt = n => n.toExponential(1);
   console.log(`== life 1 (pilot=${PILOT})`);
   for (let i = 1; i <= MAX; i++) {
     const z0 = s.zone, r = play(s, i * 7 + 3), p = C.finish(r, s); time += r.tr + 7; lifeTime += r.tr + 7; lifeRun++; durSum += r.tr; durMax = Math.max(durMax, r.tr); buyAll(s);
