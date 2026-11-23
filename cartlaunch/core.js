@@ -21,16 +21,29 @@ const CORE = (() => {
     { id: 'ice', name: '만년 설산', at: 80000, g: 9.8, drag: 1, amp: 0.78, wl: 28, sk: 0.6, la: 2, mu: 0.3, e: 0.9, loss: 0.5, sky: ['#9fc3e8', '#ffffff'], ground: '#e8f1fa', deco: 'ice' },
     { id: 'lava', name: '용암 지대', at: 200000, g: 9.8, drag: 1.2, amp: 1.06, wl: 30, sk: 0.75, la: 2, mu: 1.2, e: 0.9, loss: 1, spec: ['geyser', 'pool'], sky: ['#3a1410', '#c2451e'], ground: '#33211f', deco: 'lava' },
     { id: 'cloud', name: '구름 왕국', at: 500000, g: 8, drag: 0.9, amp: 0.83, wl: 36, sk: 0.2, la: 2.4, mu: 0.5, e: 1.12, loss: 0.6, spec: ['tramp'], sky: ['#ff9ec7', '#fff0c9'], ground: '#fff3fa', deco: 'cloud' },
+    // beyond the clouds the zones follow real distance from Earth: Moon, Sun, Mars, asteroid belt, Jupiter, Saturn, Kuiper belt, Alpha Centauri (4.4 ly),
+    // Pleiades (~440 ly), Orion Nebula (~1,300-1,500 ly), Crab Nebula (~6,500 ly), the Milky Way's centre (~26,000 ly), the Magellanic Clouds (~160,000-200,000 ly),
+    // Andromeda (~2.5 million ly), the Virgo Cluster (~54 million ly), the edge of the observable universe, and then what lies outside it
     { id: 'moon', name: '달 기지', at: 1200000, g: 5.5, drag: 0.6, amp: 0.84, wl: 24, sk: -0.5, la: 1.5, mu: 0.8, e: 1.03, loss: 0.8, sky: ['#05060d', '#141a33'], ground: '#9a9aa6', deco: 'moon' },
-    { id: 'rock', name: '소행성대', at: 3000000, g: 4.5, drag: 0.6, amp: 0.72, wl: 20, sk: -0.7, la: 2, mu: 1.8, e: 0.9, loss: 1.4, rough: 1, sky: ['#070812', '#221a38'], ground: '#6b6258', deco: 'rock' },
-    { id: 'star', name: '은하 고속도로', at: 7500000, g: 7, drag: 0.8, amp: 0.93, wl: 44, sk: 0.35, la: 3, mu: 0.6, e: 1.05, loss: 0.7, sky: ['#0a0220', '#3a0f66'], ground: '#5b2bd6', deco: 'star' },
-    { id: 'hole', name: '블랙홀 가장자리', at: 20000000, g: 14, drag: 1.3, amp: 1.69, wl: 36, sk: 0.5, la: 3, mu: 1.2, e: 0.9, loss: 1.2, rough: 1, spec: ['pool', 'geyser'], sky: ['#000000', '#3a0a16'], ground: '#1a1020', deco: 'hole' },
-    { id: 'end', name: '우주의 끝', at: 50000000, g: 6, drag: 0.9, amp: 1.6, wl: 40, sk: 0.3, la: 3.5, mu: 1.5, e: 0.95, loss: 1.3, rough: 1, spec: ['pool'], sky: ['#b8e8ff', '#f6f0ff'], ground: '#2b2233', deco: 'end' },
-    { id: 'rift', fx: 'rift', name: '차원의 틈', at: 1.2e8, g: 9, drag: 1, amp: 1.4, wl: 34, sk: 0.6, la: 3, mu: 1.3, e: 0.95, loss: 1.2, rough: 1, spec: ['geyser'], sky: ['#12002b', '#6a1fb5'], ground: '#2a0f4a', deco: 'hole' },
-    { id: 'crystal', fx: 'crystal', name: '수정 행성', at: 3e8, g: 7, drag: 0.8, amp: 1.1, wl: 26, sk: 0.4, la: 2.5, mu: 0.3, e: 1.05, loss: 0.6, spec: ['tramp'], sky: ['#0b3a4a', '#7ff0e0'], ground: '#bff5ee', deco: 'ice' },
-    { id: 'sun', fx: 'sun', name: '태양 표면', at: 7.5e8, g: 12, drag: 1.3, amp: 1.3, wl: 30, sk: 0.7, la: 2.5, mu: 1.2, e: 0.9, loss: 1.1, spec: ['pool', 'geyser'], sky: ['#ff7a1a', '#ffe27a'], ground: '#7a2a0a', deco: 'lava' },
-    { id: 'nebula', fx: 'nebula', name: '무지개 성운', at: 2e9, g: 6, drag: 0.8, amp: 1, wl: 38, sk: 0.2, la: 3, mu: 0.5, e: 1.1, loss: 0.6, spec: ['tramp'], sky: ['#3a1a6a', '#ff9ec7'], ground: '#e8d9ff', deco: 'cloud' },
-    { id: 'omega', fx: 'omega', name: '시간의 끝', at: 5e9, g: 8, drag: 1, amp: 1.6, wl: 42, sk: 0.3, la: 3.5, mu: 1, e: 1, loss: 1, rough: 1, spec: ['pool'], sky: ['#000010', '#1a3a6a'], ground: '#101830', deco: 'star' },
+    { id: 'sun', fx: 'sun', name: '태양 표면', at: 3000000, g: 12, drag: 1.3, amp: 1.3, wl: 30, sk: 0.7, la: 2.5, mu: 1.2, e: 0.9, loss: 1.1, spec: ['pool', 'geyser'], sky: ['#ff7a1a', '#ffe27a'], ground: '#7a2a0a', deco: 'lava' },
+    { id: 'mars', fx: 'mars', name: '화성 협곡', at: 7500000, g: 6, drag: 0.7, amp: 1.2, wl: 32, sk: 0.8, la: 1.5, mu: 1.6, e: 0.85, loss: 1.3, rough: 1, sky: ['#c98a5a', '#f2c79a'], ground: '#a8502d', deco: 'canyon' },
+    { id: 'rock', name: '소행성대', at: 20000000, g: 4.5, drag: 0.6, amp: 0.72, wl: 20, sk: -0.7, la: 2, mu: 1.8, e: 0.9, loss: 1.4, rough: 1, sky: ['#070812', '#221a38'], ground: '#6b6258', deco: 'rock' },
+    { id: 'jupiter', fx: 'jupiter', name: '목성 폭풍', at: 5e7, g: 13, drag: 1.2, amp: 0.9, wl: 40, sk: 0.2, la: 2.5, mu: 0.5, e: 1.1, loss: 0.6, spec: ['tramp'], sky: ['#3a2416', '#d9a066'], ground: '#e8c9a0', deco: 'cloud' },
+    { id: 'saturn', fx: 'saturn', name: '토성 고리', at: 1.2e8, g: 8, drag: 0.7, amp: 0.8, wl: 22, sk: -0.6, la: 2, mu: 1.6, e: 0.95, loss: 1.2, rough: 1, sky: ['#0a0a18', '#3a3350'], ground: '#cfc3a0', deco: 'rock' },
+    { id: 'crystal', fx: 'crystal', name: '카이퍼 얼음띠', at: 3e8, g: 7, drag: 0.8, amp: 1.1, wl: 26, sk: 0.4, la: 2.5, mu: 0.3, e: 1.05, loss: 0.6, spec: ['tramp'], sky: ['#0b3a4a', '#7ff0e0'], ground: '#bff5ee', deco: 'ice' },
+    { id: 'centauri', fx: 'centauri', name: '알파 센타우리', at: 7.5e8, g: 9, drag: 1, amp: 1.1, wl: 30, sk: 0.5, la: 2.5, mu: 1, e: 1, loss: 1, spec: ['pool', 'geyser'], sky: ['#1a0a05', '#a8431a'], ground: '#3a1a12', deco: 'lava' },
+    { id: 'pleiades', fx: 'pleiades', name: '플레이아데스 성단', at: 2e9, g: 6, drag: 0.8, amp: 1, wl: 30, sk: 0.3, la: 2.5, mu: 0.4, e: 1.05, loss: 0.7, sky: ['#030818', '#1a3a7a'], ground: '#b9d2f5', deco: 'ice' },
+    { id: 'nebula', fx: 'nebula', name: '오리온 성운', at: 5e9, g: 6, drag: 0.8, amp: 1, wl: 38, sk: 0.2, la: 3, mu: 0.5, e: 1.1, loss: 0.6, spec: ['tramp'], sky: ['#3a1a6a', '#ff9ec7'], ground: '#e8d9ff', deco: 'cloud' },
+    { id: 'crab', fx: 'crab', name: '게 성운', at: 1.2e10, g: 10, drag: 1.1, amp: 1.4, wl: 34, sk: 0.6, la: 3, mu: 1.3, e: 0.95, loss: 1.2, rough: 1, spec: ['pool'], sky: ['#06040f', '#2a1038'], ground: '#3a2a30', deco: 'rock' },
+    { id: 'star', name: '은하 고속도로', at: 3e10, g: 7, drag: 0.8, amp: 0.93, wl: 44, sk: 0.35, la: 3, mu: 0.6, e: 1.05, loss: 0.7, sky: ['#0a0220', '#3a0f66'], ground: '#5b2bd6', deco: 'star' },
+    { id: 'hole', name: '궁수자리 블랙홀', at: 7.5e10, g: 14, drag: 1.3, amp: 1.69, wl: 36, sk: 0.5, la: 3, mu: 1.2, e: 0.9, loss: 1.2, rough: 1, spec: ['pool', 'geyser'], sky: ['#000000', '#3a0a16'], ground: '#1a1020', deco: 'hole' },
+    { id: 'magellan', fx: 'magellan', name: '마젤란 은하', at: 2e11, g: 6, drag: 0.8, amp: 1, wl: 36, sk: 0.2, la: 3, mu: 0.5, e: 1.1, loss: 0.6, spec: ['tramp'], sky: ['#0a1030', '#5a3a8a'], ground: '#d6e2ff', deco: 'cloud' },
+    { id: 'andromeda', fx: 'andromeda', name: '안드로메다 은하', at: 5e11, g: 5, drag: 0.7, amp: 0.9, wl: 28, sk: -0.4, la: 2.5, mu: 0.8, e: 1.03, loss: 0.8, sky: ['#02030a', '#101a3a'], ground: '#8f94b8', deco: 'moon' },
+    { id: 'virgo', fx: 'virgo', name: '처녀자리 은하단', at: 1.2e12, g: 8, drag: 0.9, amp: 1.3, wl: 26, sk: -0.6, la: 3, mu: 1.5, e: 0.95, loss: 1.3, rough: 1, sky: ['#050208', '#2a1a12'], ground: '#6a5a4a', deco: 'rock' },
+    { id: 'end', name: '우주의 끝', at: 3e12, g: 6, drag: 0.9, amp: 1.6, wl: 40, sk: 0.3, la: 3.5, mu: 1.5, e: 0.95, loss: 1.3, rough: 1, spec: ['pool'], sky: ['#b8e8ff', '#f6f0ff'], ground: '#2b2233', deco: 'end' },
+    { id: 'rift', fx: 'rift', name: '차원의 틈', at: 7.5e12, g: 9, drag: 1, amp: 1.4, wl: 34, sk: 0.6, la: 3, mu: 1.3, e: 0.95, loss: 1.2, rough: 1, spec: ['geyser'], sky: ['#12002b', '#6a1fb5'], ground: '#2a0f4a', deco: 'hole' },
+    { id: 'multi', fx: 'multi', name: '멀티버스', at: 2e13, g: 7, drag: 0.9, amp: 1.2, wl: 36, sk: 0.3, la: 3, mu: 0.6, e: 1.1, loss: 0.7, spec: ['tramp', 'geyser'], sky: ['#0a0220', '#103a4a'], ground: '#c9f0e8', deco: 'cloud' },
+    { id: 'omega', fx: 'omega', name: '시간의 끝', at: 5e13, g: 8, drag: 1, amp: 1.6, wl: 42, sk: 0.3, la: 3.5, mu: 1, e: 1, loss: 1, rough: 1, spec: ['pool'], sky: ['#000010', '#1a3a6a'], ground: '#101830', deco: 'star' },
   ];
   const ZI = id => ZONES.findIndex(z => z.id === id);
   const zoneAt = x => { let z = 0; for (let i = 1; i < ZONES.length; i++) if (x >= ZONES[i].at) z = i; return z; };
@@ -57,7 +70,7 @@ const CORE = (() => {
   const pr = z => Math.pow(PRICE.late, Math.max(0, z - PRICE.from));
   const U_ = (id, br, name, max, zs, span, desc, req, zone, re) => ({ id, br, name, max, zs, span, desc, req: req || [], zone: zone ? ZI(zone) : 0, re: re || 0 });
   // levels past an upgrade's original cap: each costs 1.7x the one before
-  const EXT = { runup: 50, sling: 35, cannon: 35, rail: 35, warp: 35, frame: 30, aero: 60, gyro: 20, rubber: 25, float: 25, heat: 25, wide: 25, fuel: 40, nozzle: 40, spring: 30, dash: 25, dashpow: 40, dive: 24, airjump: 15, jet: 50, grav: 20, refuel: 30, leap: 25, crater: 25, amp: 30, tail: 25,
+  const EXT = { anti: 40, singu: 45, bang: 50, runup: 50, sling: 35, cannon: 35, rail: 35, warp: 35, frame: 30, aero: 60, gyro: 20, rubber: 25, float: 25, heat: 25, wide: 25, fuel: 40, nozzle: 40, spring: 30, dash: 25, dashpow: 40, dive: 24, airjump: 15, jet: 50, grav: 20, refuel: 30, leap: 25, crater: 25, amp: 30, tail: 25,
     ad: 100, coin: 100, magnet: 30, style: 50, combo: 40, alt: 50, sponsor: 40, trickpay: 40, lucky: 20, crate: 25, streak: 25, encore: 40 };
   const UPS = [
     { id: 'push', br: 'launch', name: '근력 훈련', max: 400, c0: 8, cm: 1.1, q: 1.0008, q2: 1.006, l2: 50, desc: '발사 속도 ×1.05 · 한도 없음', req: [], zone: 0 },
@@ -71,9 +84,10 @@ const CORE = (() => {
 
     U_('warp', 'launch', '워프 코일', 20, 11, 6, '발사 속도 +4%', [['rail', 10]], 'moon', 1),
 
-    U_('anti', 'launch', '반물질 사출기', 25, 15, 5, '발사 속도 +4%', [['warp', 20]], 'rift', 3),
-    U_('singu', 'launch', '특이점 엔진', 30, 16.5, 5, '발사 속도 +5%', [['anti', 25]], 'crystal', 5),
-    U_('bang', 'launch', '빅뱅 점화', 30, 18, 5, '발사 속도 +5%', [['singu', 30]], 'sun', 8),
+    U_('anti', 'launch', '반물질 사출기', 25, 15, 5, '발사 속도 +4%', [['warp', 20]], 'saturn', 3),
+    U_('singu', 'launch', '특이점 엔진', 30, 18.5, 5, '발사 속도 +5%', [['anti', 25]], 'pleiades', 5),
+    U_('bang', 'launch', '빅뱅 점화', 30, 22, 5, '발사 속도 +5%', [['singu', 30]], 'hole', 8),
+    U_('cosmos', 'launch', '우주 가속기', 40, 26, 4, '발사 속도 +6%', [['bang', 30]], 'end', 12),
     U_('wheel', 'body', '바퀴 윤활', 18, 0, 2.5, '땅에서 굴러갈 때 덜 느려짐'),
     U_('tire', 'body', '탄성 타이어', 20, 0.3, 3.5, '땅에서 더 높이 튕김', [['wheel', 3]]),
     U_('frame', 'body', '경량 프레임', 20, 0.6, 4, '착지 때 잃는 속도 -14%', [['wheel', 5]]),
@@ -86,8 +100,8 @@ const CORE = (() => {
     U_('hover', 'body', '호버 스커트', 15, 6.5, 7, '튕기는 힘의 최대치가 올라감', [['tire', 15]], 'sea'),
     U_('heat', 'body', '내열 코팅', 10, 8, 5, '용암에서 덜 느려짐 · 지날 때 가속', [], 'lava'),
 
-    U_('turbine', 'body', '연속 착지 터빈', 10, 13.5, 6, '완벽 착지를 이어가면 잃은 속도 회복', [['gyro', 10]], 'star', 1),
-    U_('draft', 'body', '콤보 기류', 10, 12, 6, '콤보 중에는 속도가 덜 줄어듦', [['aero', 20]], 'rock'),
+    U_('turbine', 'body', '연속 착지 터빈', 10, 13.5, 6, '완벽 착지를 이어가면 잃은 속도 회복', [['gyro', 10]], 'mars', 1),
+    U_('draft', 'body', '콤보 기류', 10, 12, 6, '콤보 중에는 속도가 덜 줄어듦', [['aero', 20]], 'sun'),
 
     U_('rocket', 'gear', '로켓 부스터', 30, 1, 8, '부스트 추진력 증가', [['push', 8]]),
     U_('fuel', 'gear', '연료 탱크', 15, 1.5, 7, '부스트 시간 +0.15초', [['rocket', 1]]),
@@ -105,13 +119,13 @@ const CORE = (() => {
     U_('refuel', 'gear', '재급유 장치', 20, 3, 10, '좋은·완벽 착지 때 부스트 연료 회복', [['fuel', 5]]),
     U_('leap', 'gear', '추진 스프링', 15, 10, 6, '공중 도약하면 앞으로도 밀어줌', [['airjump', 10]], 'moon'),
     U_('crater', 'gear', '충격 추진기', 15, 10, 6, '슬램 직후 앞으로 밀어줌', [['dive', 12]], 'moon'),
-    U_('amp', 'gear', '증폭 코어', 20, 14.5, 6, '부스트·대시 힘 +4%', [['jet', 15], ['dashpow', 15]], 'hole', 2),
+    U_('amp', 'gear', '증폭 코어', 20, 14.5, 6, '부스트·대시 힘 +4%', [['jet', 15], ['dashpow', 15]], 'rock', 2),
     U_('pslam', 'gear', '정밀 슬램', 10, 10, 6, '바퀴로 내리꽂으면 더 높이 튕김', [['dive', 12]], 'moon'),
-    U_('pit', 'gear', '정비 착지', 5, 13.5, 6, '좋은 착지 3연속마다 대시 1회 충전', [['dash', 10]], 'star', 2),
+    U_('pit', 'gear', '정비 착지', 5, 13.5, 6, '좋은 착지 3연속마다 대시 1회 충전', [['dash', 10]], 'mars', 2),
     U_('jspring', 'gear', '저스트 스프링', 10, 10, 6, '착지 직후 도약이 쉬워지고 앞으로 밀어줌', [['spring', 20]], 'moon'),
     U_('burn', 'gear', '과급 연소', 10, 10.5, 6, '부스트가 세지는 대신 연료를 더 씀', [['fuel', 15]], 'moon'),
     U_('tail', 'gear', '순풍 장치', 15, 10, 7, '시간이 지나도 속도가 덜 줄어듦', [['wing', 10]], 'cloud', 1),
-    U_('over', 'gear', '오버클럭', 10, 12, 6, '5Lv마다 도약·대시·급강하 +1회', [['dash', 10]], 'rock', 3),
+    U_('over', 'gear', '오버클럭', 10, 12, 6, '5Lv마다 도약·대시·급강하 +1회', [['dash', 10]], 'sun', 3),
 
     U_('ad', 'money', '전단지 광고', 60, 0, 13, '모든 골드 +6%'),
     U_('coin', 'money', '코인 감정사', 60, 0.5, 12, '코인·상자 가치 +8%', [['ad', 3]]),
@@ -123,11 +137,11 @@ const CORE = (() => {
     U_('trickpay', 'money', '묘기 전속 계약', 15, 2.5, 6, '공중제비 보너스 +20%', [['style', 2]]),
     U_('lucky', 'money', '황금 카트', 10, 3, 9, '2% 확률로 골드 3배 판', [['ad', 15]], 'forest'),
     U_('crate', 'money', '보물 드론', 10, 4, 8, '상자 등장 +30%', [['coin', 10]], 'sand'),
-    U_('streak', 'money', '연승 착지', 15, 12, 6, '좋은 착지를 연속으로 이을수록 골드 증가 · 40번까지', [['style', 10]], 'rock', 1),
-    U_('ctime', 'money', '콤보 타이머', 10, 12.5, 6, '콤보 유지 시간 +0.15초', [['combo', 10]], 'rock', 1),
-    U_('multi', 'money', '다회전 계약', 10, 12, 6, '한 번에 2바퀴 이상 돌면 골드 추가', [['trickpay', 10]], 'rock'),
-    U_('allr', 'money', '만능 곡예단', 10, 13, 6, '슬램·공중제비·완벽 착지·콤보를 골고루', [['combo', 10], ['trickpay', 10]], 'star', 3),
-    U_('tractor', 'money', '견인 광선', 10, 14, 6, '화면에 보이는 골드 상자를 하나씩 끌어옴', [['magnet', 15], ['crate', 10]], 'hole', 2),
+    U_('streak', 'money', '연승 착지', 15, 12, 6, '좋은 착지를 연속으로 이을수록 골드 증가 · 40번까지', [['style', 10]], 'sun', 1),
+    U_('ctime', 'money', '콤보 타이머', 10, 12.5, 6, '콤보 유지 시간 +0.15초', [['combo', 10]], 'sun', 1),
+    U_('multi', 'money', '다회전 계약', 10, 12, 6, '한 번에 2바퀴 이상 돌면 골드 추가', [['trickpay', 10]], 'sun'),
+    U_('allr', 'money', '만능 곡예단', 10, 13, 6, '슬램·공중제비·완벽 착지·콤보를 골고루', [['combo', 10], ['trickpay', 10]], 'mars', 3),
+    U_('tractor', 'money', '견인 광선', 10, 14, 6, '화면에 보이는 골드 상자를 하나씩 끌어옴', [['magnet', 15], ['crate', 10]], 'rock', 2),
     U_('encore', 'money', '앙코르', 20, 11, 7, '묘기·착지·콤보·퍼펙트 보너스 +5%', [['style', 10]], 'moon', 2),
   ];
   // the first purchases are priced by hand (gold in the first minutes does not follow the zone rule); their last level still does
@@ -142,7 +156,7 @@ const CORE = (() => {
   // ---- rebirth tree (bought with stars) ----------------------------------------------------------------
   const K = (id, br, name, max, desc, req, cap) => ({ id, br, name, max, desc, req: req || [], cap: cap || 0 });
   const PERKS = [
-    K('p_power', 'might', '전설의 팔뚝', 20, '발사 속도 +5%'),
+    K('p_power', 'might', '전설의 팔뚝', 30, '발사 속도 +5%'),
     K('p_meter', 'might', '느긋한 호흡', 5, '퍼펙트 구간 +15%', [['p_power', 1]]),
     K('r_focus', 'might', '무아지경', 5, '퍼펙트 보너스 +3%', [['p_meter', 2]]),
     K('r_mem', 'might', '전생의 기억', 5, '환생 때 레벨 8% 유지', [['p_power', 2]]),
@@ -157,7 +171,7 @@ const CORE = (() => {
     K('r_phoenix', 'flight', '불사조', 1, '멈추면 한 번 다시 날아오름', [['r_trick', 5], ['r_feather', 2]], 12),
     K('r_land', 'flight', '고양이 착지', 10, '착지·슬램 보너스가 50% 커짐', [['r_trick', 2]]),
     K('r_time', 'flight', '끈기', 5, '한 판 제한 시간 +10초', [['p_fuel', 2]]),
-    K('p_gold', 'wealth', '프랜차이즈 본사', 20, '모든 골드 +25%'),
+    K('p_gold', 'wealth', '프랜차이즈 본사', 30, '모든 골드 +25%'),
     K('p_seed', 'wealth', '창업 자금', 5, '환생 직후 시작 골드', [['p_gold', 1]]),
     K('r_coin', 'wealth', '황금 손', 10, '코인·상자 가치 +40%', [['p_gold', 2]]),
     K('r_disc', 'wealth', '단골 할인', 5, '업그레이드 가격 -5%', [['p_seed', 2]]),
@@ -197,7 +211,7 @@ const CORE = (() => {
     A('a_coin20', '수금원', '한 판에 코인 20개', (s, r) => r && r.coins >= 20), A('a_coin60', '골드 러시', '한 판에 코인 60개', (s, r) => r && r.coins >= 60), A('a_smash', '철거반', '한 판에 장애물 10개 파괴', (s, r) => r && r.broke >= 10),
     A('a_combo', '줄줄이 사탕', '한 판에 20콤보', (s, r) => r && r.maxCombo >= 20), A('a_slam', '운석 낙하', '급강하 착지 5회 누적', (s, r) => (s.slams || 0) >= 5), A('a_gold', '황금빛 하루', '황금 판을 한 번 달리기', (s, r) => r && r.golden),
     A('a_sea', '바다를 건넌 카트', '만년 설산 도달', (s, r) => s.zone >= ZI('ice')), A('a_cloud', '구름 위 산책', '구름 왕국 도달', (s, r) => s.zone >= ZI('cloud')), A('a_moon', '달 착륙', '달 기지 도달', (s, r) => s.zone >= ZI('moon')),
-    A('a_star', '은하 여행자', '은하 고속도로 도달', (s, r) => s.zone >= ZI('star')), A('a_hole', '사건의 지평선', '블랙홀 가장자리 도달', (s, r) => s.zone >= ZI('hole')), A('a_end', '끝을 본 자', '우주의 끝 도달', (s, r) => s.zone >= ZI('end')), A('a_rift', '틈새 여행자', '차원의 틈 도달', (s, r) => s.zone >= ZI('rift')), A('a_sun', '태양에 닿다', '태양 표면 도달', (s, r) => s.zone >= ZI('sun')), A('a_omega', '시간의 끝', '시간의 끝 도달', (s, r) => s.zone >= ZI('omega')),
+    A('a_star', '은하 여행자', '은하 고속도로 도달', (s, r) => s.zone >= ZI('star')), A('a_hole', '사건의 지평선', '블랙홀 가장자리 도달', (s, r) => s.zone >= ZI('hole')), A('a_end', '끝을 본 자', '우주의 끝 도달', (s, r) => s.zone >= ZI('end')), A('a_rift', '틈새 여행자', '차원의 틈 도달', (s, r) => s.zone >= ZI('rift')), A('a_sun', '태양에 닿다', '태양 표면 도달', (s, r) => s.zone >= ZI('sun')), A('a_omega', '시간의 끝', '시간의 끝 도달', (s, r) => s.zone >= ZI('omega')), A('a_andro', '이웃 은하', '안드로메다 은하 도달', (s, r) => s.zone >= ZI('andromeda')), A('a_multi', '우주 밖으로', '멀티버스 도달', (s, r) => s.zone >= ZI('multi')),
     A('a_lv100', '단골 손님', '업그레이드 100레벨', (s, r) => total(s) >= 100), A('a_lv300', 'VIP 고객', '업그레이드 300레벨', (s, r) => total(s) >= 300),
     A('a_re1', '새 출발', '첫 환생', (s, r) => s.rebirths >= 1), A('a_re5', '윤회', '환생 5회', (s, r) => s.rebirths >= 5),
   ];
@@ -206,7 +220,7 @@ const CORE = (() => {
 
   function stats(s) {
     const L = id => lvl(s, id), P = id => s.perks[id] || 0, bless = P('r_bless') ? 1.5 : 1;
-    const power = 7 * Math.pow(1.05, L('push')) * (1 + 0.02 * L('runup')) * (1 + 0.03 * L('sling')) * (1 + 0.03 * L('cannon')) * (1 + 0.03 * L('rail')) * (1 + 0.04 * L('warp')) * (1 + 0.04 * L('anti')) * (1 + 0.05 * L('singu')) * (1 + 0.05 * L('bang')) * (1 + 0.05 * P('p_power'));
+    const power = 7 * Math.pow(1.05, L('push')) * (1 + 0.02 * L('runup')) * (1 + 0.03 * L('sling')) * (1 + 0.03 * L('cannon')) * (1 + 0.03 * L('rail')) * (1 + 0.04 * L('warp')) * (1 + 0.04 * L('anti')) * (1 + 0.05 * L('singu')) * (1 + 0.05 * L('bang')) * (1 + 0.06 * L('cosmos')) * (1 + 0.05 * P('p_power'));
     const eCap = 0.80 + 0.008 * L('hover'), thrust = L('rocket') ? (3 + 0.4 * L('rocket') + power * (0.05 + 0.004 * L('rocket'))) * (1 + 0.03 * L('jet')) * (1 + 0.04 * L('amp')) * (1 + 0.05 * L('burn')) : 0;
     return {
       power, angle: (14 + 2.8 * L('ramp')) * Math.PI / 180,
@@ -348,7 +362,7 @@ const CORE = (() => {
       if (!r.air && sp < Math.max(0.35, 0.04 * r.v0)) r.rest += dtReal; else r.rest = 0;
       if (!r.air && r.vx < 0) r.back += dtReal; else r.back = 0;
       if (r.rest > 0.5 || r.back > 0.7) { if (st.phoenix && !r.risen) { r.risen = true; r.rest = r.back = 0; const v = 0.4 * r.v0; r.vx = v * Math.cos(st.angle); r.vy = v * Math.sin(st.angle); r.y += 0.5; r.air = true; r.ev.push({ k: 'phoenix', x: r.x, y: r.y }); } else { r.over = true; r.why = r.back > 0.7 ? '언덕을 넘지 못했어요' : '멈췄어요'; } }
-      if (r.tr > 100 + st.time + 10 * Math.max(0, zoneAt(r.maxX) - 8)) { r.over = true; r.why = '시간 초과'; } }
+      if (r.tr > 100 + st.time + Math.min(100, 10 * Math.max(0, zoneAt(r.maxX) - 8))) { r.over = true; r.why = '시간 초과'; } }
   }
   function payout(r, s) {
     const st = r.st, D = r.maxX, z = zoneAt(D), dist = gd(D, z) * st.rate, coins = r.coinGold * st.rate;
