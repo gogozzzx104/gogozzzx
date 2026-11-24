@@ -1,0 +1,18 @@
+const { chromium } = require('playwright');
+(async () => { const SP = process.argv[2], b = await chromium.launch(), errs = [];
+  const pg = await (await b.newContext({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 2 })).newPage(); await pg.route(/fonts\./, r => r.abort()); pg.on('pageerror', e => errs.push(e.message));
+  await pg.goto('http://localhost:8766/cartlaunch/index.html'); await pg.waitForTimeout(300);
+  await pg.evaluate(() => { const c = window.__cart, C = c.C, s = C.newSave(); for (const u of C.UPS) s.lv[u.id] = u.max; s.lv.push = 137; for (const q of C.PERKS) s.perks[q.id] = q.max; s.rebirths = 12; s.stars = 30; s.starsTotal = 900; s.best = 4e17; s.bestLife = 4e17; s.zone = 31; s.zoneEver = 31; s.gold = 3e22; c.S = s; c.save(); });
+  await pg.reload(); await pg.waitForTimeout(400);
+  await pg.keyboard.down('Space'); await pg.waitForFunction(() => window.__cart.charge > 0.9); await pg.keyboard.up('Space'); await pg.waitForFunction(() => window.__cart.state === 'fly');
+  await pg.waitForFunction(() => window.__cart.state !== 'fly' || window.__cart.C.zoneAt(window.__cart.run.x) >= 30, null, { timeout: 150000 }); await pg.waitForTimeout(1500); await pg.screenshot({ path: SP + '/deep.png' });
+  console.log('in zone', await pg.evaluate(() => { const c = window.__cart; return c.C.ZONES[c.C.zoneAt(c.run.x)].name + ' | dist ' + c.run.x.toExponential(2); }));
+  await pg.click('#endBtn').catch(() => {}); await pg.waitForTimeout(400);
+  await pg.evaluate(() => { window.__cart.openShop(); [...document.querySelectorAll('#sTabs .tab')].find(x => x.dataset.t === 'trans').click(); }); await pg.waitForTimeout(200); await pg.screenshot({ path: SP + '/trans.png' });
+  const g0 = await pg.evaluate(() => ({ sh: window.__cart.S.shards, lv: window.__cart.C.total(window.__cart.S) }));
+  await pg.click('[data-trans]'); await pg.waitForTimeout(100); await pg.click('[data-trans]'); await pg.waitForTimeout(200);
+  await pg.click('[data-tp="t_speed"]'); await pg.waitForTimeout(100); await pg.click('[data-tp="t_auto"]'); await pg.waitForTimeout(100);
+  console.log(JSON.stringify(g0), '→', await pg.evaluate(() => { const s = window.__cart.S; return JSON.stringify({ shards: s.shards, trans: s.trans, lv: window.__cart.C.total(s), tperks: s.tperks, rebirths: s.rebirths, gold: s.gold }); }));
+  await pg.evaluate(() => window.__cart.toAim()); await pg.waitForTimeout(200);
+  await pg.keyboard.down('Space'); await pg.waitForFunction(() => window.__cart.charge > 0.9); await pg.keyboard.up('Space'); await pg.waitForFunction(() => window.__cart.state === 'result', null, { timeout: 60000 });
+  console.log('auto-buy after a run: levels', await pg.evaluate(() => window.__cart.C.total(window.__cart.S)), '| errors', errs.length ? errs : 'none'); await b.close(); })();

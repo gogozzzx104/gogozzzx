@@ -1,0 +1,22 @@
+const { chromium } = require('playwright'); const fs = require('fs');
+// a stand-in for the platform store: documents kept in window.__docs
+const mock = (docs, deny) => { window.__docs = docs; window.claude = { use: async name => name === 'user' ? { id: async () => 'u_test' } : name === 'db' ? { doc: path => ({ get: async () => ({ exists: path in window.__docs, data: () => window.__docs[path] }), set: async d => { if (deny) throw { code: 'invalid_argument' }; window.__docs[path] = JSON.parse(JSON.stringify(d)); }, delete: async () => { delete window.__docs[path]; } }) } : null }; };
+(async () => { const b = await chromium.launch(), z10 = JSON.parse(fs.readFileSync(process.argv[2] + '/saves.json')).z10, errs = [];
+  const open = async (local, docs, deny) => { const ctx = await b.newContext({ viewport: { width: 900, height: 450 } }), pg = await ctx.newPage(); await pg.route(/fonts\./, r => r.abort()); pg.on('pageerror', e => errs.push(e.message));
+    await pg.addInitScript(([l]) => { if (!sessionStorage.getItem('i')) { if (l) localStorage.setItem('cart.save', l); sessionStorage.setItem('i', '1'); } }, [local]); await pg.addInitScript(`(${mock})(${JSON.stringify(docs)}, ${!!deny})`);
+    await pg.goto('http://localhost:8766/cartlaunch/index.html'); await pg.waitForTimeout(1500); return pg; };
+  const big = Object.assign({}, z10, { runs: 900, rebirths: 7 }), small = Object.assign({}, z10, { runs: 12 });
+  let pg = await open(JSON.stringify(big), {});
+  console.log('1 local ahead, account empty ->', await pg.evaluate(() => ({ state: window.__cart.CLOUD.state, cloudRuns: JSON.parse((window.__docs['data/users/u_test/slot1'] || {}).json || '{}').runs })));
+  pg = await open(JSON.stringify(small), { 'data/users/u_test/slot1': { v: 1, json: JSON.stringify(big) } });
+  console.log('2 account ahead ->', await pg.evaluate(() => ({ runs: window.__cart.S.runs, rebirths: window.__cart.S.rebirths, backup: JSON.parse(localStorage.getItem('cart.save.bak')).runs })));
+  await pg.evaluate(() => { const c = window.__cart; c.openShop(); document.querySelector('#sTabs .tab:last-child').click(); }); await pg.waitForTimeout(200); await pg.screenshot({ path: process.argv[2] + '/slots.png' });
+  await pg.evaluate(() => document.querySelector('[data-slot="2"]').click()); await pg.waitForTimeout(700);
+  console.log('3 switch to slot 2 ->', await pg.evaluate(() => ({ slot: window.__cart.slot, runs: window.__cart.S.runs, slot1Kept: JSON.parse(localStorage.getItem('cart.save')).runs })));
+  await pg.evaluate(() => { const c = window.__cart; c.S.runs = 3; c.save(); }); await pg.waitForTimeout(16500);
+  console.log('4 slot 2 saved to account ->', await pg.evaluate(() => Object.keys(window.__docs).sort().map(k => k.split('/').pop() + ':' + JSON.parse(window.__docs[k].json).runs)));
+  pg = await open(null, {});
+  console.log('5 new device, empty account ->', await pg.evaluate(() => ({ state: window.__cart.CLOUD.state, docs: Object.keys(window.__docs).length, runs: window.__cart.S.runs })));
+  pg = await open(JSON.stringify(big), {}, true);
+  console.log('6 viewer who may not write ->', await pg.evaluate(() => ({ state: window.__cart.CLOUD.state, runs: window.__cart.S.runs })));
+  console.log('errors', errs.length ? errs.slice(0, 3) : 'none'); await b.close(); })();

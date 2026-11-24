@@ -1,0 +1,9 @@
+const C = require(__dirname + '/../core.js'), B = require(__dirname + '/bots.js');
+const mk = (push, eng, gold, stars) => { const s = C.newSave(); for (const u of C.UPS) s.lv[u.id] = u.max; s.lv.push = push; for (const q of C.PERKS) s.perks[q.id] = q.max; for (const q of C.TPERKS) s.tperks[q.id] = q.max; s.tperks.t_speed = eng; s.tperks.t_gold = gold; s.rebirths = 40; s.stars = stars; s.starsTotal = stars; s.starsEver = 1e8; s.best = s.bestLife = C.ZONES[C.LAST + 60].at; s.zone = C.LAST + 60; return s; };
+const pm = C.UP.push.max; console.log('push max', pm);
+for (const [push, eng, gold] of [[250, 150, 150], [300, 150, 150], [360, 150, 150], [380, 150, 150], [pm, 150, 150], [pm, 145, 150], [390, 150, 150]]) { const s = mk(push, eng, gold, 3e6), ds = [], gs = [];
+  for (const mode of ['pilot', 'trick', 'idle']) for (let k = 0; k < 14; k++) { const r = B.play(s, k * 7 + 3, mode); ds.push([Math.log10(r.x), mode, r.tr]); gs.push(Math.log10(C.payout(r, JSON.parse(JSON.stringify(s))).total)); }
+  ds.sort((a, b) => a[0] - b[0]); gs.sort((a, b) => a - b); const by = m => { const a = ds.filter(d => d[1] === m).map(d => d[0]); return (a.reduce((x, y) => x + y, 0) / a.length).toFixed(2); };
+  console.log(`push ${push} eng ${eng}: log10 dist min ${ds[0][0].toFixed(2)} max ${ds[ds.length - 1][0].toFixed(2)} | pilot ${by('pilot')} trick ${by('trick')} idle ${by('idle')} | log10 gold med ${gs[21].toFixed(1)} max ${gs[41].toFixed(1)} | push cost here 1e${Math.log10(C.cost(s, 'push') || 1).toFixed(1)}`); }
+const s = mk(0, 150, 150, 3e6); let tot = 0; const pts = {}; for (let l = 0; l < pm; l++) { s.lv.push = l; const c = C.cost(s, 'push'); tot += c; if ([150, 200, 250, 300, 350, pm - 1].includes(l)) pts[l] = 'e' + Math.log10(c).toFixed(1); } console.log('push cost by level', JSON.stringify(pts));
+console.log('zone at', [50, 60, 70].map(n => n + ':1e' + Math.log10(C.ZONES[C.LAST + n].at).toFixed(1)).join(' '));
