@@ -216,7 +216,7 @@ const CORE = (() => {
     TK('t_cap', '한계 돌파', 50, '최고 속도 한도 증가 · 레벨이 오를수록 더 크게'), TK('t_time', '지구력', 10, '최고 속도가 10% 더 천천히 줄어듦'), TK('t_keep', '전생 각인', 5, '초월 때 환생 트리 유지 +10% (기본 50%)'), TK('t_auto', '자동 구매', 1, '판이 끝날 때마다 살 수 있는 업그레이드 자동 구매'),
     TK('t_land', '완벽주의', 20, '착지·슬램 골드 보너스 +50%', 3), TK('t_multi', '다중 광선', 20, '견인 광선이 한 번에 상자·코인을 1개 더 끌어옴', 5), TK('t_beam', '견인 강화', 25, '견인 광선 주기 -8%', 8),
     TK('t_starpow', '별의 힘', 50, '지금까지 받은 별이 많을수록 발사 속도 증가 · 초월해도 유지 · 레벨이 오를수록 더 크게', 10), TK('t_rekindle', '재점화', 10, '깔끔한 착지마다 최고 속도 한도가 올라가고 그만큼 바로 가속 (완벽 착지는 3배)', 12), TK('t_deep', '심연 개척', 50, '미지의 영역에서 받는 차원석 +10%', 15),
-    TK('t_spin', '초회전', 50, '2초 넘게 계속 돌리면 회전 속도 증가 · 레벨이 오를수록 더 크게', 16), TK('t_judge', '수호 보호막', 50, '착지 판정이 넓어짐 · 판정 범위가 보호막으로 보임 · Lv50은 어느 방향이든 완벽 착지', 18),
+    TK('t_gauge', '급속 충전', 20, '발사 게이지가 빨리 참 (Lv20에 3배) · Lv10부터 퍼펙트 구간에서 자동 발사'), TK('t_spin', '초회전', 50, '2초 넘게 계속 돌리면 회전 속도 증가 · 레벨이 오를수록 더 크게', 16), TK('t_judge', '수호 보호막', 50, '착지 판정이 넓어짐 · 판정 범위가 보호막으로 보임 · Lv50은 어느 방향이든 완벽 착지', 18),
   ];
   // TW: the strongest abilities cost a multiple of the base price; the 50-level ones climb faster in each band of ten levels (10, 20, 30, 40)
   // TV: what each level of the growing abilities is worth (every level adds more than the one before)
@@ -275,7 +275,7 @@ const CORE = (() => {
     const eCap = 0.80 + 0.008 * L('hover'), thrust = L('rocket') ? (3 + 0.4 * L('rocket') + power * (0.05 + 0.004 * L('rocket'))) * (1 + 0.03 * L('jet')) * (1 + 0.04 * L('amp')) * (1 + 0.05 * L('burn')) : 0;
     return {
       power, angle: (14 + 2.8 * L('ramp')) * Math.PI / 180,
-      perfect: 1.10 + 0.02 * L('timing') + 0.03 * P('r_focus'), window: (0.025 + 0.006 * L('timing')) * (1 + 0.15 * P('p_meter')), meter: 1.6, kickB: 0.01 * L('rail2'),
+      perfect: 1.10 + 0.02 * L('timing') + 0.03 * P('r_focus'), window: (0.025 + 0.006 * L('timing')) * (1 + 0.15 * P('p_meter')), meter: 1.6 / (1 + 0.1 * tl(s, 't_gauge')), autoFire: tl(s, 't_gauge') >= 10, kickB: 0.01 * L('rail2'),
       mu: Math.max(0.06, 0.35 * Math.pow(0.9, L('wheel'))), e: Math.min(eCap, 0.28 + 0.026 * L('tire') + 0.004 * L('float') + 0.008 * L('hover')), eCap, loss: 0.30 * Math.pow(0.86, L('frame')) * (1 - 0.02 * L('wide')),
       wear: (1 - 0.02 * L('wheel')) * (1 - 0.03 * L('tail')), drag: 0.012 * Math.pow(0.92, L('aero')) * (1 - 0.03 * L('heat')) * (1 - 0.06 * P('r_feather')), bumper: L('bumper'), wide: L('wide'), float: L('float'), heat: L('heat'), gyro: L('gyro'), rubber: 1 + 0.05 * L('rubber'),
       thrust, fuel: L('rocket') ? 1.5 + 0.15 * L('fuel') + 0.5 * P('p_fuel') : 0, nozzle: 0.05 * L('nozzle'),
