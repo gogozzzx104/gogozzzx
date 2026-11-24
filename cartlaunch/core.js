@@ -45,8 +45,24 @@ const CORE = (() => {
     { id: 'multi', fx: 'multi', name: '멀티버스', at: 5e15, g: 7, drag: 0.9, amp: 1.2, wl: 36, sk: 0.3, la: 3, mu: 0.6, e: 1.1, loss: 0.7, spec: ['tramp', 'geyser'], sky: ['#0a0220', '#103a4a'], ground: '#c9f0e8', deco: 'cloud' },
     { id: 'omega', fx: 'omega', name: '시간의 끝', at: 2e16, g: 8, drag: 1, amp: 1.6, wl: 42, sk: 0.3, la: 3.5, mu: 1, e: 1, loss: 1, rough: 1, spec: ['pool'], sky: ['#000010', '#1a3a6a'], ground: '#101830', deco: 'star' },
   ];
-  const LAST = ZONES.length - 1, DEEP = 70;
-  { const look = ['crab', 'pleiades', 'multi', 'rift', 'nebula', 'andromeda', 'virgo', 'magellan', 'centauri', 'omega']; for (let n = 1; n <= DEEP; n++) { const t = ZONES.find(z => z.id === look[(n - 1) % look.length]); ZONES.push(Object.assign({}, t, { id: 'deep' + n, name: '미지의 영역 ' + n, at: ZONES[LAST].at * Math.pow(4, n), deep: n })); } }
+  const LAST = ZONES.length - 1, DEEP = 73;
+  // Beyond the named universe: five uncharted realms of ten zones (three skies each: zones 1-3, 4-7, 8-10), two named layers of ten zones
+  // (two skies each) and three last places.  Terrain rules still cycle through ten earlier zones; sky, ground, edge colour and music are new.
+  // FAR: log10 of the distance of the last three, set so a fully maxed cart only reaches the very last by holding its top speed.
+  const FAR = [61.3, 62.2, 62.85];
+  { const look = ['crab', 'pleiades', 'multi', 'rift', 'nebula', 'andromeda', 'virgo', 'magellan', 'centauri', 'omega'],
+      V = { u00: [['#01131c', '#064a5a'], '#082a36', '#5af0e0'], u01: [['#021a2a', '#0a6a6a'], '#0a3a40', '#8affd0'], u02: [['#000c14', '#0b3a5c'], '#06202e', '#6ac8ff'],
+        u10: [['#0c0420', '#3a1a7a'], '#241046', '#c9a0ff'], u11: [['#100630', '#5a2aa0'], '#2e1660', '#f0b0ff'], u12: [['#080218', '#7a3ac0'], '#1c0c3a', '#a0e0ff'],
+        u20: [['#140204', '#5a0a14'], '#2a060a', '#ff5a6a'], u21: [['#1a0206', '#7a1420'], '#33080c', '#ff8a5a'], u22: [['#0c0002', '#8a2a10'], '#240404', '#ffc04a'],
+        u30: [['#120c02', '#5a4210'], '#2e2208', '#ffd24a'], u31: [['#181004', '#7a5a1a'], '#3a2c0c', '#ffe9a0'], u32: [['#0e0a02', '#8a6a20'], '#2a2006', '#fff0c0'],
+        u40: [['#c8d0dc', '#f4f6fa'], '#2a2e38', '#ffffff'], u41: [['#dfe4ec', '#ffffff'], '#3a3e48', '#ffffff'], u42: [['#b8c0d0', '#eef0f6'], '#1e222a', '#ffffff'],
+        h0: [['#0a0618', '#2a1a5a'], '#1a1238', '#ffd98a'], h1: [['#060a20', '#1a3a7a'], '#0e1a3c', '#a0d8ff'],
+        g0: [['#04141a', '#1a6a5a'], '#0c3a30', '#b0ffd0'], g1: [['#1a0a24', '#a04a7a'], '#3a1438', '#ffc0e0'],
+        f1: [['#02020a', '#1a1a4a'], '#0a0a22', '#c0d0ff'], f2: [['#0a0204', '#4a1a3a'], '#1c0a16', '#ffb0d0'], f3: [['#ffc860', '#fff8e0'], '#7a4a12', '#ffffff'] };
+    for (let n = 1; n <= DEEP; n++) { const k = (n - 1) % 10 + 1, t = Math.floor((n - 1) / 10), fx = n <= 50 ? 'u' + t + (k <= 3 ? 0 : k <= 7 ? 1 : 2) : n <= 60 ? 'h' + (k <= 5 ? 0 : 1) : n <= 70 ? 'g' + (k <= 5 ? 0 : 1) : 'f' + (n - 70), v = V[fx],
+        src = ZONES.find(z => z.id === (n <= 70 ? look[(n - 1) % look.length] : ['omega', 'rift', 'multi'][n - 71]));
+      ZONES.push(Object.assign({}, src, { id: 'deep' + n, name: n <= 50 ? '미지의 영역 ' + n : n <= 60 ? '영원의 회랑 ' + (n - 50) : n <= 70 ? '창세의 정원 ' + (n - 60) : ['태초의 문', '무한의 옥좌', '최후의 계산대'][n - 71],
+        at: n <= 70 ? ZONES[LAST].at * Math.pow(4, n) : Math.pow(10, FAR[n - 71]), deep: n, fx, deco: 'void', sky: v[0], ground: v[1], edge: v[2], mus: n <= 50 ? 'u' + 'abcde'[t] : n <= 60 ? 'hall' : n <= 70 ? 'garden' : n <= 72 ? 'gate' : 'final' })); } }
   const ZI = id => ZONES.findIndex(z => z.id === id);
   const zoneAt = x => { let lo = 0, hi = ZONES.length - 1; while (lo < hi) { const m = (lo + hi + 1) >> 1; if (x >= ZONES[m].at) lo = m; else hi = m - 1; } return lo; };   // zones are sorted by distance
   // continuous zone progress, e.g. 6.5 = half way (on a log scale) through zone 6
@@ -210,7 +226,7 @@ const CORE = (() => {
   const cycleBest = s => Math.max(s.bestT || 0, s.bestLife || 0);
   // shards for a transcendence: 5 for reaching the end of time, more for every uncharted zone beyond it
   // past uncharted zone 20 every further zone pays a growing extra; reaching 30, 35, 40 … 60 each raises a multiplier on the lot
-  const shardsFor = s => { const d = cycleBest(s); if (d < ZONES[LAST].at) return 0; const z = zoneProg(d) - LAST, m = z >= 58 ? 6 : z >= 56 ? 5 : z >= 53 ? 4 : z >= 50 ? 3 : z >= 45 ? 2 : z >= 40 ? 1.8 : z >= 35 ? 1.5 : z >= 30 ? 1.3 : 1;
+  const shardsFor = s => { const d = cycleBest(s); if (d < ZONES[LAST].at) return 0; const z = zoneProg(d) - LAST, m = z >= 67 ? 10 : z >= 65 ? 9 : z >= 63 ? 8 : z >= 60 ? 7 : z >= 58 ? 6 : z >= 56 ? 5 : z >= 53 ? 4 : z >= 50 ? 3 : z >= 45 ? 2 : z >= 40 ? 1.8 : z >= 35 ? 1.5 : z >= 30 ? 1.3 : 1;
     return Math.floor(5 + (3 * Math.pow(z, 1.2) + 6 * Math.pow(Math.max(0, z - 20), 1.5)) * (1 + 0.1 * tl(s, 't_deep')) * m); };
   function buyT(s, id) { const q = TP[id], l = tl(s, id); if (!q || l >= q.max || tLock(s, id) || (s.shards || 0) < tCost(q, l)) return false; s.shards -= tCost(q, l); s.tperks = s.tperks || {}; s.tperks[id] = l + 1; return true; }
   function transcend(s) { const g = shardsFor(s); if (!g) return 0; s.shards = (s.shards || 0) + g; s.shardsTotal = (s.shardsTotal || 0) + g; s.trans = (s.trans || 0) + 1; const keep = Math.min(1, 0.5 + 0.1 * tl(s, 't_keep')), pk = {};   // half of the rebirth tree always survives, so the new cycle does not start from nothing
@@ -224,7 +240,9 @@ const CORE = (() => {
     for (const k in s.perks) if (!PK[k]) delete s.perks[k]; else s.perks[k] = Math.min(s.perks[k], PK[k].max); s.ach = s.ach || {}; s.migrated = gain; s.v = 3; return s; }
   const lvl = (s, id) => s.lv[id] || 0;
   const total = s => { let n = 0; for (const k in s.lv) n += s.lv[k]; return n; };
-  const pushCost = (u, l) => { const k = Math.min(l, 90); return u.c0 * Math.pow(u.cm, k) * Math.pow(u.q, k * k) * Math.pow(u.q2, Math.pow(Math.max(0, k - u.l2), 2)) * Math.pow(1.8, Math.max(0, l - 90)); };
+  // past level 250 the price climbs faster than gold income can follow without a full vault; the last forty levels flatten out so
+  // they are bought one by one with gold farmed beyond the Garden of Genesis
+  const pushCost = (u, l) => { const k = Math.min(l, 90); return u.c0 * Math.pow(u.cm, k) * Math.pow(u.q, k * k) * Math.pow(u.q2, Math.pow(Math.max(0, k - u.l2), 2)) * Math.pow(1.8, Math.max(0, Math.min(l, 250) - 90)) * Math.pow(2.664, Math.max(0, Math.min(l, 360) - 250)) * Math.pow(1.155, Math.max(0, l - 360)); };
   const cost = (s, id) => { const u = UP[id], l = lvl(s, id), base = u.tab ? u.tab[Math.min(l, u.max - 1)] : pushCost(u, l); return Math.ceil(base * (1 - 0.05 * (s.perks.r_disc || 0))); };
   const gateZone = s => Math.max(s.zone, (s.rebirths || 0) >= 3 ? Math.max(s.zoneEver || 0, zoneAt(s.best || 0)) : 0);
   function lockReason(s, id) { const u = UP[id]; if (u.re && (s.rebirths || 0) < u.re) return `환생 ${u.re}회 필요`; if (gateZone(s) < u.zone) return `${ZONES[u.zone].name} 도달 필요`; for (const [r, n] of u.req) if (lvl(s, r) < n) return `${UP[r].name} Lv${n} 필요`; return ''; }
