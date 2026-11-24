@@ -198,10 +198,10 @@ const CORE = (() => {
   const TPERKS = [
     TK('t_speed', '차원 엔진', 100, '발사 속도 ×1.25'), TK('t_gold', '차원 금고', 100, '모든 골드 ×2'), TK('t_star', '별의 기억', 30, '환생 때 받는 별 +50%'),
     TK('t_cap', '한계 돌파', 15, '최고 속도 한도 +0.2배'), TK('t_time', '지구력', 10, '최고 속도가 10% 더 천천히 줄어듦'), TK('t_keep', '전생 각인', 5, '초월 때 환생 트리 유지 +10% (기본 50%)'), TK('t_auto', '자동 구매', 1, '판이 끝날 때마다 살 수 있는 업그레이드 자동 구매'),
-    TK('t_land', '완벽주의', 20, '착지·슬램 골드 보너스 +50%', 3), TK('t_combo', '콤보 지속', 10, '콤보 유지 시간 +0.3초', 5), TK('t_beam', '견인 강화', 10, '견인 광선 주기 -8%', 8),
+    TK('t_land', '완벽주의', 20, '착지·슬램 골드 보너스 +50%', 3), TK('t_multi', '다중 광선', 10, '견인 광선이 한 번에 상자·코인을 1개 더 끌어옴', 5), TK('t_beam', '견인 강화', 10, '견인 광선 주기 -8%', 8),
     TK('t_starpow', '별의 힘', 20, '지금까지 받은 별이 많을수록 발사 속도 증가 · 초월해도 유지', 10), TK('t_fuel', '차원 연료', 10, '착지 연료 회복 +20%', 12), TK('t_deep', '심연 개척', 20, '미지의 영역에서 받는 차원석 +10%', 15),
   ];
-  const TP = Object.fromEntries(TPERKS.map(q => [q.id, q])), tCost = (q, l) => q.id === 't_auto' ? 3 : Math.ceil((l + 1) * Math.pow(1.05, l)), deepEver = s => Math.max(s.deepEver || 0, zoneAt(s.best || 0) - LAST, 0), tLock = (s, id) => deepEver(s) < TP[id].gate ? `미지의 영역 ${TP[id].gate} 도달 시 열림` : '', tl = (s, id) => (s.tperks || {})[id] || 0;
+  const TP = Object.fromEntries(TPERKS.map(q => [q.id, q])), tCost = (q, l) => q.id === 't_auto' ? 3 : q.id === 't_multi' ? Math.ceil(30 * Math.pow(1.3, l)) : Math.ceil((l + 1) * Math.pow(1.05, l)), deepEver = s => Math.max(s.deepEver || 0, zoneAt(s.best || 0) - LAST, 0), tLock = (s, id) => deepEver(s) < TP[id].gate ? `미지의 영역 ${TP[id].gate} 도달 시 열림` : '', tl = (s, id) => (s.tperks || {})[id] || 0;
   const starsEver = s => Math.max(s.starsEver || 0, s.starsTotal || 0);   // every star ever earned; transcending does not reset it
   const cycleBest = s => Math.max(s.bestT || 0, s.bestLife || 0);
   // shards for a transcendence: 5 for reaching the end of time, more for every uncharted zone beyond it
@@ -212,7 +212,9 @@ const CORE = (() => {
   const starGain = s => Math.floor(starsFor(s.bestLife) * (1 + 0.5 * tl(s, 't_star')));
   const newSave = () => ({ shards: 0, shardsTotal: 0, trans: 0, tperks: {}, bestT: 0, gold: 0, lv: {}, best: 0, bestLife: 0, zone: 0, runs: 0, stars: 0, starsTotal: 0, perks: {}, rebirths: 0, ach: {}, perfects: 0, slams: 0, v: 3 });
   // saves from before the rebalance: upgrade levels and gold no longer mean the same thing, so they are turned into stars (like a free rebirth)
-  function migrate(s) { if (s.v === 3) return s; const gain = starsFor(s.bestLife || 0); s.stars = (s.stars || 0) + gain; s.starsTotal = (s.starsTotal || 0) + gain; s.lv = {}; s.gold = 0; s.bestLife = 0; s.zone = 0;
+  // the retired combo-time ability hands its shards back
+  function refundT(s) { const l = (s.tperks || {}).t_combo; if (l) { let b = 0; for (let i = 0; i < l; i++) b += Math.ceil((i + 1) * Math.pow(1.05, i)); s.shards = (s.shards || 0) + b; delete s.tperks.t_combo; } return s; }
+  function migrate(s) { refundT(s); if (s.v === 3) return s; const gain = starsFor(s.bestLife || 0); s.stars = (s.stars || 0) + gain; s.starsTotal = (s.starsTotal || 0) + gain; s.lv = {}; s.gold = 0; s.bestLife = 0; s.zone = 0;
     for (const k in s.perks) if (!PK[k]) delete s.perks[k]; else s.perks[k] = Math.min(s.perks[k], PK[k].max); s.ach = s.ach || {}; s.migrated = gain; s.v = 3; return s; }
   const lvl = (s, id) => s.lv[id] || 0;
   const total = s => { let n = 0; for (const k in s.lv) n += s.lv[k]; return n; };
@@ -256,7 +258,7 @@ const CORE = (() => {
       spring: L('spring'), springN: L('spring') ? 1 + Math.floor(L('spring') / 4) + P('r_spring') + Math.floor(L('over') / 5) : 0, airjump: L('airjump') ? Math.min(1, 0.4 + 0.06 * L('airjump')) : 0,
       dash: L('dash'), dashN: L('dash') ? 1 + Math.floor(L('dash') / 5) + P('r_dash') + Math.floor(L('over') / 5) : 0, dashpow: (1 + 0.12 * L('dashpow')) * (1 + 0.04 * L('amp')),
       dive: L('dive'), diveN: L('dive') ? 1 + Math.floor(L('dive') / 3) + Math.floor(L('over') / 5) : 0, glide: Math.min(0.35, 0.035 * L('wing')), convert: 0.08 * L('convert'), grav: Math.max(0.4, 1 - 0.03 * L('grav')), haul: 1 + 0.25 * L('haul'),
-      pioneer: 1 + 0.5 * P('r_skip'), double: P('r_double'), phoenix: P('r_phoenix'), encore: 1 + 0.05 * L('encore'), refuel: (0.1 + 0.02 * L('refuel')) * (1 + 0.2 * tl(s, 't_fuel')), tractor: L('tractor') ? (8 - 0.5 * L('tractor')) * Math.pow(0.92, tl(s, 't_beam')) : 0, ampP: 4 * L('amp'), burnP: 5 * L('burn'), turbine: 0.02 * L('turbine'), pit: L('pit'), pslam: 0.012 * L('pslam'), jspring: L('jspring'), draft: 0.02 * L('draft'), streakB: 0.006 * L('streak'), burnK: 1 + 0.04 * L('burn'), comboT: 3 + 0.15 * L('ctime') + 0.3 * tl(s, 't_combo'), multi: 0.15 * L('multi'), allB: 0.012 * L('allr'),
+      pioneer: 1 + 0.5 * P('r_skip'), double: P('r_double'), phoenix: P('r_phoenix'), encore: 1 + 0.05 * L('encore'), refuel: (0.1 + 0.02 * L('refuel')) * (1 + 0.2 * tl(s, 't_fuel')), tractor: L('tractor') ? (8 - 0.5 * L('tractor')) * Math.pow(0.92, tl(s, 't_beam')) : 0, ampP: 4 * L('amp'), burnP: 5 * L('burn'), turbine: 0.02 * L('turbine'), pit: L('pit'), pslam: 0.012 * L('pslam'), jspring: L('jspring'), draft: 0.02 * L('draft'), streakB: 0.006 * L('streak'), burnK: 1 + 0.04 * L('burn'), comboT: 3 + 0.15 * L('ctime'), beamN: 1 + tl(s, 't_multi'), multi: 0.15 * L('multi'), allB: 0.012 * L('allr'),
       leap: 0.02 + 0.01 * L('leap'), crater: 0.02 + 0.008 * L('crater'), time: 10 * P('r_time'),
       perfB: 0.3 * (1 + 0.5 * P('r_perf')), landG: 0.03 * (1 + 0.5 * P('r_land')) * (1 + 0.5 * tl(s, 't_land')), landP: 0.08 * (1 + 0.5 * P('r_land')) * (1 + 0.5 * tl(s, 't_land')), slamB: 0.08 * (1 + 0.5 * P('r_land')) * (1 + 0.5 * tl(s, 't_land')),
       vcap: 3 + 0.2 * tl(s, 't_cap'), tire: 30 * (1 + 0.1 * tl(s, 't_time')),
@@ -379,9 +381,11 @@ const CORE = (() => {
       for (let i = i0; i <= i1; i++) for (const o of cellObjs(r, i)) { if ((o.type !== 'coin' && o.type !== 'crate') || r.used.has(o.id)) continue; const dx = o.x < xPrev ? xPrev - o.x : o.x > r.x ? o.x - r.x : 0;
         if (Math.hypot(dx, o.y - cy) < R) { r.used.add(o.id); r.mag.push({ o, t0: r.tr }); r.ev.push({ k: 'pull', x: o.x, y: o.y }); } } }
     // tractor beam: every few seconds one gold crate anywhere on screen is reeled in, however far above or below it is
-    if (st.tractor && !r.over && r.tr >= r.tracT) { const c = [], i0 = Math.max(0, Math.floor((r.x - 4 * U) / r.cw - 1.2)), i1 = Math.floor((r.x + 15 * U) / r.cw - 1.2);
-      for (let i = i0; i <= i1; i++) for (const o of cellObjs(r, i)) if (o.type === 'crate' && !r.used.has(o.id)) c.push(o);
-      if (c.length) { const o = c[Math.floor(hash(r.seed + Math.floor(r.tr * 20)) * c.length)]; r.used.add(o.id); r.mag.push({ o, t0: r.tr, d: 0.6, beam: 1 }); r.tracT = r.tr + st.tractor; r.ev.push({ k: 'tractor', x: o.x, y: o.y }); } }
+    if (st.tractor && !r.over && r.tr >= r.tracT) { const c = [], i0 = Math.max(0, Math.floor((r.x - 4 * U) / r.cw - 1.2)), i1 = Math.floor((r.x + (15 + 6 * (st.beamN - 1)) * U) / r.cw - 1.2);
+      const g = [];
+      for (let i = i0; i <= i1; i++) for (const o of cellObjs(r, i)) if (!r.used.has(o.id)) { if (o.type === 'crate') c.push(o); else if (o.type === 'coin' && st.beamN > 1) g.push(o); }
+      // one crate as before; the extra beams take more crates first, then coins
+      for (let n = 0; n < st.beamN && c.length + g.length; n++) { const a = c.length ? c : g, o = a.splice(Math.floor(hash(r.seed + Math.floor(r.tr * 20) + n * 7.3) * a.length), 1)[0]; r.used.add(o.id); r.mag.push({ o, t0: r.tr, d: 0.6, beam: 1 }); r.tracT = r.tr + st.tractor; if (!n) r.ev.push({ k: 'tractor', x: o.x, y: o.y }); } }
     for (let k = r.mag.length - 1; k >= 0; k--) if (r.over || r.tr - r.mag[k].t0 >= (r.mag[k].d || 0.3)) { hit(r, Object.assign({}, r.mag[k].o, { x: r.x, y: r.y + 0.5 * r.S })); r.mag.splice(k, 1); }
     for (let z = zoneAt(r.x); r.zc < z;) { const Z = ZONES[++r.zc], lv = Math.max(Z.water ? st.float : 0, Z.spec && Z.spec.includes('pool') ? st.heat : 0, Z.rough ? st.wide : 0); if (lv) { const add = 0.012 * lv * r.v0 * Math.pow(0.94, r.tops++); r.vx += add; r.ev.push({ k: 'zboost', x: r.x, y: r.y, z: r.zc, pct: Math.round(1.2 * lv) }); } }
     { const s2 = Math.hypot(r.vx, r.vy), cap = vcap(r); if (s2 > cap) { r.vx *= cap / s2; r.vy *= cap / s2; r.capT = r.tr; } }   // pads, rings and zone boosts obey the ceiling too
