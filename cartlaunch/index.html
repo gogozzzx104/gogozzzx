@@ -444,9 +444,9 @@ const shopClick = e => { const nd = e.target.closest('.nd'), sk = e.target.close
     if (b.dataset.up) { if (C.buy(S, b.dataset.up)) SFX.buy(); }
     else if (b.dataset.max) { let n = 0; while (n < 300 && C.buy(S, b.dataset.max)) n++; if (n) SFX.buy(); }
     else if (b.dataset.perk) { if (C.buyPerk(S, b.dataset.perk)) SFX.buy(); }
-    else if (b.dataset.rebirth) { if (confirmKey !== 'rebirth') confirmKey = 'rebirth'; else { const n = C.rebirth(S); confirmKey = ''; SFX.zone(); toast('환생! ★ +' + n, 2200); } }
+    else if (b.dataset.rebirth) { if (confirmKey !== 'rebirth') confirmKey = 'rebirth'; else { const n = C.rebirth(S), au = C.tl(S, 't_auto') ? C.buyAll(S) : 0; confirmKey = ''; SFX.zone(); toast('환생! ★ +' + n + (au ? ` · ${au}레벨 자동 구매` : ''), 2400); } }
     else if (b.dataset.tp) { if (C.buyT(S, b.dataset.tp)) SFX.buy(); }
-    else if (b.dataset.trans) { if (confirmKey !== 'trans') confirmKey = 'trans'; else { const n = C.transcend(S); confirmKey = ''; SFX.zone(); SFX.perfect(); toast('초월! ◆ +' + n, 2400); } }
+    else if (b.dataset.trans) { if (confirmKey !== 'trans') confirmKey = 'trans'; else { const n = C.transcend(S); if (C.tl(S, 't_auto')) C.buyAll(S); confirmKey = ''; SFX.zone(); SFX.perfect(); toast('초월! ◆ +' + n, 2400); } }
     else if (b.dataset.zero) { if (confirmKey !== 'zero') confirmKey = 'zero'; else { S.gold = 0; confirmKey = ''; toast('골드를 비웠어요', 1500); } }
     else if (b.dataset.wipe) { if (confirmKey !== 'wipe') confirmKey = 'wipe'; else { S = C.newSave(); confirmKey = ''; } } }
   else if (sel[tab] && !e.target.closest('.pop') && e.target.closest('.tw')) sel[tab] = null;   // tap on empty space closes the card
