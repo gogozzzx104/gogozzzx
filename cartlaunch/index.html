@@ -89,7 +89,7 @@ button{font-family:var(--disp);touch-action:manipulation}
 .nd.lock .rt{stroke:#3a3070;stroke-dasharray:4 4}
 .nd.lock em{color:#7d72ad}
 .nd.lock b{color:#8479b8;border-color:#3a3070}
-.nd.lock .bd{background:#3a3070;color:#cfc6f5}
+.nd.lock .bd,.nd.gate .bd{background:#3a3070;color:#cfc6f5}
 .nd.can{animation:glow 1.5s ease-in-out infinite}
 .nd.can .bd{background:#3fe6a0;color:#0d2b1c}
 .nd.max{background:linear-gradient(160deg,#77601a,#42340f);color:#ffe27a}
@@ -153,6 +153,7 @@ button{font-family:var(--disp);touch-action:manipulation}
 .buy:disabled{background:#2a2350;color:#7d72b5;box-shadow:none;border-color:#3b3170}
 .buy:not(:disabled):active{transform:translateY(3px);box-shadow:0 1px 0 #0d0a1c}
 .buy.star{background:linear-gradient(#d3b3ff,#9a66ff);color:#fff}
+.buy.star:disabled{background:#2a2350;color:#7d72b5}
 .buy.sm{font-size:13px;padding:8px 10px}
 .brow{display:grid;grid-template-columns:1fr auto;gap:6px}
 .rb{border:2px solid #9a66ff;border-radius:12px;padding:8px;background:rgba(154,102,255,.12);display:flex;flex-direction:column;gap:5px}
@@ -240,7 +241,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 83, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 84, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -614,7 +615,7 @@ const EFF = { push: pw, runup: pw, sling: pw, cannon: pw, rail: pw, warp: pw, an
   ad: s => `수익 ×${fmt2(s.rate)}`, sponsor: s => `수익 ×${fmt2(s.rate)}`, coin: s => `코인 ×${fmt2(s.coin)}`, magnet: s => s.magR ? `끌어당기는 범위 ${Math.round(s.magR / 1.2 * 100)}%` : '자석 없음', style: s => `튕김당 +${(s.style * 100).toFixed(2)}%`, alt: s => `고도 계수 ${(s.alt * 100).toFixed(1)}%`,
   combo: s => `콤보당 +${(s.combo * 100).toFixed(1)}%`, trickpay: s => `바퀴당 +${(s.trick * 100).toFixed(1)}%`, lucky: s => `황금 판 확률 ${Math.round(s.lucky * 100)}%`, crate: s => `상자 등장 ×${(1 + 0.3 * s.crate).toFixed(1)}` };
 const PEFF = { r_perf: l => `퍼펙트 +${Math.round(30 * (1 + 0.5 * l))}%`, r_land: l => `완벽 착지 +${(8 * (1 + 0.5 * l)).toFixed(0)}%`, r_time: l => `제한 시간 +${l * 10}초`, p_power: l => `발사 속도 +${l * 5}%`, p_meter: l => `퍼펙트 구간 +${l * 15}%`, r_focus: l => `퍼펙트 보너스 +${l * 3}%`, r_mem: l => `레벨의 ${l * 8}% 유지`, r_skip: l => `개척 골드 +${l * 50}%`, p_fuel: l => `부스트 +${(l * 0.5).toFixed(1)}초`, r_trick: l => `묘기 보너스 +${l * 50}%`,
-  r_spring: l => `도약 +${l}회`, r_dash: l => `대시 +${l}회`, r_feather: l => `공기 저항 -${l * 6}%`, p_gold: l => `모든 골드 +${l * 25}%`, p_seed: l => l ? `최고 판 수익의 ${l}배` : '시작 골드 없음', r_coin: l => `코인 가치 +${l * 40}%`, r_disc: l => `가격 -${l * 5}%` };
+  r_spring: l => `도약 +${l}회`, r_dash: l => `대시 +${l}회`, r_feather: l => `공기 저항 -${l * 6}%`, p_gold: l => `모든 골드 +${l * 25}%`, p_seed: l => l ? `최고 판 수익의 ${Math.round(C.SEED[l] * 100)}%` : '시작 골드 없음', r_coin: l => `코인 가치 +${l * 40}%`, r_disc: l => `가격 -${l * 5}%` };
 // value lines of the newer cards: one plainly labelled number each
 Object.assign(EFF, { haul: s => `거리 수익 ×${s.haul.toFixed(2)}`, tractor: s => s.tractor ? `${s.tractor.toFixed(1)}초마다 상자 1개` : '견인 없음', tail: s => `속도 손실 -${100 - Math.round(s.wear * 100)}%`, refuel: s => `완벽 착지 시 부스트 +${s.refuel.toFixed(2)}초`, leap: s => `발사 속도의 ${Math.round(s.leap * 100)}%만큼 밀어줌`, crater: s => `발사 속도의 ${(s.crater * 100).toFixed(1)}%만큼 밀어줌`,
   amp: s => `부스트·대시 힘 +${s.ampP}%`, turbine: s => `5연속 시 잃은 속도의 ${Math.round(s.turbine * 100)}% 회복`, draft: s => `콤보 10부터 속도 손실 -${Math.round(s.draft * 100)}%`, pslam: s => `튕기는 힘 +${(s.pslam * 100).toFixed(1)}%`, pit: s => `한 판에 최대 ${s.pit}회`,
@@ -696,8 +697,8 @@ function treeHTML(items, perk) {
       if (ok) on += d; else off += d;
       if (need > 1) { const t = 'Lv' + need, w = t.length * 5.6 + 8; tags += `<rect class="${ok ? 'on' : ''}" style="--bc:${col}" x="${x2 - w / 2}" y="${y2 - 17}" width="${w}" height="13" rx="6.5"/><text class="${ok ? 'on' : ''}" x="${x2}" y="${y2 - 7.3}">${t}</text>`; } });
     if (perk && !u.req.length) h += `<span class="bl" style="left:${X(c)}px;top:8px;--bc:${col}">${C.PBRANCH.find(b => b[0] === u.br)[1]}</span>`;
-    const price = mx || lock ? '' : `<u class="${can ? '' : 'poor'}">${perk ? '★ ' + fmt(C.perkCost(u, l)) : fmt(C.cost(S, u.id))}</u>`, pct = mx ? 100 : Math.round(100 * l / u.max), cls = lock ? 'lock' : mx ? 'max' : can ? 'can' : '', bd = lock ? 't_lock' : mx ? 't_check' : can ? 't_up' : '';
-    h += `<button type="button" class="nd ${cls}${sel[tab] === u.id ? ' sel' : ''}" data-id="${u.id}" style="left:${X(c) - n / 2}px;top:${Y(r)}px;--bc:${col}"><svg class="ring" viewBox="0 0 54 54"><rect class="rt" x="1.5" y="1.5" width="51" height="51" rx="14.5"/>${pct && !lock ? `<rect class="rf" x="1.5" y="1.5" width="51" height="51" rx="14.5" pathLength="100" stroke-dasharray="${pct} 100"/>` : ''}</svg>${icon(u.id)}${bd ? `<i class="bd">${icon(bd)}</i>` : ''}<b>${u.cap ? (l ? '완료' : '궁극') : mx ? 'MAX' : l + '/' + u.max}</b><span><em>${u.name}</em>${price}</span></button>`; }
+    const gz = perk && !mx ? C.perkGate(u.id, l) : 0, gated = !!gz && l > 0 && C.reached(S) < gz, price = mx ? '' : gated ? `<u class="poor">${Z[gz].name}</u>` : lock ? '' : `<u class="${can ? '' : 'poor'}">${perk ? '★ ' + fmt(C.perkCost(u, l)) : fmt(C.cost(S, u.id))}</u>`, pct = mx ? 100 : Math.round(100 * l / u.max), cls = gated ? 'gate' : lock ? 'lock' : mx ? 'max' : can ? 'can' : '', bd = lock ? 't_lock' : mx ? 't_check' : can ? 't_up' : '';
+    h += `<button type="button" class="nd ${cls}${sel[tab] === u.id ? ' sel' : ''}" data-id="${u.id}" style="left:${X(c) - n / 2}px;top:${Y(r)}px;--bc:${col}"><svg class="ring" viewBox="0 0 54 54"><rect class="rt" x="1.5" y="1.5" width="51" height="51" rx="14.5"/>${pct && (!lock || gated) ? `<rect class="rf" x="1.5" y="1.5" width="51" height="51" rx="14.5" pathLength="100" stroke-dasharray="${pct} 100"/>` : ''}</svg>${icon(u.id)}${bd ? `<i class="bd">${icon(bd)}</i>` : ''}<b>${u.cap ? (l ? '완료' : '궁극') : mx ? 'MAX' : l + '/' + u.max}</b><span><em>${u.name}</em>${price}</span></button>`; }
   const ht = top + T.rows * rh, wd = inner + (open ? TREE.det + 10 : 0);
   return `<div class="tw" style="height:${ht}px;width:${wd}px;--cw:${cw - 6}px"><svg class="edges" width="${wd}" height="${ht}">${off}${on}${tags}</svg>${h}</div>`;
 }
@@ -708,8 +709,8 @@ function upDetail(u) { const l = C.lvl(S, u.id), lock = C.lockReason(S, u.id), m
   let eff = ''; if (EFF[u.id]) { const a = EFF[u.id](st); if (mx) eff = `<p>${a}</p>`; else { const s2 = JSON.parse(JSON.stringify(S)); s2.lv[u.id] = l + 1; const b = EFF[u.id](C.stats(s2)); eff = a === b ? `<p>${a}</p>` : arrow(a, b); } }
   const reqs = u.req.map(([r, n]) => reqLi(C.lvl(S, r) >= n, `${C.UP[r].name} Lv${n}${C.lvl(S, r) >= n ? '' : ` · 지금 Lv${C.lvl(S, r)}`}`)).concat(u.zone ? [reqLi(C.gateZone(S) >= u.zone, `${Z[u.zone].name} 도달`)] : []).concat(u.re ? [reqLi(S.rebirths >= u.re, `환생 ${u.re}회${S.rebirths >= u.re ? '' : ` · 지금 ${S.rebirths}회`}`)] : []).join('');
   return detHead(u, l, mx ? '최대 레벨' : `Lv ${l} / ${u.max}`) + `<p>${u.desc}</p>${eff ? `<div class="eff">${eff}</div>` : ''}${reqs ? `<ul class="dr">${reqs}</ul>` : ''}<div class="brow"><button class="buy" data-up="${u.id}" ${can ? '' : 'disabled'}>${mx ? '최대 레벨' : lock ? '잠김' : fmt(C.cost(S, u.id)) + '<small>골드</small>'}</button><button class="buy sm" data-max="${u.id}" ${can ? '' : 'disabled'}>최대로</button></div>`; }
-function perkDetail(q) { const l = S.perks[q.id] || 0, mx = l >= q.max, lock = C.perkLock(S, q.id), c = C.perkCost(q, l), reqs = q.req.map(([r, n]) => reqLi((S.perks[r] || 0) >= n, `${C.PK[r].name} Lv${n}${(S.perks[r] || 0) >= n ? '' : ` · 지금 Lv${S.perks[r] || 0}`}`)).join('');
-  return detHead(q, l, q.cap ? '궁극 능력' : mx ? '최대 레벨' : `Lv ${l} / ${q.max}`) + `<p>${q.desc}</p>${PEFF[q.id] ? `<div class="eff">${mx ? `<p>${PEFF[q.id](l)}</p>` : arrow(PEFF[q.id](l), PEFF[q.id](l + 1))}</div>` : ''}${reqs ? `<ul class="dr">${reqs}</ul>` : ''}<div class="brow" style="grid-template-columns:1fr"><button class="buy star" data-perk="${q.id}" ${perkCan(q) ? '' : 'disabled'}>${mx ? '완료' : lock ? '잠김' : '★ ' + fmt(c)}</button></div>`; }
+function perkDetail(q) { const l = S.perks[q.id] || 0, mx = l >= q.max, lock = C.perkLock(S, q.id), c = C.perkCost(q, l), gz = mx ? 0 : C.perkGate(q.id, l), reqs = q.req.map(([r, n]) => reqLi((S.perks[r] || 0) >= n, `${C.PK[r].name} Lv${n}${(S.perks[r] || 0) >= n ? '' : ` · 지금 Lv${S.perks[r] || 0}`}`)).concat(gz ? [reqLi(C.reached(S) >= gz, `Lv${l + 1}: ${Z[gz].name} 도달`)] : []).join('');
+  return detHead(q, l, q.cap ? '궁극 능력' : mx ? '최대 레벨' : `Lv ${l} / ${q.max}`) + `<p>${q.desc}</p>${PEFF[q.id] ? `<div class="eff">${mx ? `<p>${PEFF[q.id](l)}</p>` : arrow(PEFF[q.id](l), PEFF[q.id](l + 1))}</div>` : ''}${reqs ? `<ul class="dr">${reqs}</ul>` : ''}<div class="brow" style="grid-template-columns:1fr"><button class="buy star" data-perk="${q.id}" ${perkCan(q) ? '' : 'disabled'}>${mx ? '완료' : lock ? (l > 0 ? '조건 필요' : '잠김') : '★ ' + fmt(c)}</button></div>`; }
 // the panel slides in beside the tree; the tree gets extra room on that side and scrolls so the chosen tile stays in view
 function showDetail() { const id = sel[tab], isUp = C.BRANCH.some(b => b[0] === tab), u = id && (isUp ? C.UP[id] : tab === 'star' && starOpen() ? C.PK[id] : null), det = $('#sDet'), body = $('.sbody');
   body.classList.toggle('det', !!u); if (!u) return; det.style.setProperty('--bc', BCOL[u.br]); det.innerHTML = isUp ? upDetail(u) : perkDetail(u);

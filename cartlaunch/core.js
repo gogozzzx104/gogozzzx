@@ -180,7 +180,7 @@ const CORE = (() => {
     K('p_power', 'might', '전설의 팔뚝', 30, '발사 속도 +5%'),
     K('p_meter', 'might', '느긋한 호흡', 5, '퍼펙트 구간 +15%', [['p_power', 1]]),
     K('r_focus', 'might', '무아지경', 5, '퍼펙트 보너스 +3%', [['p_meter', 2]]),
-    K('r_mem', 'might', '전생의 기억', 10, '환생 때 레벨 8% 유지', [['p_power', 2]]),
+    K('r_mem', 'might', '전생의 기억', 10, '환생 때 레벨 8% 유지 · Lv6부터 구역 도달 필요', [['p_power', 2]]),
     K('r_skip', 'might', '개척 지도', 10, '새 구역 개척 골드 +50%', [['p_power', 3]]),
     K('r_double', 'might', '2단 발사', 1, '첫 정점에서 한 번 더 가속', [['p_power', 5], ['r_focus', 2]], 12),
     K('r_perf', 'might', '승부사', 10, '퍼펙트 발사·킥 보너스가 50% 커짐', [['p_power', 2]]),
@@ -193,15 +193,23 @@ const CORE = (() => {
     K('r_land', 'flight', '고양이 착지', 10, '착지·슬램 보너스가 50% 커짐', [['r_trick', 2]]),
     K('r_time', 'flight', '끈기', 5, '한 판 제한 시간 +10초', [['p_fuel', 2]]),
     K('p_gold', 'wealth', '프랜차이즈 본사', 30, '모든 골드 +25%'),
-    K('p_seed', 'wealth', '창업 자금', 5, '환생 직후 골드 · 지난 생 최고 판 수익 × Lv', [['p_gold', 1]]),
+    K('p_seed', 'wealth', '창업 자금', 5, '환생 직후 골드 · 지난 생 최고 판 수익의 일부 · 레벨마다 구역 도달 필요', [['r_disc', 2]]),
     K('r_coin', 'wealth', '황금 손', 10, '코인·상자 가치 +40%', [['p_gold', 2]]),
-    K('r_disc', 'wealth', '단골 할인', 5, '업그레이드 가격 -5%', [['p_seed', 2]]),
-    K('r_bless', 'wealth', '별의 축복', 1, '별 보너스 1.5배', [['p_gold', 5], ['r_disc', 2]], 15),
+    K('r_disc', 'wealth', '단골 할인', 5, '업그레이드 가격 -5%', [['p_gold', 1]]),
+    K('r_bless', 'wealth', '별의 축복', 1, '별 보너스 1.5배', [['p_gold', 5], ['p_seed', 2]], 15),
   ];
   const PK = Object.fromEntries(PERKS.map(p => [p.id, p]));
   const PBRANCH = [['might', '힘의 길'], ['flight', '비행의 길'], ['wealth', '부의 길']];
   const perkCost = (p, lvl) => p.cap || lvl + 1;
-  const perkLock = (s, id) => { for (const [r, n] of PK[id].req) if ((s.perks[r] || 0) < n) return `${PK[r].name} Lv${n} 필요`; return ''; };
+  // Some perk levels also need a zone to have been reached once.  "Reached" counts every life and every cycle, so the condition
+  // stays met after a rebirth or a transcendence.  PGATE[id][l] is the zone needed to buy level l + 1.
+  // 전생의 기억 is free up to level 5; 창업 자금 opens one step behind it on the same ladder, its last level just before the end of time.
+  const PGATE = { r_mem: [0, 0, 0, 0, 0, 'mars', 'saturn', 'pleiades', 'star', 'andromeda'], p_seed: ['crystal', 'nebula', 'hole', 'virgo', 'multi'] };
+  const reached = s => Math.max(s.zone || 0, s.zoneEver || 0, zoneAt(s.best || 0));
+  const perkGate = (id, l) => { const g = PGATE[id] && PGATE[id][l]; return g ? ZI(g) : 0; };
+  const perkLock = (s, id) => { for (const [r, n] of PK[id].req) if ((s.perks[r] || 0) < n) return `${PK[r].name} Lv${n} 필요`; const z = perkGate(id, s.perks[id] || 0); if (z && reached(s) < z) return `${ZONES[z].name} 도달 필요`; return ''; };
+  // 창업 자금: share of the best run of the life just ended that is handed over as starting gold, by level
+  const SEED = [0, 0.1, 0.2, 0.35, 0.6, 1];
   const STAR_GOLD = 0.04;
   const SEA = ZI('sea');
   // stars for a rebirth: 2 on reaching the sea, then more for every zone (and part of a zone) beyond it
@@ -441,12 +449,12 @@ const CORE = (() => {
   }
   function finish(r, s) { const p = payout(r, s); s.gold += p.total; s.runs++; if (r.finDone) s.ended = (s.ended || 0) + 1; if (p.total > (s.lifeGold || 0)) s.lifeGold = p.total; if (r.maxX > (s.bestT || 0)) s.bestT = r.maxX; if (r.perfect) s.perfects = (s.perfects || 0) + 1; if (r.slams) s.slams = (s.slams || 0) + r.slams;
     p.record = r.maxX > s.best; if (r.maxX > s.best) s.best = r.maxX; if (r.maxX > s.bestLife) s.bestLife = r.maxX; p.newZone = p.zone > s.zone; if (p.zone > s.zone) s.zone = p.zone; if (s.zone > (s.zoneEver || 0)) s.zoneEver = s.zone; if (s.zone - LAST > (s.deepEver || 0)) s.deepEver = s.zone - LAST; p.ach = checkAch(s, r); return p; }
-  function rebirth(s) { const gain = starGain(s); if (gain <= 0) return 0; const seed = (s.perks.p_seed || 0) ? 100 * Math.pow(10, s.perks.p_seed) + s.perks.p_seed * (s.lifeGold || 0) : 0, keep = 0.08 * (s.perks.r_mem || 0);
+  function rebirth(s) { const gain = starGain(s); if (gain <= 0) return 0; const seed = (s.perks.p_seed || 0) ? 100 * Math.pow(10, s.perks.p_seed) + SEED[Math.min(5, s.perks.p_seed)] * (s.lifeGold || 0) : 0, keep = 0.08 * (s.perks.r_mem || 0);
     s.starsEver = starsEver(s) + gain; s.stars += gain; s.starsTotal += gain; s.rebirths++; s.gold = seed; const lv = {}; if (keep) for (const k in s.lv) { const n = Math.floor(s.lv[k] * keep); if (n) lv[k] = n; } s.lv = lv; s.bestLife = 0; s.lifeGold = 0; s.zone = 0; checkAch(s, null); return gain; }
   function buyAll(s) { let n = 0; for (; n < 20000;) { let best = null, bc = Infinity; for (const u of UPS) if (canBuy(s, u.id)) { const c = cost(s, u.id); if (c < bc) { bc = c; best = u.id; } } if (!best) break; buy(s, best); n++; } return n; }
   function buyAllPerks(s) { let n = 0; for (; n < 2000;) { let best = null, bc = Infinity; for (const q of PERKS) { const l = s.perks[q.id] || 0, c = perkCost(q, l); if (l < q.max && !perkLock(s, q.id) && c <= s.stars && c < bc) { bc = c; best = q.id; } } if (!best) break; buyPerk(s, best); n++; } return n; }
   function buyPerk(s, id) { const p = PK[id], l = s.perks[id] || 0; if (!p || l >= p.max || perkLock(s, id) || s.stars < perkCost(p, l)) return false; s.stars -= perkCost(p, l); s.perks[id] = l + 1; return true; }
-  return { ZONES, ZI, zoneAt, zoneProg, lerpZ, ground, isWater, UPS, UP, BRANCH, PERKS, PK, PBRANCH, perkCost, perkLock, STAR_GOLD, starsFor, nextStarAt, ACH, checkAch, achCount, FIN_T,
+  return { ZONES, ZI, zoneAt, zoneProg, lerpZ, ground, isWater, UPS, UP, BRANCH, PERKS, PK, PBRANCH, perkCost, perkLock, perkGate, reached, SEED, STAR_GOLD, starsFor, nextStarAt, ACH, checkAch, achCount, FIN_T,
     setTire: v => { TIRE = v; }, vcap, newSave, migrate, lvl, total, cost, lockReason, canBuy, buy, stats, RAMP, scaleOf, newRun, river, cellObjs, step, payout, finish, rebirth, buyPerk, buyAll, buyAllPerks, gateZone, LAST, TPERKS, TP, tCost, tl, TV, shardsFor, buyT, tLock, deepEver, starsEver, transcend, starGain, cycleBest, gd, gref };
 })();
 if (typeof module !== 'undefined') module.exports = CORE;
