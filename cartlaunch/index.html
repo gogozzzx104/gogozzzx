@@ -182,6 +182,25 @@ button{font-family:var(--disp);touch-action:manipulation}
 .sk small{font:700 10px var(--body);color:#b3a9dd}
 .sk.on{border-color:#ffcf4a;box-shadow:0 0 12px rgba(255,207,74,.5)}
 .sk.lock{opacity:.5;border-style:dashed}
+.tabs.many{gap:4px;padding:6px}
+.tabs.many .tab{padding:2px 6px}
+.tree.mapt{overflow:hidden}
+.mapv{position:relative;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;overflow:hidden;box-sizing:border-box;padding:8px 0}
+.film{position:relative;width:100%;height:var(--fh);flex:none;perspective:1000px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent);mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent);cursor:grab;touch-action:none}
+.film:active{cursor:grabbing}
+.fc{position:absolute;left:50%;top:0;width:var(--cw);height:var(--fh);margin-left:calc(var(--cw) / -2);box-sizing:border-box;padding:23px 7px 15px;background-color:#0a0910;background-image:linear-gradient(90deg,rgba(214,206,240,.6) 0 9px,transparent 9px),linear-gradient(90deg,rgba(214,206,240,.6) 0 9px,transparent 9px);background-size:20px 6px,20px 6px;background-position:5px 4px,5px calc(100% - 4px);background-repeat:repeat-x;backface-visibility:hidden;will-change:transform}
+.fp{position:relative;width:100%;height:100%;border-radius:5px;overflow:hidden;background:#000;box-shadow:0 0 0 1.5px #24212e}
+.fp canvas{display:block;width:100%;height:100%;pointer-events:none}
+.fp.q{display:grid;place-items:center}
+.fp.q b{font:400 calc(var(--cw) * .2)/1 var(--disp);color:#5d5869;letter-spacing:.08em}
+.fn{position:absolute;left:9px;top:11px;font:700 8.5px/1 var(--body);font-style:normal;color:#f5b014;letter-spacing:.12em;pointer-events:none}
+.mcap{text-align:center;min-height:44px}
+.mcap h3{margin:0;font:22px/1.15 var(--disp);font-weight:400;color:#fff}
+.mcap p{margin:3px 0 0;font:700 11.5px/1.3 var(--body);color:#b3a9dd;font-variant-numeric:tabular-nums}
+.mcap b{color:#ffcf4a;font-weight:700}
+.fa{position:absolute;top:50%;transform:translateY(-50%);width:34px;height:46px;border-radius:12px;border:2px solid #4a3d8a;background:rgba(18,14,40,.85);color:#efeaff;font:24px/1 var(--disp);padding:0;z-index:4}
+.fa.l{left:8px}.fa.r{right:8px}
+.fa:active{transform:translateY(-50%) scale(.94)}
 .tree.grid.opt{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
 .oc{gap:5px;padding:8px 10px}
 .seg{display:flex;gap:4px;margin-top:2px}
@@ -241,7 +260,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 84, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 85, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -597,7 +616,7 @@ const hold = (el, on, off) => { el.addEventListener('pointerdown', e => { e.prev
 hold(boostBtn, () => boostHeld = true, () => boostHeld = false); hold(skillBtn, () => skillTap = true); hold(dashBtn, () => dashTap = true); hold(diveBtn, () => diveTap = true);
 endBtn.addEventListener('click', () => { if (state === 'fly' && run && !run.over) { run.over = true; run.why = '여기까지!'; endRun(); } });
 const KB = matchMedia('(pointer: fine)').matches; if (KB) root.classList.add('kb');
-addEventListener('keydown', e => { if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); keys.add(e.code); if (e.repeat) return; snd(); root.classList.add('kb'); if (state === 'ending') { if (e.code === 'Space' || e.code === 'Enter') endSkip(); return; } if (state === 'shop' && e.code === 'Escape') toAim(); if (state === 'result' && e.code === 'KeyU') openShop(); if (e.code === 'Space') { if (state === 'aim') startCharge(); else if (state === 'push') tryKick(); else if (state === 'fly') boostHeld = true; else if (state === 'result') toAim(); } if (e.code === 'KeyW' || e.code === 'ArrowUp' || e.code === 'ShiftLeft') skillTap = true; if (e.code === 'KeyE') dashTap = true; if (e.code === 'KeyS' || e.code === 'ArrowDown' || e.code === 'KeyQ') diveTap = true; });
+addEventListener('keydown', e => { if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); keys.add(e.code); if (e.repeat) return; snd(); root.classList.add('kb'); if (state === 'ending') { if (e.code === 'Space' || e.code === 'Enter') endSkip(); return; } if (state === 'shop' && e.code === 'Escape') toAim(); if (state === 'shop' && tab === 'map' && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) mapGo(e.code === 'ArrowLeft' ? -1 : 1); if (state === 'result' && e.code === 'KeyU') openShop(); if (e.code === 'Space') { if (state === 'aim') startCharge(); else if (state === 'push') tryKick(); else if (state === 'fly') boostHeld = true; else if (state === 'result') toAim(); } if (e.code === 'KeyW' || e.code === 'ArrowUp' || e.code === 'ShiftLeft') skillTap = true; if (e.code === 'KeyE') dashTap = true; if (e.code === 'KeyS' || e.code === 'ArrowDown' || e.code === 'KeyQ') diveTap = true; });
 addEventListener('keyup', e => { keys.delete(e.code); if (e.code === 'Space') { boostHeld = false; if (state === 'charge') release(); } });
 document.addEventListener('contextmenu', e => e.preventDefault());
 $('#rAgain').addEventListener('click', toAim); $('#rShop').addEventListener('click', openShop); $('#shopBtn').addEventListener('click', openShop); $('#optBtn').addEventListener('click', () => { tab = 'opt'; openShop(); }); $('#sClose').addEventListener('click', toAim);
@@ -661,13 +680,14 @@ const IC = {
   warp: e_(12, 12, 9, 4) + e_(12, 12, 5, 2) + p_('M12 2v4M12 18v4'), tail: p_('M3 7h10a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 17h7'), over: c_(12, 12, 9) + p_('M12 12l4-5M12 5v2M5 12h2M17 12h2'), encore: p_(LOOP) + p_('M12 8v8M8 12h8'),
   r_perf: p_('M12 2l3 6 6 1-4.5 4 1 6-5.5-3-5.5 3 1-6L3 9l6-1z') + c_(12, 12, 1.5), r_land: p_('M4 20h16M7 16l5-10 5 10M9 12h6'), r_time: c_(12, 13, 8) + p_('M12 13V8M12 13l3 2M9 2h6'),
   t_trans: p_('M12 2l8 5v10l-8 5-8-5V7zM12 2v20M4 7l16 10M20 7L4 17'),
+  t_map: r_(3, 5, 18, 14, 2) + p_('M7 5v14M17 5v14M3 9h4M3 15h4M17 9h4M17 15h4'),
   t_opt: c_(12, 12, 3.2) + c_(12, 12, 6.8) + p_('M12 2.5v2.7M12 18.8v2.7M2.5 12h2.7M18.8 12h2.7M5.3 5.3l1.9 1.9M16.8 16.8l1.9 1.9M18.7 5.3l-1.9 1.9M7.2 16.8l-1.9 1.9'),
   t_up: p_('M12 19V6M6.5 11.5L12 6l5.5 5.5'), t_lock: r_(5.5, 10.5, 13, 9.5, 2.2) + p_('M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3M12 14v2.5'), t_check: p_('M5 12.5l4.5 4.5L19 7.5'),
   t_skin: p_('M8 3l-5 4 3 4 2-1v11h8V10l2 1 3-4-5-4q-2 3-4 3t-4-3z'), t_info: p_('M7 4h10v5a5 5 0 0 1-10 0zM7 6H3q0 5 4 5M17 6h4q0 5-4 5M12 14v4M8 21h8') };
 const icon = id => `<svg class="ic" viewBox="0 0 24 24">${IC[id] || c_(12, 12, 7)}</svg>`;
-const BCOL = { launch: '#ff8a66', body: '#6cbcff', gear: '#3fe6c5', money: '#ffcf4a', star: '#c59bff', trans: '#7df3da', skin: '#ff9de0', info: '#9fb0ff', opt: '#c3cde0', might: '#ff8a66', flight: '#6cbcff', wealth: '#ffcf4a' };
+const BCOL = { launch: '#ff8a66', body: '#6cbcff', gear: '#3fe6c5', money: '#ffcf4a', star: '#c59bff', trans: '#7df3da', skin: '#ff9de0', info: '#9fb0ff', opt: '#c3cde0', map: '#ffb057', might: '#ff8a66', flight: '#6cbcff', wealth: '#ffcf4a' };
 const transOpen = () => (S.trans || 0) > 0 || (S.shards || 0) > 0 || C.cycleBest(S) >= Z[C.LAST].at;
-const TABS = [['launch', '발사', 'ramp'], ['body', '차체', 'frame'], ['gear', '장치', 'rocket'], ['money', '수익', 'coin'], ['star', '환생', 'style'], ['trans', '초월', 't_trans'], ['skin', '스킨', 't_skin'], ['info', '기록', 't_info'], ['opt', '설정', 't_opt']];
+const TABS = [['launch', '발사', 'ramp'], ['body', '차체', 'frame'], ['gear', '장치', 'rocket'], ['money', '수익', 'coin'], ['star', '환생', 'style'], ['trans', '초월', 't_trans'], ['map', '지도', 't_map'], ['skin', '스킨', 't_skin'], ['info', '기록', 't_info'], ['opt', '설정', 't_opt']];
 const NUM = /[+\-×]?\d[\d,.]*(?:만|억|조|경|해)?(?:%p|%|초|회|°|m\/s|개|번)?/g;
 const arrow = (a, b) => { const na = a.match(NUM) || [], nb = b.match(NUM) || [], ta = a.split(NUM), tb = b.split(NUM), same = na.length === nb.length && ta.join('|') === tb.join('|'), nx = same ? nb.filter((v, i) => v !== na[i]).join(' · ') : b; return `<p>${a}</p><p class="nx"><i>다음 Lv</i>${nx}</p>`; };   // the current line in full, then only the numbers the next level changes
 const sel = {}, perkCan = q => { const l = S.perks[q.id] || 0; return l < q.max && !C.perkLock(S, q.id) && S.stars >= C.perkCost(q, l); };
@@ -718,6 +738,53 @@ function showDetail() { const id = sel[tab], isUp = C.BRANCH.some(b => b[0] === 
 // rebirth stays behind a veil until the sea has been reached once
 const SEA_AT = Z[C.ZI('sea')].at, starOpen = () => (S.rebirths || 0) > 0 || (S.stars || 0) > 0 || C.starsEver(S) > 0 || (S.trans || 0) > 0 || S.best >= SEA_AT;
 const km = m => fmtD(m).replace(/\.0+(?=km|m)/, '').replace(/(\.\d*?)0+(?=km|m)/, '$1');
+// ---- map: every place reached so far as frames of a film strip ----
+// The strip lies on a wide cylinder that bulges gently toward the viewer; dragging rolls it one frame at a time.  Places not yet
+// reached are a single black "??" frame followed by blank film that fades out, so nobody can tell how many are left.
+const MAP = { pos: null, target: 0, n: 0, known: 0, cw: 260, cells: new Map(), el: null, drag: null, t: 0, liveT: 0, shown: -1 }, MAPW = 760, MAPH = 400, MAP_A = 0.23;
+const EDGE = { moon: '#d4d4de', lava: '#ff6a2a', star: '#ff9df5', cloud: '#ffb6dc', hole: '#b04cff', end: '#ffffff', canyon: '#ffd09a', forest: '#8fd46a', rock: '#a89c8c' };
+// one zone's scenery drawn into a small canvas with the game's own backdrop code; `drift` pans it slowly (used for the frame in the middle)
+function mapScene(c, zi, drift) { const g0 = g, W0 = W, H0 = H, h0 = horizon, b0 = bgScroll, zn = Z[zi];
+  try { g = c.getContext('2d'); W = MAPW; H = MAPH; horizon = H * 0.76; bgScroll = zi * 311 + (drift || 0); g.setTransform(c.width / MAPW, 0, 0, c.height / MAPH, 0, 0);
+    const sky = g.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, zn.sky[0]); sky.addColorStop(1, zn.sky[1]); g.fillStyle = sky; g.fillRect(0, 0, W, H); backdrop(zn.deco, zi, 0); g.globalAlpha = 1; g.shadowBlur = 0;
+    const amp = zn.water ? 0 : Math.min(20, 5 + 9 * (zn.amp || 0)), gy = x => horizon - Math.sin((x + bgScroll * 0.8) / 96 + zi) * amp * 0.6 - Math.sin((x + bgScroll * 0.8) / 41 + zi * 2) * amp * 0.25, ed = new Path2D();
+    g.beginPath(); g.moveTo(0, H); for (let x = 0; x <= W; x += 12) { const y = gy(x) + (zn.water ? Math.sin(x / 18 + performance.now() / 300) * 2 : 0); g.lineTo(x, y); x ? ed.lineTo(x, y) : ed.moveTo(x, y); } g.lineTo(W, H); g.closePath(); g.fillStyle = zn.ground; g.fill();
+    const dg = g.createLinearGradient(0, horizon - 20, 0, H); dg.addColorStop(0, 'rgba(0,0,0,0)'); dg.addColorStop(1, 'rgba(0,0,0,.34)'); g.fillStyle = dg; g.fill();
+    g.strokeStyle = zn.water ? '#bfe9ff' : zn.edge || EDGE[zn.deco] || 'rgba(255,255,255,.35)'; g.lineWidth = 3; g.stroke(ed);
+    if (zi === S.zone) { const x = W * 0.3; g.lineWidth = 2.5; g.strokeStyle = '#2b2233'; drawCart(x, gy(x) - 5, Math.atan((gy(x + 8) - gy(x - 8)) / 16), 1.5); }
+  } finally { g = g0; W = W0; H = H0; horizon = h0; bgScroll = b0; } }
+function mapCell(i) { const M = MAP, el = document.createElement('div'); el.className = 'fc'; el.dataset.i = i; const o = { el, cv: null };
+  if (i < 0 || i >= M.n) { el.classList.add('ld'); return o; }
+  if (i >= M.known) { el.innerHTML = '<i class="fn">??</i><div class="fp q"><b>??</b></div>'; return o; }
+  const k = Math.min(2.5, uiK * (devicePixelRatio || 1)), pw = Math.min(MAPW, Math.round((M.cw - 14) * k)), cv2 = document.createElement('canvas'); cv2.width = pw; cv2.height = Math.round(pw * MAPH / MAPW);
+  el.innerHTML = `<i class="fn">${String(i + 1).padStart(2, '0')} ▸</i><div class="fp"></div>`; el.lastChild.appendChild(cv2); o.cv = cv2; mapScene(cv2, i, 0); return o; }
+// places every frame near the middle on the cylinder and drops the ones that rolled out of view
+function mapLayout() { const M = MAP; if (!M.el) return; const strip = M.el.querySelector('.film'), R = M.cw / (2 * Math.sin(MAP_A / 2)), lo = Math.floor(M.pos) - 4, hi = Math.ceil(M.pos) + 4;
+  for (const [i, c] of M.cells) if (i < lo || i > hi || i < -2 || i > M.n + 1) { c.el.remove(); M.cells.delete(i); }
+  for (let i = Math.max(-2, lo); i <= Math.min(M.n + 1, hi); i++) { let c = M.cells.get(i); if (!c) { c = mapCell(i); M.cells.set(i, c); strip.appendChild(c.el); }
+    const d = i - M.pos, th = d * MAP_A, ad = Math.abs(d), out = i < 0 ? -i : i >= M.n ? i - M.n + 1 : 0;
+    c.el.style.transform = `translate3d(${(R * Math.sin(th)).toFixed(1)}px,0,${(R * (Math.cos(th) - 1)).toFixed(1)}px) rotateY(${th.toFixed(4)}rad)`; c.el.style.zIndex = String(100 - Math.round(ad * 10)); c.el.style.filter = `brightness(${Math.max(0.35, 1 - 0.2 * ad).toFixed(2)})`; c.el.style.opacity = out ? String(Math.max(0, 0.7 - 0.35 * out)) : '1'; }
+  const f = Math.max(0, Math.min(M.n - 1, Math.round(M.pos))); if (f !== M.shown) { if (M.shown >= 0) tone(880, 640, 0.03, 0.05, 'square'); M.shown = f; const cap = M.el.querySelector('.mcap'), un = f >= M.known, zn = Z[f];
+    cap.innerHTML = un ? `<h3>??</h3><p>아직 가 보지 못한 곳</p>` : `<h3>${zn.name}</h3><p>${f + 1}번째 구역 · ${km(zn.at)}부터${f === S.zone ? ' · <b>이번 생 여기까지</b>' : ''}${f === M.known - 1 && f !== S.zone ? ' · <b>가장 멀리 간 곳</b>' : ''}</p>`; } }
+function mapGo(d) { const M = MAP; M.target = Math.max(0, Math.min(M.n - 1, Math.round(M.target) + d)); }
+function mapTick(now) { const M = MAP; if (!M.el || !M.el.isConnected) return; const dt = Math.min(0.05, (now - M.t) / 1000); M.t = now;
+  if (!M.drag) { const d = M.target - M.pos; if (Math.abs(d) > 0.002) { M.pos += d * Math.min(1, dt * 11); mapLayout(); } else if (M.pos !== M.target) { M.pos = M.target; mapLayout(); } }
+  if (now - M.liveT > 40 && !RM) { M.liveT = now; const i = Math.round(M.pos), c = M.cells.get(i); if (c && c.cv) mapScene(c.cv, i, now * 0.012); } }
+function mapMount(list) { const M = MAP, far = C.reached(S), all = far >= Z.length - 1; M.known = far + 1; M.n = M.known + (all ? 0 : 1);
+  if (M.pos == null || M.pos > M.n - 1) M.pos = M.target = Math.min(S.zone, M.n - 1); M.target = Math.max(0, Math.min(M.n - 1, Math.round(M.target))); M.pos = M.target;
+  const aw = list.clientWidth || 700, ah = list.clientHeight || 340; M.cw = Math.max(180, Math.min(340, Math.floor(Math.min(aw * 0.4, (ah - 104) * 1.78) / 20) * 20)); const fh = Math.round((M.cw - 14) * MAPH / MAPW) + 38;
+  list.innerHTML = `<div class="mapv" style="--cw:${M.cw}px;--fh:${fh}px"><div class="tsum" style="margin:0;position:static"><span>발견한 곳 ${M.known}</span><span>좌우로 끌어서 넘기기</span></div><div class="film"></div><div class="mcap"></div><button type="button" class="fa l" aria-label="이전">‹</button><button type="button" class="fa r" aria-label="다음">›</button></div>`;
+  M.el = list.firstChild; M.cells = new Map(); M.shown = -1; M.drag = null; M.t = performance.now(); mapLayout();
+  const film = M.el.querySelector('.film');
+  film.addEventListener('pointerdown', e => { try { film.setPointerCapture(e.pointerId); } catch (er) {} M.drag = { id: e.pointerId, x0: locX(e), p0: M.pos, moved: false, v: 0, lx: locX(e), lt: e.timeStamp }; });
+  film.addEventListener('pointermove', e => { const D = M.drag; if (!D || D.id !== e.pointerId) return; const x = locX(e), pitch = M.cw * uiK; if (Math.abs(x - D.x0) > 6) D.moved = true; if (!D.moved) return;
+    let p = D.p0 - (x - D.x0) / pitch; if (p < 0) p *= 0.35; else if (p > M.n - 1) p = M.n - 1 + (p - M.n + 1) * 0.35; const dtm = Math.max(1, e.timeStamp - D.lt); D.v = D.v * 0.6 + (D.lx - x) / pitch / dtm * 0.4; D.lx = x; D.lt = e.timeStamp; M.pos = p; mapLayout(); });
+  const up = e => { const D = M.drag; if (!D || D.id !== e.pointerId) return; M.drag = null;
+    if (!D.moved) { const at = document.elementFromPoint(e.clientX, e.clientY), hit = at && at.closest('.fc'); if (hit && !hit.classList.contains('ld')) M.target = Math.max(0, Math.min(M.n - 1, +hit.dataset.i)); return; }
+    M.target = Math.max(0, Math.min(M.n - 1, Math.round(M.pos + Math.max(-2.5, Math.min(2.5, D.v * 180))))); };
+  film.addEventListener('pointerup', up); film.addEventListener('pointercancel', up);
+  let wt = 0; film.addEventListener('wheel', e => { e.preventDefault(); const tn = performance.now(); if (tn - wt < 110) return; wt = tn; mapGo((Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) > 0 ? 1 : -1); }, { passive: false });
+  M.el.querySelector('.fa.l').addEventListener('click', () => mapGo(-1)); M.el.querySelector('.fa.r').addEventListener('click', () => mapGo(1)); }
 // Settings: every row is a set of choices; the note under the title says what the current choice does.
 const VOL = [[0, '0'], [0.25, '25'], [0.5, '50'], [0.75, '75'], [1, '100']];
 const OPTS = [
@@ -733,10 +800,11 @@ function optHTML() { return `<div class="bh">설정 · 이 기기에만 저장</
 function setOpt(k, v) { OPT[k] = isNaN(+v) ? v : +v; saveOpt(); if (k === 'gfx') { if (v === 'auto') { PERF.fail = 0; PERF.up = null; LS.del('cart.autofail'); } setQ(); } if (k === 'sfx' || k === 'mus') { snd(); AUD.vol(); } SFX.ui(); }
 function renderShop() {
   st = C.stats(S); $('#sGold').textContent = fmt(S.gold);
-  $('#sZones').innerHTML = S.zone > C.LAST ? `<b>${Z[S.zone].name}</b>` : `<b>${S.zone + 1} / ${C.LAST + 1} · ${Z[S.zone].name}</b><div class="lvbar"><i style="width:${Math.round(100 * (S.zone + 1) / (C.LAST + 1))}%"></i></div>`;
+  $('#sZones').innerHTML = `<b>${S.zone + 1}번째 구역 · ${Z[S.zone].name}</b>`;
   const isUp = C.BRANCH.some(b => b[0] === tab), list = $('#sList'), det = $('#sDet'), keepScroll = renderShop.tab === tab, sc0 = [list.scrollLeft, list.scrollTop]; renderShop.tab = tab;
+  $('#sTabs').classList.toggle('many', transOpen());
   $('#sTabs').innerHTML = TABS.filter(t => t[0] !== 'trans' || transOpen()).map(([id, name, ic]) => { const n = id === 'trans' ? C.TPERKS.filter(q => C.tl(S, q.id) < q.max && !C.tLock(S, q.id) && S.shards >= C.tCost(q, C.tl(S, q.id))).length : id === 'star' ? (starOpen() ? C.PERKS.filter(perkCan).length : 0) : C.UPS.filter(u => u.br === id && C.canBuy(S, u.id)).length, veil = id === 'star' && !starOpen(); return `<button type="button" class="tab${tab === id ? ' on' : ''}${veil ? ' vl' : ''}" data-t="${id}" style="--bc:${BCOL[id]}">${icon(veil ? 't_lock' : ic)}${veil ? '???' : name}${n ? `<i>${n}</i>` : ''}</button>`; }).join('');
-  list.className = isUp || tab === 'star' ? 'tree' : tab === 'opt' ? 'tree grid opt' : 'tree grid';
+  list.className = isUp || tab === 'star' ? 'tree' : tab === 'map' ? 'tree mapt' : tab === 'opt' ? 'tree grid opt' : 'tree grid';
   if (isUp) { const items = C.UPS.filter(u => u.br === tab), free = items.filter(u => !C.lockReason(S, u.id)).length, full = items.filter(u => C.lvl(S, u.id) >= u.max).length, pick = items.filter(u => C.canBuy(S, u.id)).sort((x, y) => C.cost(S, x.id) - C.cost(S, y.id))[0];
     list.innerHTML = `<div class="tsum"><span>해금 ${free} / ${items.length}</span><span>최대 ${full}</span>${pick ? `<button type="button" data-pick="${pick.id}">구매 가능 · ${pick.name} ${fmt(C.cost(S, pick.id))}</button>` : ''}</div>` + treeHTML(items, false); }
   else if (tab === 'star' && !starOpen()) { sel.star = null;
@@ -751,11 +819,12 @@ function renderShop() {
   else if (tab === 'skin') { const cur = skinNow().id;
     list.innerHTML = `<div class="bh">스킨</div>` + SKINS.map(k => `<button type="button" class="sk${k.id === cur ? ' on' : ''}${skinOpen(k) ? '' : ' lock'}" data-skin="${k.id}"><canvas width="220" height="140" data-skin="${k.id}"></canvas>${k.name}<small>${skinOpen(k) ? (k.id === cur ? '사용 중' : '눌러서 변경') : k.how || Z[k.z].name + ' 도달 시'}</small></button>`).join('');
     for (const c2 of list.querySelectorAll('.sk canvas')) { const g0 = g; g = c2.getContext('2d'); pvSkin = SKINS.find(k => k.id === c2.dataset.skin); g.setTransform(2, 0, 0, 2, 0, 0); drawCart(64, 54, 0, 1.25); pvSkin = null; g = g0; } }
+  else if (tab === 'map') mapMount(list);
   else if (tab === 'opt') list.innerHTML = optHTML();
   else { const n = C.achCount(S);
     const slots = []; for (let k = 1; k <= SLOTS; k++) { const q = k === slot ? S : loadSlot(k); slots.push(`<div class="ac${k === slot ? ' done' : ''}"><h3>슬롯 ${k}${k === slot ? ' · 지금 플레이 중' : ''}</h3><p>${q && (q.runs || k === slot) ? `${Z[Math.min(q.zone, Z.length - 1)].name} · 환생 ${q.rebirths}회 · 초월 ${q.trans || 0}회 · ${fmt(q.runs)}판` : '빈 슬롯 · 새 게임'}</p>${k === slot ? '' : `<button class="buy sm" data-slot="${k}">이 슬롯으로</button>`}</div>`); }
     list.innerHTML = `<div class="bh">계정 · 저장 슬롯 3개</div><p class="note">${CLOUD.state === 'on' ? '로그인한 계정에 저장돼요. 다른 기기에서 같은 계정으로 열면 이어서 할 수 있어요.' : CLOUD.state === 'local' ? '이 계정은 이 페이지에 저장할 권한이 없어서 이 기기에만 저장돼요.' : '지금은 이 기기에만 저장돼요. claude.ai에 로그인한 상태로 열면 계정에 저장됩니다.'}</p>` + slots.join('') + `<div class="bh">기록</div><div class="ac done"><h3>최고 ${fmtD(S.best)}</h3><p>${S.runs}판 · 업그레이드 ${C.total(S)}Lv · 환생 ${S.rebirths}회</p><p>업적 ${n}개 → 골드 +${n * 3}%</p></div>` +
-      `<div class="bh">구역</div>` + Z.filter((z, i) => i <= Math.max(C.LAST, S.zone + 1)).map((z, i) => `<div class="ac${i <= S.zone ? ' done' : ' off'}"><h3>${i + 1}. ${i <= S.zone + 1 ? z.name : '???'}</h3><p>${fmtD(z.at)}부터${i === S.zone + 1 ? ' · 다음 목표' : ''}</p></div>`).join('') +
+      `<div class="bh">구역</div><div class="ac"><h3>${Z[S.zone].name}</h3><p>지금까지 간 곳은 지도에서 필름처럼 넘겨 볼 수 있어요.</p><button class="buy sm" data-goto="map">지도 열기</button></div>` +
       `<div class="bh">업적 · 하나당 골드 +3%</div>` + C.ACH.map(a => `<div class="ac${S.ach[a.id] ? ' done' : ' off'}"><h3>${a.name}</h3><p>${a.desc}</p></div>`).join('') +
       `<div class="bh">기타</div><p class="note">코인은 공중에 2~3개씩 떠 있어요. 부스트·도약·대시·급강하로 높이를 맞춰 보세요.</p><div class="ac"><h3>골드만 비우기</h3><p>업그레이드·별은 그대로 두고 보유 골드만 0으로. 이 기기의 내 기록에만 적용됩니다.</p><button class="buy sm" data-zero="1">${confirmKey === 'zero' ? '정말요? 한 번 더' : '골드 0으로'}</button></div><div class="ac"><h3>처음부터 다시</h3><p>지금 슬롯의 별·업적까지 모두 지웁니다. 다른 슬롯은 그대로예요.</p><button class="buy sm" data-wipe="1">${confirmKey === 'wipe' ? '정말요? 한 번 더' : '초기화'}</button></div>` + `<p class="note">버전 ${VER}</p>`; }
   if (keepScroll) { list.scrollLeft = sc0[0]; list.scrollTop = sc0[1]; } else { list.scrollLeft = 0; list.scrollTop = 0; }
@@ -765,6 +834,8 @@ $('#sTabs').addEventListener('click', e => { const b = e.target.closest('.tab');
 const shopClick = e => { const nd = e.target.closest('.nd'), sk = e.target.closest('.sk'), b = e.target.closest('.buy'), ob = e.target.closest('[data-opt]'), pk = e.target.closest('[data-pick]'), k1 = $('#sList').scrollTop, k2 = 0;
   if (ob) { setOpt(ob.dataset.opt, ob.dataset.v); renderShop(); return; }
   if (e.target.closest('.veil')) { SFX.lock(); return; }
+  { const gt = e.target.closest('[data-goto]'); if (gt) { tab = gt.dataset.goto; SFX.ui(); renderShop(); return; } }
+  if (tab === 'map') return;
   if (e.target.closest('[data-x]')) { sel[tab] = null; SFX.ui(); renderShop(); return; }
   if (pk) { sel[tab] = pk.dataset.pick; confirmKey = ''; SFX.ui(); }
   else if (nd) { sel[tab] = sel[tab] === nd.dataset.id ? null : nd.dataset.id; confirmKey = ''; SFX.ui(); }
@@ -1272,7 +1343,7 @@ function frame(now) {
   const t0 = performance.now(), d0 = now - last;
   MUS.tick(); if (state === 'shop') MUS.want('shop'); else if (state !== 'fly') BST.set(false);
   AUD.tick(now);
-  if (state === 'shop') { last = now; return; }
+  if (state === 'shop') { if (tab === 'map') mapTick(now); last = now; return; }
   draw(now);
   perfTick(d0, performance.now() - t0, state === 'fly');
   if (OPT.meter) { g.setTransform(DPR, 0, 0, DPR, 0, 0); g.font = '700 11px sans-serif'; g.textAlign = 'left'; const t = `${Math.round(PERF.fps)} fps · ${PERF.work.toFixed(1)} ms · ${Q.name}`; g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(4, H - 20, g.measureText(t).width + 10, 16); g.fillStyle = '#9dffb0'; g.fillText(t, 9, H - 8); }

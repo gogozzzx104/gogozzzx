@@ -1,6 +1,6 @@
 # 카트 대발사 — 인계 메모
 
-마지막 갱신: 2026-11-24 · 게시 버전 84 (`index.html`의 `VER`, 설정·기록 탭 맨 아래에 표시)
+마지막 갱신: 2026-11-24 · 게시 버전 85 (`index.html`의 `VER`, 설정·기록 탭 맨 아래에 표시)
 
 ## 한눈에
 
@@ -33,7 +33,7 @@
 | `node cartlaunch/tools/e2e/skies.js <폴더> 1,5,9,…` | 먼 구역 하늘 스크린샷 (`__cart.peek` 사용) |
 | `node cartlaunch/tools/e2e/deeprun.js <출력폴더>` | 전부 만렙으로 먼 구역 발사, 프레임 간격 |
 | `node cartlaunch/tools/e2e/resume.js cartlaunch/tools/e2e` | 비행 중 새로고침·업데이트 뒤 같은 판을 이어 가는지 (5개 항목 OK) |
-| `node cartlaunch/tools/e2e/shots.js <출력폴더> cartlaunch/tools/e2e [aim,fly,sky,shop,veil,trans,result,port,gfx]` | 주요 화면 스크린샷 (눈으로 점검용) |
+| `node cartlaunch/tools/e2e/shots.js <출력폴더> cartlaunch/tools/e2e [aim,fly,sky,shop,veil,trans,gate,map,result,port,gfx]` | 주요 화면 스크린샷 (눈으로 점검용) |
 | `node cartlaunch/tools/e2e/perf.js cartlaunch/tools/e2e` | 그래픽 모드별 프레임당 그리기 시간 |
 | `node cartlaunch/tools/cal.js` | 만렙 기준 도달 거리·수입·근력 가격 |
 
@@ -110,6 +110,10 @@
 - **상점**: 트리는 `layoutTree` → `treeHTML`(타일 + 진행 링 + 상태 배지, 직각 연결선 `orth`), 상세는 오른쪽 고정 패널 `showDetail`(`upDetail`/`perkDetail`). 트리는 양방향 드래그 이동.
   - 환생 탭은 `starOpen()`(망망대해 35km 도달 또는 환생·별 이력)이 될 때까지 베일(`.veil`)로 가려지고 "35km 해금"만 보인다. 초월 탭은 기존대로 조건 전에는 아예 없다.
   - 환생·초월 막대는 칩 3개 + 버튼. 초기화·유지 설명은 확인 단계("정말요?")에서만 나온다.
+- **지도 탭** (`MAP`, `mapMount`/`mapLayout`/`mapTick`/`mapScene`, 버전 85): 가 본 구역(`C.reached(S)`까지)을 필름 한 칸씩으로 보여 준다.
+  - 칸은 완만한 원통 위에 놓인다(`MAP_A` = 칸 사이 각도, CSS 3D). 드래그·휠·방향키·좌우 버튼·옆 칸 탭으로 넘긴다.
+  - 칸 그림은 게임의 `backdrop()`을 작은 캔버스에 그대로 그린 것(`g, W, H, horizon, bgScroll`을 잠시 바꿔 호출). 가운데 칸만 계속 다시 그려 천천히 흐른다. 이번 생의 구역 칸에는 카트가 서 있다.
+  - **남은 구역 수를 알 수 없게 하는 것이 요구 사항이다.** 못 가 본 곳은 검은 "??" 한 칸뿐이고 그 뒤는 구멍만 난 빈 필름이 흐려진다. 같은 이유로 상점 머리글의 "11 / 30"과 기록 탭의 구역 목록을 없앴다. 전체 구역 수가 드러나는 표시를 새로 넣지 말 것.
 - **연출**: 히트스톱 `hitStop`, 카트 스쿼시 `sqz`, 줌 펀치 `punch`, 탑승자 표정 `mood`(0 보통·1 놀람·2 충격·3 기쁨)와 목도리(`doll.sc`), 글자 팝업은 `pop()`으로만 넣는다(같은 문구는 ×n으로 합침).
 - **엔딩** (`drawEnding`): 매장 배경·계산대 73 표지·계산원·기념품 10개 스캔(`souvenir`)·영수증(바코드, 도장)·불꽃·첫 엔딩 보상 알림.
 
