@@ -304,7 +304,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 87, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 88, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -398,7 +398,7 @@ const AUD = { a: null, sfxG: null, musG: null, lp: null, rev: null, lpF: 18000,
   // the music dips for a moment so a big hit reads clearly, then comes back
   duck(k = 0.5, hold = 0.35) { const a = this.a; if (!a || a.state !== 'running') return; const t = a.currentTime, gn = this.musG.gain; gn.cancelScheduledValues(t); gn.setTargetAtTime(OPT.mus * (1 - k), t, 0.015); gn.setTargetAtTime(OPT.mus, t + hold, 0.22); },
   // every frame: music is muffled behind the result card and the shop
-  tick() { const a = this.a; if (!a || a.state !== 'running') return; const f = state === 'result' ? 1300 : state === 'shop' ? 3200 : 18000; if (f !== this.lpF) { this.lpF = f; this.lp.frequency.setTargetAtTime(f, a.currentTime, 0.12); } } };
+  tick() { const a = this.a; if (!a || a.state !== 'running') return; const f = state === 'result' ? 1300 : state === 'shop' && tab !== 'map' ? 3200 : 18000; if (f !== this.lpF) { this.lpF = f; this.lp.frequency.setTargetAtTime(f, a.currentTime, 0.12); } } };
 let toneT = 0, toneN = 0;   // at most six blips per 60 ms
 const jit = (c = 0.04) => 1 + (Math.random() * 2 - 1) * c;   // small pitch variation so a repeated sound never plays twice the same
 // o: { rev: reverb send 0..1, pan: -1..1 }
@@ -489,7 +489,7 @@ const MUS = (() => {
       if (s % 4 === 2) hit(t, 0.03, 0.03, 7000, 'highpass'); if (drums === 2 && s % 8 === 4) hit(t, 0.1, 0.06, 1800, 'bandpass'); } }
   return { T, want(id) { if (T[id]) want = id; }, get cur() { return cur; }, key() { const t = T[cur || want] || T.lot; return [t[0], MODE[t[1]]]; }, tick() { const a = actx; if (!a || a.state !== 'running') return; if (!out) { out = a.createGain(); out.connect(AUD.musG); } out.gain.setTargetAtTime(musOn ? 1 : 0, a.currentTime, 0.1); if (!musOn) { nextT = 0; return; }
       if (nextT < a.currentTime) nextT = a.currentTime + 0.06;
-      while (nextT < a.currentTime + 0.22) { if (step % 16 === 0 && want !== cur && (!cur || a.currentTime - lastSw > 3)) { cur = want; build(cur); step = 0; lastSw = a.currentTime; } sched(nextT); nextT += 15 / T[cur][2]; step++; } } };
+      while (nextT < a.currentTime + 0.22) { if (step % 2 === 0 && want !== cur && (!cur || a.currentTime - lastSw > 0.3)) { cur = want; build(cur); step = 0; lastSw = a.currentTime; } sched(nextT); nextT += 15 / T[cur][2]; step++; } } };
 })();
 
 /* ---------------- game state ---------------- */
@@ -500,6 +500,8 @@ let aim = C.scaleOf(st, st.power * st.perfect);
 const CU = () => run ? run.U : aim.U, G = x => C.ground(x, CU());
 const boostBtn = $('#boostBtn'), skillBtn = $('#skillBtn'), dashBtn = $('#dashBtn'), diveBtn = $('#diveBtn'), endBtn = $('#endBtn');
 const flyUI = on => { boostBtn.hidden = !(on && st.thrust); skillBtn.hidden = !(on && st.springN); dashBtn.hidden = !(on && st.dashN); diveBtn.hidden = !(on && st.diveN); endBtn.hidden = !on; $('#topbar').hidden = on; };
+// the tune of a zone: its own if it has one, else the one of its sky, else the one of its scenery
+const tuneOf = zn => [zn.mus, zn.id, zn.fx, zn.deco].find(k => k && MUS.T[k]) || 'lot';
 function toast(t, ms = 1600) { const el = $('#toast'); el.innerHTML = t; el.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(() => el.classList.remove('show'), ms); }
 function toAim() { LS.del('cart.live'); MUS.want('lot'); st = C.stats(S); aim = C.scaleOf(st, st.power * st.perfect); run = null; state = 'aim'; meterT = 0; parts = []; pops = []; spinDir = 0; bgScroll = 0; resetDoll(); humStop(); charge = 0; rampU = 0.5; cam.x = 0; cam.y = 0; cam.vw = 34; rot = -st.angle; $('#result').hidden = true; $('#shop').hidden = true; flyUI(false); fxs = []; trail = []; }
 // Launch = hold to stretch the band (the gauge slows as tension builds and slips if you over-pull), let go inside the
@@ -823,16 +825,16 @@ function mapLayout() { const M = MAP; if (!M.el) return; const strip = M.el.quer
   for (let i = Math.max(-2, lo); i <= Math.min(M.n + 1, hi); i++) { let c = M.cells.get(i); if (!c) { c = mapCell(i); M.cells.set(i, c); strip.appendChild(c.el); }
     const d = i - M.pos, th = d * MAP_A, ad = Math.abs(d), out = i < 0 ? -i : i >= M.n ? i - M.n + 1 : 0;
     c.el.style.transform = `translate3d(${(R * Math.sin(th)).toFixed(1)}px,0,${(R * (Math.cos(th) - 1)).toFixed(1)}px) rotateY(${th.toFixed(4)}rad)`; c.el.style.zIndex = String(100 - Math.round(ad * 10)); c.el.style.filter = `brightness(${Math.max(0.35, 1 - 0.2 * ad).toFixed(2)})`; c.el.style.opacity = out ? String(Math.max(0, 0.7 - 0.35 * out)) : '1'; }
-  const f = Math.max(0, Math.min(M.n - 1, Math.round(M.pos))); if (f !== M.shown) { const tn = performance.now(); if (M.shown >= 0 && tn - (M.sndT || 0) > 45) { M.sndT = tn; tone(880, 640, 0.03, 0.05, 'square'); } M.shown = f; const cap = M.el.querySelector('.mcap'), un = f >= M.known, zn = Z[f];
+  const f = Math.max(0, Math.min(M.n - 1, Math.round(M.pos))); if (f !== M.shown) { const tn = performance.now(); if (M.shown >= 0 && tn - (M.sndT || 0) > 45) { M.sndT = tn; tone(880, 640, 0.03, 0.05, 'square'); } M.shown = f; const cap = M.el.querySelector('.mcap'), un = f >= M.known, zn = Z[f]; M.tune = un ? 'shop' : tuneOf(zn);
     cap.innerHTML = un ? `<h3>??</h3><p>아직 가 보지 못한 곳</p>` : `<h3>${zn.name}</h3><p>${f + 1}번째 구역 · ${km(zn.at)}부터${f === S.zone ? ' · <b>이번 생 여기까지</b>' : ''}${f === M.known - 1 && f !== S.zone ? ' · <b>가장 멀리 간 곳</b>' : ''}</p>`; } }
 function mapGo(d) { const M = MAP; M.target = Math.max(0, Math.min(M.n - 1, Math.round(M.target) + d)); }
 // Holding a side button (or an arrow key): one step at once, then after a short pause the strip keeps rolling and its speed doubles
 // about every 0.45 s up to 90 frames a second, so even a long strip reaches its end in a few seconds.  Letting go stops on the next frame.
 function mapHold(d) { const M = MAP; if (d) { if (M.hold && M.hold.d === d) return; mapGo(d); M.hold = { d, t: performance.now() }; return; }
-  if (!M.hold) return; const was = M.hold.d; M.hold = null; M.fast = false; M.target = Math.max(0, Math.min(M.n - 1, was > 0 ? Math.ceil(M.pos - 0.2) : Math.floor(M.pos + 0.2))); }
+  if (!M.hold) return; const was = M.hold.d, rolled = M.hold.rolled; M.hold = null; M.fast = false; if (!rolled) return; M.target = Math.max(0, Math.min(M.n - 1, was > 0 ? Math.ceil(M.pos - 0.2) : Math.floor(M.pos + 0.2))); }
 function mapTick(now) { const M = MAP; if (!M.el || !M.el.isConnected) { M.hold = null; return; } const dt = Math.min(0.05, (now - M.t) / 1000); M.t = now;
   const held = M.hold && !M.drag ? (now - M.hold.t) / 1000 - 0.28 : -1;
-  if (held > 0) { const v = Math.min(90, 5 * Math.pow(2, held / 0.45)); M.fast = v > 14; M.pos = Math.max(0, Math.min(M.n - 1, M.pos + M.hold.d * v * dt)); M.target = M.pos; mapLayout(); }
+  if (held > 0) { M.hold.rolled = true; const v = Math.min(90, 5 * Math.pow(2, held / 0.45)); M.fast = v > 14; M.pos = Math.max(0, Math.min(M.n - 1, M.pos + M.hold.d * v * dt)); M.target = M.pos; mapLayout(); }
   else if (!M.drag) { const d = M.target - M.pos; if (Math.abs(d) > 0.002) { M.pos += d * Math.min(1, dt * 11); mapLayout(); } else if (M.pos !== M.target) { M.pos = M.target; mapLayout(); } }
   if (M.fast) return;
   { const todo = []; for (const [i, c] of M.cells) if (c.dirty) todo.push(i); todo.sort((x, y) => Math.abs(x - M.pos) - Math.abs(y - M.pos)); for (const i of todo.slice(0, 2)) { const c = M.cells.get(i); mapScene(c.cv, i, 0); c.dirty = false; } }
@@ -1411,7 +1413,7 @@ function frame(now) {
   requestAnimationFrame(frame);
   if (OPT.fps && now - last < 1000 / OPT.fps - 3) return;
   const t0 = performance.now(), d0 = now - last;
-  MUS.tick(); if (state === 'shop') MUS.want('shop'); else if (state !== 'fly') BST.set(false);
+  MUS.tick(); if (state === 'shop') MUS.want(tab === 'map' && MAP.tune ? MAP.tune : 'shop'); else if (state !== 'fly') BST.set(false);
   AUD.tick(now);
   if (state === 'shop') { if (tab === 'map') mapTick(now); last = now; return; }
   draw(now);
@@ -1476,7 +1478,7 @@ function draw(now) {
       else if (k === 'finale') hitStop(0.12); }
     const zn = C.zoneAt(run.x); if (zn !== lastZone) { lastZone = zn; zoneIn = run.tr; zoneSaid = false; }
     if (!zoneSaid && zn > 0 && (run.tr - zoneIn > 0.8 || zn > S.zone)) { zoneSaid = true; banner = { t: now, txt: Z[zn].name }; if (now - jingleT > 2500) { jingleT = now; SFX.zone(); } }
-    if (run.tr - zoneIn > 1.5) { MUS.want(Z[zn].deco); MUS.want(Z[zn].fx); MUS.want(Z[zn].id); MUS.want(Z[zn].mus); }
+    if (run.tr - zoneIn > 0.15) MUS.want(tuneOf(Z[zn]));
     BST.set(run.boosting);
     { const spN = Math.hypot(run.vx, run.vy), lv = spN > 34000 ? 3 : spN > 3400 ? 2 : spN > 340 ? 1 : 0; if (lv > sonicLv && run.tr > 1.8) { sonicLv = lv; toast(['', '음속 돌파!', '마하 10!', '마하 100!'][lv], 1000); SFX.dash(); noise(0.4, 0.5, 300); shake = 6; ringFx(cartX, cartY, '#ffffff', 150, 0.55, 6); } }
     dashT = Math.max(0, dashT - dt);
