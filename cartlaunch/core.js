@@ -199,7 +199,7 @@ const CORE = (() => {
     TK('t_speed', '차원 엔진', 100, '발사 속도 ×1.25'), TK('t_gold', '차원 금고', 100, '모든 골드 ×2'), TK('t_star', '별의 기억', 30, '환생 때 받는 별 +50%'),
     TK('t_cap', '한계 돌파', 15, '최고 속도 한도 +0.2배'), TK('t_time', '지구력', 10, '최고 속도가 10% 더 천천히 줄어듦'), TK('t_keep', '전생 각인', 5, '초월 때 환생 트리 유지 +10% (기본 50%)'), TK('t_auto', '자동 구매', 1, '판이 끝날 때마다 살 수 있는 업그레이드 자동 구매'),
     TK('t_land', '완벽주의', 20, '착지·슬램 골드 보너스 +50%', 3), TK('t_multi', '다중 광선', 10, '견인 광선이 한 번에 상자·코인을 1개 더 끌어옴', 5), TK('t_beam', '견인 강화', 10, '견인 광선 주기 -8%', 8),
-    TK('t_starpow', '별의 힘', 20, '지금까지 받은 별이 많을수록 발사 속도 증가 · 초월해도 유지', 10), TK('t_fuel', '차원 연료', 10, '착지 연료 회복 +20%', 12), TK('t_deep', '심연 개척', 20, '미지의 영역에서 받는 차원석 +10%', 15),
+    TK('t_starpow', '별의 힘', 20, '지금까지 받은 별이 많을수록 발사 속도 증가 · 초월해도 유지', 10), TK('t_rekindle', '재점화', 10, '깔끔한 착지마다 줄어든 최고 속도를 되돌림 (완벽 착지는 3배)', 12), TK('t_deep', '심연 개척', 20, '미지의 영역에서 받는 차원석 +10%', 15),
   ];
   const TP = Object.fromEntries(TPERKS.map(q => [q.id, q])), tCost = (q, l) => q.id === 't_auto' ? 3 : q.id === 't_multi' ? Math.ceil(30 * Math.pow(1.3, l)) : Math.ceil((l + 1) * Math.pow(1.05, l)), deepEver = s => Math.max(s.deepEver || 0, zoneAt(s.best || 0) - LAST, 0), tLock = (s, id) => deepEver(s) < TP[id].gate ? `미지의 영역 ${TP[id].gate} 도달 시 열림` : '', tl = (s, id) => (s.tperks || {})[id] || 0;
   const starsEver = s => Math.max(s.starsEver || 0, s.starsTotal || 0);   // every star ever earned; transcending does not reset it
@@ -212,8 +212,8 @@ const CORE = (() => {
   const starGain = s => Math.floor(starsFor(s.bestLife) * (1 + 0.5 * tl(s, 't_star')));
   const newSave = () => ({ shards: 0, shardsTotal: 0, trans: 0, tperks: {}, bestT: 0, gold: 0, lv: {}, best: 0, bestLife: 0, zone: 0, runs: 0, stars: 0, starsTotal: 0, perks: {}, rebirths: 0, ach: {}, perfects: 0, slams: 0, v: 3 });
   // saves from before the rebalance: upgrade levels and gold no longer mean the same thing, so they are turned into stars (like a free rebirth)
-  // the retired combo-time ability hands its shards back
-  function refundT(s) { const l = (s.tperks || {}).t_combo; if (l) { let b = 0; for (let i = 0; i < l; i++) b += Math.ceil((i + 1) * Math.pow(1.05, i)); s.shards = (s.shards || 0) + b; delete s.tperks.t_combo; } return s; }
+  // retired shard abilities hand their shards back
+  function refundT(s) { for (const id of ['t_combo', 't_fuel']) { const l = (s.tperks || {})[id]; if (l) { let b = 0; for (let i = 0; i < l; i++) b += Math.ceil((i + 1) * Math.pow(1.05, i)); s.shards = (s.shards || 0) + b; delete s.tperks[id]; } } return s; }
   function migrate(s) { refundT(s); if (s.v === 3) return s; const gain = starsFor(s.bestLife || 0); s.stars = (s.stars || 0) + gain; s.starsTotal = (s.starsTotal || 0) + gain; s.lv = {}; s.gold = 0; s.bestLife = 0; s.zone = 0;
     for (const k in s.perks) if (!PK[k]) delete s.perks[k]; else s.perks[k] = Math.min(s.perks[k], PK[k].max); s.ach = s.ach || {}; s.migrated = gain; s.v = 3; return s; }
   const lvl = (s, id) => s.lv[id] || 0;
@@ -258,10 +258,10 @@ const CORE = (() => {
       spring: L('spring'), springN: L('spring') ? 1 + Math.floor(L('spring') / 4) + P('r_spring') + Math.floor(L('over') / 5) : 0, airjump: L('airjump') ? Math.min(1, 0.4 + 0.06 * L('airjump')) : 0,
       dash: L('dash'), dashN: L('dash') ? 1 + Math.floor(L('dash') / 5) + P('r_dash') + Math.floor(L('over') / 5) : 0, dashpow: (1 + 0.12 * L('dashpow')) * (1 + 0.04 * L('amp')),
       dive: L('dive'), diveN: L('dive') ? 1 + Math.floor(L('dive') / 3) + Math.floor(L('over') / 5) : 0, glide: Math.min(0.35, 0.035 * L('wing')), convert: 0.08 * L('convert'), grav: Math.max(0.4, 1 - 0.03 * L('grav')), haul: 1 + 0.25 * L('haul'),
-      pioneer: 1 + 0.5 * P('r_skip'), double: P('r_double'), phoenix: P('r_phoenix'), encore: 1 + 0.05 * L('encore'), refuel: (0.1 + 0.02 * L('refuel')) * (1 + 0.2 * tl(s, 't_fuel')), tractor: L('tractor') ? (8 - 0.5 * L('tractor')) * Math.pow(0.92, tl(s, 't_beam')) : 0, ampP: 4 * L('amp'), burnP: 5 * L('burn'), turbine: 0.02 * L('turbine'), pit: L('pit'), pslam: 0.012 * L('pslam'), jspring: L('jspring'), draft: 0.02 * L('draft'), streakB: 0.006 * L('streak'), burnK: 1 + 0.04 * L('burn'), comboT: 3 + 0.15 * L('ctime'), beamN: 1 + tl(s, 't_multi'), multi: 0.15 * L('multi'), allB: 0.012 * L('allr'),
+      pioneer: 1 + 0.5 * P('r_skip'), double: P('r_double'), phoenix: P('r_phoenix'), encore: 1 + 0.05 * L('encore'), refuel: (0.1 + 0.02 * L('refuel')), tractor: L('tractor') ? (8 - 0.5 * L('tractor')) * Math.pow(0.92, tl(s, 't_beam')) : 0, ampP: 4 * L('amp'), burnP: 5 * L('burn'), turbine: 0.02 * L('turbine'), pit: L('pit'), pslam: 0.012 * L('pslam'), jspring: L('jspring'), draft: 0.02 * L('draft'), streakB: 0.006 * L('streak'), burnK: 1 + 0.04 * L('burn'), comboT: 3 + 0.15 * L('ctime'), beamN: 1 + tl(s, 't_multi'), multi: 0.15 * L('multi'), allB: 0.012 * L('allr'),
       leap: 0.02 + 0.01 * L('leap'), crater: 0.02 + 0.008 * L('crater'), time: 10 * P('r_time'),
       perfB: 0.3 * (1 + 0.5 * P('r_perf')), landG: 0.03 * (1 + 0.5 * P('r_land')) * (1 + 0.5 * tl(s, 't_land')), landP: 0.08 * (1 + 0.5 * P('r_land')) * (1 + 0.5 * tl(s, 't_land')), slamB: 0.08 * (1 + 0.5 * P('r_land')) * (1 + 0.5 * tl(s, 't_land')),
-      vcap: 3 + 0.2 * tl(s, 't_cap'), tire: 30 * (1 + 0.1 * tl(s, 't_time')),
+      vcap: 3 + 0.2 * tl(s, 't_cap'), tire: 30 * (1 + 0.1 * tl(s, 't_time')), rekindle: 0.1 * tl(s, 't_rekindle'),
       rate: Math.pow(2, tl(s, 't_gold')) * (1 + 0.06 * L('ad')) * (1 + 0.25 * P('p_gold')) * (1 + STAR_GOLD * bless * s.starsTotal) * (1 + 0.01 * L('sponsor') * s.zone) * (1 + 0.03 * achCount(s)),
       coin: (1 + 0.08 * L('coin')) * (1 + 0.4 * P('r_coin')), magnet: L('magnet'), magR: L('magnet') ? 0.9 + 0.3 * L('magnet') : 0, style: 0.0025 * L('style'), alt: 0.01 * L('alt'), crate: L('crate'), combo: 0.002 * L('combo'),
       trick: 0.03 * (1 + 0.5 * P('r_trick')) * (1 + 0.2 * L('trickpay')), lucky: 0.02 * L('lucky'),
@@ -272,7 +272,7 @@ const CORE = (() => {
   const hash = n => { let t = (n + 0x6D2B79F5) | 0; t = Math.imul(t ^ (t >>> 15), 1 | t); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   const RAMP = 4, WEAR = 0.12, VCAP = 3; let TIRE = 30;
   // top speed allowed at a moment of the run: three times launch speed at first, tiring as the run goes on, so even a maxed cart's run winds down
-  const vcap = r => r.st.vcap * r.v0 * Math.max(0.085, Math.exp(-r.tr / r.st.tire));
+  const vcap = r => r.st.vcap * r.v0 * Math.max(0.085, Math.exp(-(r.tr - (r.rew || 0)) / r.st.tire));
   // scale of a launch at speed v: U (length unit), c (height of the coin stream), S (object size), cw (cell width), tw (time warp)
   function scaleOf(st, v) { const U = Math.max(1, v * v / 588), apex = Math.pow(v * Math.sin(st.angle), 2) / 19.6, c = Math.min(4.5 * U, Math.max(0.6, 0.5 * apex)); return { U, c, S: Math.max(1, 0.7 * U), cw: 5 * U, tw: Math.max(1, 0.03 * v) }; }
   function newRun(st, meter, kick, seed) {   // meter 0..1 from the charge gauge (>= 1-window is perfect); kick = multiplier from the ramp-edge tap
@@ -358,7 +358,7 @@ const CORE = (() => {
             const trick = flips >= 1 && Math.abs(dd) < 0.7 + 0.04 * st.gyro, crash = !trick && Math.abs(r.rotAcc) > 1.2 && Math.abs(dd) > 1.4, long = r.airT > 0.35;
             if (trick) { r.tricks += flips + st.multi * (Math.min(flips, 5) - 1); vt *= 1 + Math.min(0.25, 0.05 * flips); r.ev.push({ k: 'trick', x: r.x, y: r.y, n: flips, clean: Math.abs(dd) < 0.2 }); }
             if (crash) { vt *= 0.75; r.crashes++; r.ev.push({ k: 'crash', x: r.x, y: r.y }); }
-            if (long && Math.abs(dd) < 0.26 + 0.01 * st.gyro) { const pf = Math.abs(dd) < 0.11 + 0.004 * st.gyro; al = pf ? 2 : 1; r.cleans++; if (pf) r.perfLands++; r.landStreak++; if (r.landStreak > r.maxStreak) r.maxStreak = r.landStreak;
+            if (long && Math.abs(dd) < 0.26 + 0.01 * st.gyro) { const pf = Math.abs(dd) < 0.11 + 0.004 * st.gyro; al = pf ? 2 : 1; r.cleans++; if (pf) r.perfLands++; if (st.rekindle) { r.rew = Math.min(r.tr, (r.rew || 0) + st.rekindle * (pf ? 3 : 1) * Math.pow(0.985, r.cleans - 1)); r.ev.push({ k: 'rekindle', x: r.x, y: r.y }); } r.landStreak++; if (r.landStreak > r.maxStreak) r.maxStreak = r.landStreak;
               const fu = (pf ? st.refuel : st.refuel / 2) * (r.slam ? (pf ? 2 : 1.5) : 1); if (st.fuel) r.fuel = Math.min(st.fuel, r.fuel + fu); r.ev.push({ k: 'clean', x: r.x, y: r.y, pf, n: r.landStreak, f: fu, slam: r.slam }); if (st.pit && r.landStreak % 3 === 0 && r.refills < st.pit && r.dash < st.dashN) { r.dash++; r.refills++; r.ev.push({ k: 'recharge', x: r.x, y: r.y }); } }
             else if (long && !crash && Math.abs(dd) > 1.1) { al = -1; r.landStreak = 0; r.ev.push({ k: 'badland', x: r.x, y: r.y }); }
             else if (long && !trick) r.landStreak = 0;
