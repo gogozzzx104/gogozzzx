@@ -72,7 +72,7 @@ button{font-family:var(--disp);touch-action:manipulation}
 .edges rect.on{stroke:var(--bc)}
 .edges text{font:700 9.5px var(--body);fill:#8176b8;text-anchor:middle}
 .edges text.on{fill:#fff}
-.nd{position:absolute;width:54px;height:54px;padding:0;border:0;border-radius:16px;background:linear-gradient(160deg,#3d3275,#251d4b);color:var(--bc);display:grid;place-items:center;box-shadow:0 4px 0 #0d0a1c}
+.nd{position:absolute;width:var(--n,54px);height:var(--n,54px);padding:0;border:0;border-radius:16px;background:linear-gradient(160deg,#3d3275,#251d4b);color:var(--bc);display:grid;place-items:center;box-shadow:0 4px 0 #0d0a1c}
 .nd>.ic{width:54%;height:54%;position:relative}
 .nd .ring{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 .ring rect{fill:none;stroke-width:3}
@@ -220,6 +220,53 @@ button{font-family:var(--disp);touch-action:manipulation}
 @keyframes rowIn{from{opacity:0;transform:translateY(6px)}}
 @keyframes stamp{from{opacity:0;transform:scale(1.7) rotate(-6deg)}}
 @media (prefers-reduced-motion:reduce){.card.in,.card.in .rows>*,.card.in .tagx{animation:none}}
+#result{display:flex;flex-direction:column;overflow:hidden}
+.rbody{flex:1;min-height:0;overflow:auto;touch-action:none}
+.sm #result{padding:9px 14px 12px}
+.sm .rtop{display:flex;align-items:baseline;gap:12px}
+.sm .card h2{font-size:21px;white-space:nowrap}
+.sm .big{font-size:34px}
+.sm .rows{margin:6px 0;padding:6px 9px;gap:2px 14px;font-size:12.5px}
+.sm .rows b{font-size:14px}
+.sm .rows .tot{font-size:17px}
+.sm .goals span{padding:4px 8px;font-size:12.5px}
+.sm .btns{margin-top:7px}
+.sm .go{height:44px;font-size:19px}
+.sm .nd{border-radius:14px}
+.sm .nd em{font-size:10.5px;overflow-wrap:anywhere;padding:1px 2px}
+.sm .nd u{font-size:9.5px}
+.sm .nd b{font-size:9px;line-height:13px;padding:0 5px;bottom:-7px}
+.sm .nd .bd{width:15px;height:15px;right:-6px;top:-6px}
+.sm .nd .bd .ic{width:9px;height:9px}
+.sm .nd span{top:calc(100% + 9px)}
+.sm .tsum{margin-top:6px}
+.sm .rbar{margin-top:6px;padding:5px 8px}
+.sm .tree.grid.opt{grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:6px;padding:8px 10px}
+.sm .tree.grid.opt .bh{margin:0 0 -2px;font-size:15px}
+.sm .oc{padding:5px 9px;gap:3px}
+.sm .oc h3{font-size:14px}
+.sm .seg button{padding:5px 2px;font-size:13px}
+.sm .tree.grid.skg{grid-template-columns:repeat(auto-fill,minmax(132px,1fr))}
+.sm .sk{padding:5px;font-size:14px}
+.sm .sk canvas{width:100px;height:64px}
+.xs .tabs,.xs .tabs.many{display:grid;grid-template-columns:1fr 1fr;align-content:start;gap:4px;padding:5px}
+.xs .tab,.xs .tabs.many .tab{font-size:0;justify-content:center;padding:6px 0;gap:0}
+.xs .tab i{font-size:10px}
+.xs .shead{padding:4px 10px}
+.xs .shead h2{font-size:19px;min-width:44px}
+.xs .mapv{gap:5px;padding:4px 0}
+.xs .mh{display:none}
+.xs .mcap{min-height:36px}
+.xs .mcap h3{font-size:18px}
+.xs #result{padding:7px 12px 10px}
+.xs .go{height:40px;font-size:18px}
+.xs .tsum{margin-top:4px}
+.xs #toast{top:54%;font-size:26px}
+.xs .tree.grid.opt{gap:4px;padding:5px 8px}
+.xs .tree.grid.opt .bh{display:none}
+.xs .oc p{display:none}
+.xs .oc{padding:4px 8px}
+.xs .seg button{padding:4px 2px}
 #toast{position:absolute;left:50%;top:43%;transform:translateX(-50%);font:30px var(--disp);color:#fff;text-shadow:0 3px 0 var(--ink),0 0 12px rgba(0,0,0,.4);pointer-events:none;opacity:0;transition:opacity .3s;white-space:nowrap;text-align:center}
 #toast.show{opacity:1}
 .kb .hbtn::after{content:attr(data-key);position:absolute;top:-6px;right:-2px;background:#2b2233;color:#fff;font:700 11px sans-serif;padding:2px 7px;border-radius:9px;pointer-events:none}
@@ -229,7 +276,7 @@ button{font-family:var(--disp);touch-action:manipulation}
 <div id="root">
   <canvas id="cv"></canvas>
   <div id="toast"></div>
-  <div id="topbar"><button class="pill" id="optBtn" type="button">설정</button><button class="pill" id="sndBtn" type="button">소리 켬</button><button class="pill" id="shopBtn" type="button">업그레이드</button></div>
+  <div id="topbar"><button class="pill" id="fsBtn" type="button" hidden>전체 화면</button><button class="pill" id="optBtn" type="button">설정</button><button class="pill" id="sndBtn" type="button">소리 켬</button><button class="pill" id="shopBtn" type="button">업그레이드</button></div>
   <button class="hbtn" id="skillBtn" type="button" data-key="W" hidden>도약<small></small></button>
   <button class="hbtn" id="dashBtn" type="button" data-key="E" hidden>대시<small></small></button>
   <button class="hbtn" id="diveBtn" type="button" data-key="S" hidden>급강하<small></small></button>
@@ -237,11 +284,8 @@ button{font-family:var(--disp);touch-action:manipulation}
   <button class="hbtn" id="boostBtn" type="button" data-key="Space" hidden>부스트<small></small></button>
 
   <section class="card" id="result" hidden>
-    <h2 id="rWhy"></h2>
-    <div class="big"><span id="rDist"></span></div>
-    <div class="tags" id="rTags"></div>
-    <div class="rows" id="rRows"></div>
-    <div class="goals" id="rGoal"></div>
+    <div class="rtop"><h2 id="rWhy"></h2><div class="big"><span id="rDist"></span></div></div>
+    <div class="rbody" id="rBody"><div class="tags" id="rTags"></div><div class="rows" id="rRows"></div><div class="goals" id="rGoal"></div></div>
     <div class="btns"><button class="go alt" id="rShop" type="button">업그레이드</button><button class="go" id="rAgain" type="button">다시 밀기</button></div>
   </section>
 
@@ -260,7 +304,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 86, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 87, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -313,6 +357,7 @@ const root = $('#root'), cv = $('#cv'); let g = cv.getContext('2d', { alpha: fal
 const FONT = getComputedStyle(root).getPropertyValue('--disp');
 let W = 800, H = 400, portrait = false, DPR = 1, uiK = 1, hudK = 1;
 function layout() { const vw = innerWidth, vh = innerHeight; portrait = vh > vw; W = portrait ? vh : vw; H = portrait ? vw : vh; uiK = Math.max(1, Math.min(2.2, W / 940, H / 470)); root.style.setProperty('--k', uiK.toFixed(3)); hudK = Math.max(1, Math.min(1.7, W / 1100, H / 560)); root.style.setProperty('--hk', hudK.toFixed(3)); root.style.setProperty('--ck', (1 + (uiK - 1) * 0.45).toFixed(3));   // big screens: shop, result card and flight HUD each get their own scale
+  root.classList.toggle('sm', H / uiK < 440); root.classList.toggle('xs', H / uiK < 345);
   root.style.width = W + 'px'; root.style.height = H + 'px'; root.style.transform = portrait ? `rotate(90deg) translateY(-${H}px)` : 'none';
   DPR = Math.min(devicePixelRatio || 1, Q.dpr); cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); }
 addEventListener('resize', layout);
@@ -579,6 +624,7 @@ function endRun() {
   const veiled = !starOpen(); pay = C.finish(run, S); const unveil = veiled && starOpen(); if (C.tl(S, 't_auto')) C.buyAll(S); save(); state = 'result'; flyUI(false);
   $('#rWhy').textContent = run.why; $('#rDist').innerHTML = fmtD(run.maxX);
   const tags = []; if (unveil) tags.push('환생 해금'); for (const a of pay.ach) tags.push('업적: ' + a.name); if (pay.record) tags.push('신기록'); if (pay.newZone) tags.push(Z[pay.zone].name + ' 첫 도달'); if (run.dbl) tags.push('더블 퍼펙트'); else if (run.perfect) tags.push('퍼펙트 발사'); if (run.kick > 1) tags.push((run.kick > 1.05 ? '퍼펙트 킥 +' : '굿 킥 +') + Math.round((run.kick - 1) * 100) + '%'); if (run.golden) tags.push('황금 판 ×3');
+  { const mx = root.classList.contains('sm') ? 4 : 8, more = tags.length - mx; if (more > 0) { tags.length = mx; tags.push('+' + more); } }
   $('#rTags').innerHTML = tags.map((t, i) => `<span class="tagx" style="--i:${i}">${t}</span>`).join('');
   const rows = [['거리 수익', fmt(pay.dist)], [`코인 · 상자 (${run.coins}개)`, fmt(pay.coins)]]; if (pay.first) rows.push(['새 구역 개척', fmt(pay.first)]);
   if (pay.perfect) rows.push(['퍼펙트 발사', '+' + Math.round(pay.perfect * 100) + '%']); if (pay.kickB) rows.push([run.kick > 1.05 ? '퍼펙트 킥' : '굿 킥', '+' + Math.round(pay.kickB * 100) + '%']); if (pay.dbl) rows.push(['더블 퍼펙트', '+' + Math.round(pay.dbl * 100) + '%']); if (pay.style) rows.push([`묘기 (${run.bounces}회 튕김)`, '+' + (pay.style * 100).toFixed(1) + '%']); if (pay.alt) rows.push([`고도 수당 (${fmtD(run.maxAlt)})`, '+' + (pay.alt * 100).toFixed(1) + '%']); if (pay.trick) rows.push([`공중 묘기 (${Math.round(run.tricks * 10) / 10}바퀴)`, '+' + (pay.trick * 100).toFixed(0) + '%']);
@@ -592,7 +638,7 @@ function endRun() {
     if (nz) gl.push(`<span><i>다음 구역</i>${nz.name} · ${km(nz.at)}${bar(run.maxX / nz.at)}</span>`);
     if (!starOpen()) gl.push(`<span><i>???</i>${km(SEA_AT)} 해금${bar(S.best / SEA_AT)}</span>`); else { const gn = C.starGain(S), nx = C.nextStarAt(S.bestLife); gl.push(gn > 0 ? `<span><i>지금 환생하면</i>★ +${fmt(gn)}${isFinite(nx) ? bar(S.bestLife / nx) : ''}</span>` : `<span><i>첫 ★</i>${km(nx)} 달성${bar(S.bestLife / nx)}</span>`); }
     $('#rGoal').innerHTML = gl.join(''); }
-  const card = $('#result'); card.classList.remove('in'); card.hidden = false; void card.offsetWidth; card.classList.add('in'); card.scrollTop = 0; countUp($('#rTot'), pay.total); if (pay.newZone) SFX.zone();
+  const card = $('#result'); card.classList.remove('in'); card.hidden = false; void card.offsetWidth; card.classList.add('in'); $('#rBody').scrollTop = 0; countUp($('#rTot'), pay.total); if (pay.newZone) SFX.zone();
   if (unveil) { SFX.zone(); SFX.perfect(); setTimeout(() => toast('베일이 걷혔어요 · 업그레이드에서 환생을 확인하세요', 3200), 500); }
   else if (updated) setTimeout(() => toast('새 버전이 적용됐어요', 2000), 900);
   updated = false;
@@ -605,13 +651,13 @@ cv.addEventListener('pointerdown', e => { e.preventDefault(); snd(); try { cv.se
 const spinOff = () => { ptrSide = 0; if (state === 'charge') release(); }; cv.addEventListener('pointerup', spinOff); cv.addEventListener('pointercancel', spinOff);
 addEventListener('blur', () => { keys.clear(); ptrSide = 0; boostHeld = false; mapHold(0); });
 // Scrolling by drag, in stage coordinates, so it also works while the stage is rotated for a portrait-locked phone.
-function dragScroll(el) { let id = null, x0 = 0, y0 = 0, sx = 0, sy = 0, moved = false, vx = 0, vy = 0, lx = 0, ly = 0, lt = 0, raf = 0; const k = () => el.id === 'result' ? 1 + (uiK - 1) * 0.45 : uiK;
+function dragScroll(el) { let id = null, x0 = 0, y0 = 0, sx = 0, sy = 0, moved = false, vx = 0, vy = 0, lx = 0, ly = 0, lt = 0, raf = 0; const k = () => el.id === 'rBody' ? 1 + (uiK - 1) * 0.45 : uiK;
   el.addEventListener('pointerdown', e => { id = e.pointerId; x0 = lx = locX(e); y0 = ly = locY(e); sx = el.scrollLeft; sy = el.scrollTop; moved = false; vx = vy = 0; lt = e.timeStamp; cancelAnimationFrame(raf); });
   el.addEventListener('pointermove', e => { if (e.pointerId !== id) return; const x = locX(e), y = locY(e); if (Math.hypot(x - x0, y - y0) > 8) moved = true; if (moved) { el.scrollLeft = sx - (x - x0) / k(); el.scrollTop = sy - (y - y0) / k(); const d = Math.max(1, e.timeStamp - lt); vx = vx * 0.6 + (lx - x) / k() / d * 0.4; vy = vy * 0.6 + (ly - y) / k() / d * 0.4; lx = x; ly = y; lt = e.timeStamp; } });
   const up = e => { if (e.pointerId !== id) return; id = null; if (!moved) return; const glide = () => { if (Math.hypot(vx, vy) < 0.02) return; el.scrollLeft += vx * 16; el.scrollTop += vy * 16; vx *= 0.95; vy *= 0.95; raf = requestAnimationFrame(glide); }; glide(); };
   el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
   el.addEventListener('click', e => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true); }
-['#sList', '#sDet', '#sTabs', '#result'].forEach(q => { $(q).style.touchAction = 'none'; dragScroll($(q)); });
+['#sList', '#sDet', '#sTabs', '#rBody'].forEach(q => { $(q).style.touchAction = 'none'; dragScroll($(q)); });
 const hold = (el, on, off) => { el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); el.classList.add('down'); on(); try { el.setPointerCapture(e.pointerId); } catch (er) {} }); const up = () => { el.classList.remove('down'); off && off(); }; el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); };
 hold(boostBtn, () => boostHeld = true, () => boostHeld = false); hold(skillBtn, () => skillTap = true); hold(dashBtn, () => dashTap = true); hold(diveBtn, () => diveTap = true);
 endBtn.addEventListener('click', () => { if (state === 'fly' && run && !run.over) { run.over = true; run.why = '여기까지!'; endRun(); } });
@@ -619,7 +665,16 @@ const KB = matchMedia('(pointer: fine)').matches; if (KB) root.classList.add('kb
 addEventListener('keydown', e => { if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); keys.add(e.code); if (e.repeat) return; snd(); root.classList.add('kb'); if (state === 'ending') { if (e.code === 'Space' || e.code === 'Enter') endSkip(); return; } if (state === 'shop' && e.code === 'Escape') toAim(); if (state === 'shop' && tab === 'map' && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) mapHold(e.code === 'ArrowLeft' ? -1 : 1); if (state === 'result' && e.code === 'KeyU') openShop(); if (e.code === 'Space') { if (state === 'aim') startCharge(); else if (state === 'push') tryKick(); else if (state === 'fly') boostHeld = true; else if (state === 'result') toAim(); } if (e.code === 'KeyW' || e.code === 'ArrowUp' || e.code === 'ShiftLeft') skillTap = true; if (e.code === 'KeyE') dashTap = true; if (e.code === 'KeyS' || e.code === 'ArrowDown' || e.code === 'KeyQ') diveTap = true; });
 addEventListener('keyup', e => { keys.delete(e.code); if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') mapHold(0); if (e.code === 'Space') { boostHeld = false; if (state === 'charge') release(); } });
 document.addEventListener('contextmenu', e => e.preventDefault());
-$('#rAgain').addEventListener('click', toAim); $('#rShop').addEventListener('click', openShop); $('#shopBtn').addEventListener('click', openShop); $('#optBtn').addEventListener('click', () => { tab = 'opt'; openShop(); }); $('#sClose').addEventListener('click', toAim);
+$('#rAgain').addEventListener('click', toAim); $('#rShop').addEventListener('click', openShop); // Full screen: the browser bar and the site's own header sit outside this page, so the only way past them is to ask for the whole
+// screen on a tap.  Not every phone or app view allows it; where it is refused the button goes away.
+{ const fb = $('#fsBtn'), de = document.documentElement, req = de.requestFullscreen || de.webkitRequestFullscreen, isFs = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+  if (req && (document.fullscreenEnabled || document.webkitFullscreenEnabled)) { fb.hidden = false;
+    const sync = () => { fb.textContent = isFs() ? '창으로' : '전체 화면'; setTimeout(layout, 60); if (state === 'shop') setTimeout(renderShop, 90); };
+    fb.addEventListener('click', () => { try { if (isFs()) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
+        const pr = req.call(de, { navigationUI: 'hide' }); if (pr && pr.then) pr.then(() => { try { const o = screen.orientation; if (o && o.lock && innerWidth > innerHeight) o.lock('landscape').catch(() => {}); } catch (e) {} }).catch(() => { fb.hidden = true; toast('이 기기에서는 전체 화면을 쓸 수 없어요', 2200); });
+      } catch (e) { fb.hidden = true; toast('이 기기에서는 전체 화면을 쓸 수 없어요', 2200); } });
+    document.addEventListener('fullscreenchange', sync); document.addEventListener('webkitfullscreenchange', sync); } }
+$('#shopBtn').addEventListener('click', openShop); $('#optBtn').addEventListener('click', () => { tab = 'opt'; openShop(); }); $('#sClose').addEventListener('click', toAim);
 
 /* ---------------- shop ---------------- */
 let tab = 'launch', confirmKey = '';
@@ -707,20 +762,24 @@ const TREE = { n: 54, lbl: 58, gap: 30, det: 244 };
 // A connector leaves the bottom of the prerequisite, runs along a bus just under that row and comes down the child's own column,
 // so it never crosses another tile.  The first prerequisite is the solid line; any further ones are dotted.
 function orth(x1, y1, x2, y2, by) { if (Math.abs(x1 - x2) < 1) return `M${x1} ${y1}V${y2}`; const d = x2 > x1 ? 1 : -1, r = Math.min(9, Math.abs(x2 - x1) / 2, by - y1, y2 - by); return `M${x1} ${y1}V${by - r}Q${x1} ${by} ${x1 + d * r} ${by}H${x2 - d * r}Q${x2} ${by} ${x2} ${by + r}V${y2}`; }
+function orthH(x1, y1, x2, y2, bx) { if (Math.abs(y1 - y2) < 1) return `M${x1} ${y1}H${x2}`; const d = y2 > y1 ? 1 : -1, r = Math.min(9, Math.abs(y2 - y1) / 2, bx - x1, x2 - bx); return `M${x1} ${y1}H${bx - r}Q${bx} ${y1} ${bx} ${y1 + d * r}V${y2 - d * r}Q${bx} ${y2} ${bx + r} ${y2}H${x2}`; }
 function treeHTML(items, perk) {
-  const aw = $('#sList').clientWidth || 700, T = layoutTree(items), n = TREE.n, cw = Math.max(66, Math.min(108, Math.floor((aw - 20) / T.cols))), rh = n + TREE.lbl + TREE.gap, top = perk ? 34 : 14;
-  const open = !!sel[tab] && items.some(u => u.id === sel[tab]), inner = Math.max(aw, T.cols * cw + 20), px = (inner - cw * T.cols) / 2, X = c => Math.round(px + c * cw + cw / 2), Y = r => top + r * rh;
+  const aw = $('#sList').clientWidth || 700, T = layoutTree(items), sm = root.classList.contains('sm'), lbl = sm ? 42 : TREE.lbl, gap = sm ? 28 : TREE.gap, top = perk ? 34 : 14;
+  // flip: depth runs left to right and siblings stack downward (the launch tree is one long chain)
+  const flip = !perk && T.rows > T.cols + 2, across = flip ? T.rows : T.cols, cw = flip ? Math.max(sm ? 58 : 76, Math.min(112, Math.floor((aw - 20) / across))) : Math.max(sm ? 44 : 60, Math.min(108, Math.floor((aw - 20) / across))), n = sm ? Math.max(38, Math.min(46, cw - 6)) : TREE.n, rh = flip ? n + lbl + 14 : n + lbl + gap;
+  const open = !!sel[tab] && items.some(u => u.id === sel[tab]), inner = Math.max(aw, across * cw + 20), px = (inner - cw * across) / 2, X = (c, r) => Math.round(px + (flip ? r : c) * cw + cw / 2), Y = (c, r) => top + (flip ? c : r) * rh;
   const have = id => perk ? (S.perks[id] || 0) : C.lvl(S, id); let off = '', on = '', tags = '', h = '';
   for (const u of items) { const [c, r] = T.pos[u.id], col = BCOL[u.br], l = have(u.id), lock = perk ? C.perkLock(S, u.id) : C.lockReason(S, u.id), mx = l >= u.max, can = perk ? perkCan(u) : C.canBuy(S, u.id);
     const rq = u.req.filter(q => T.pos[q[0]]);
-    rq.forEach(([rid, need], k) => { const [pc, pr] = T.pos[rid], ok = have(rid) >= need, x2 = X(c) + (rq.length > 1 ? (k - (rq.length - 1) / 2) * 30 : 0), y2 = Y(r) - 3, d = `<path class="${k ? 'sec' : ''}${ok ? ' on' : ''}" style="--bc:${col}" d="${orth(X(pc), Y(pr) + n, x2, y2, Y(pr) + n + TREE.lbl + 6 + k * 5)}"/>`;
+    rq.forEach(([rid, need], k) => { const [pc, pr] = T.pos[rid], ok = have(rid) >= need, sh = rq.length > 1 ? (k - (rq.length - 1) / 2) * (flip ? 16 : 30) : 0;
+      const x2 = flip ? X(c, r) - n / 2 - 3 : X(c, r) + sh, y2 = flip ? Y(c, r) + n / 2 + sh : Y(c, r) - 3, dd = flip ? orthH(X(pc, pr) + n / 2, Y(pc, pr) + n / 2, x2, y2, X(pc, pr) + cw / 2 + k * 5) : orth(X(pc, pr), Y(pc, pr) + n, x2, y2, Y(pc, pr) + n + lbl + 6 + k * 5), d = `<path class="${k ? 'sec' : ''}${ok ? ' on' : ''}" style="--bc:${col}" d="${dd}"/>`;
       if (ok) on += d; else off += d;
-      if (need > 1) { const t = 'Lv' + need, w = t.length * 5.6 + 8; tags += `<rect class="${ok ? 'on' : ''}" style="--bc:${col}" x="${x2 - w / 2}" y="${y2 - 17}" width="${w}" height="13" rx="6.5"/><text class="${ok ? 'on' : ''}" x="${x2}" y="${y2 - 7.3}">${t}</text>`; } });
-    if (perk && !u.req.length) h += `<span class="bl" style="left:${X(c)}px;top:8px;--bc:${col}">${C.PBRANCH.find(b => b[0] === u.br)[1]}</span>`;
+      if (need > 1) { const t = 'Lv' + need, w = t.length * 5.6 + 8, tx = flip ? x2 - w / 2 + 1 : x2, ty = flip ? y2 - 9 : y2 - 10.5; tags += `<rect class="${ok ? 'on' : ''}" style="--bc:${col}" x="${tx - w / 2}" y="${ty - 6.5}" width="${w}" height="13" rx="6.5"/><text class="${ok ? 'on' : ''}" x="${tx}" y="${ty + 3.2}">${t}</text>`; } });
+    if (perk && !u.req.length) h += `<span class="bl" style="left:${X(c, r)}px;top:8px;--bc:${col}">${C.PBRANCH.find(b => b[0] === u.br)[1]}</span>`;
     const gz = perk && !mx ? C.perkGate(u.id, l) : 0, gated = !!gz && l > 0 && C.reached(S) < gz, price = mx ? '' : gated ? `<u class="poor">${Z[gz].name}</u>` : lock ? '' : `<u class="${can ? '' : 'poor'}">${perk ? '★ ' + fmt(C.perkCost(u, l)) : fmt(C.cost(S, u.id))}</u>`, pct = mx ? 100 : Math.round(100 * l / u.max), cls = gated ? 'gate' : lock ? 'lock' : mx ? 'max' : can ? 'can' : '', bd = lock ? 't_lock' : mx ? 't_check' : can ? 't_up' : '';
-    h += `<button type="button" class="nd ${cls}${sel[tab] === u.id ? ' sel' : ''}" data-id="${u.id}" style="left:${X(c) - n / 2}px;top:${Y(r)}px;--bc:${col}"><svg class="ring" viewBox="0 0 54 54"><rect class="rt" x="1.5" y="1.5" width="51" height="51" rx="14.5"/>${pct && (!lock || gated) ? `<rect class="rf" x="1.5" y="1.5" width="51" height="51" rx="14.5" pathLength="100" stroke-dasharray="${pct} 100"/>` : ''}</svg>${icon(u.id)}${bd ? `<i class="bd">${icon(bd)}</i>` : ''}<b>${u.cap ? (l ? '완료' : '궁극') : mx ? 'MAX' : l + '/' + u.max}</b><span><em>${u.name}</em>${price}</span></button>`; }
-  const ht = top + T.rows * rh, wd = inner + (open ? TREE.det + 10 : 0);
-  return `<div class="tw" style="height:${ht}px;width:${wd}px;--cw:${cw - 6}px"><svg class="edges" width="${wd}" height="${ht}">${off}${on}${tags}</svg>${h}</div>`;
+    h += `<button type="button" class="nd ${cls}${sel[tab] === u.id ? ' sel' : ''}" data-id="${u.id}" style="left:${X(c, r) - n / 2}px;top:${Y(c, r)}px;--bc:${col}"><svg class="ring" viewBox="0 0 54 54"><rect class="rt" x="1.5" y="1.5" width="51" height="51" rx="14.5"/>${pct && (!lock || gated) ? `<rect class="rf" x="1.5" y="1.5" width="51" height="51" rx="14.5" pathLength="100" stroke-dasharray="${pct} 100"/>` : ''}</svg>${icon(u.id)}${bd ? `<i class="bd">${icon(bd)}</i>` : ''}<b>${u.cap ? (l ? '완료' : '궁극') : mx ? 'MAX' : l + '/' + u.max}</b><span><em>${u.name}</em>${price}</span></button>`; }
+  const ht = top + (flip ? T.cols : T.rows) * rh, wd = inner + (open ? TREE.det + 10 : 0);
+  return `<div class="tw" style="height:${ht}px;width:${wd}px;--cw:${cw - 6}px;--n:${n}px"><svg class="edges" width="${wd}" height="${ht}">${off}${on}${tags}</svg>${h}</div>`;
 }
 // ---- detail panel ----
 const reqLi = (ok, t) => `<li class="${ok ? 'ok' : ''}">${icon(ok ? 't_check' : 't_lock')}${t}</li>`;
@@ -780,8 +839,8 @@ function mapTick(now) { const M = MAP; if (!M.el || !M.el.isConnected) { M.hold 
   if (now - M.liveT > 40 && !RM) { M.liveT = now; const i = Math.round(M.pos), c = M.cells.get(i); if (c && c.cv && !c.dirty) mapScene(c.cv, i, now * 0.012); } }
 function mapMount(list) { const M = MAP, far = C.reached(S), all = far >= Z.length - 1; M.known = far + 1; M.n = M.known + (all ? 0 : 1);
   if (M.pos == null || M.pos > M.n - 1) M.pos = M.target = Math.min(S.zone, M.n - 1); M.target = Math.max(0, Math.min(M.n - 1, Math.round(M.target))); M.pos = M.target;
-  const aw = list.clientWidth || 700, ah = list.clientHeight || 340; M.cw = Math.max(180, Math.min(340, Math.floor(Math.min(aw * 0.4, (ah - 104) * 1.78) / 20) * 20)); const fh = Math.round((M.cw - 14) * MAPH / MAPW) + 38;
-  list.innerHTML = `<div class="mapv" style="--cw:${M.cw}px;--fh:${fh}px"><div class="tsum" style="margin:0;position:static"><span>발견한 곳 ${M.known}</span><span>좌우로 끌어서 넘기기</span></div><div class="film"></div><div class="mcap"></div><button type="button" class="fa l" aria-label="이전">‹</button><button type="button" class="fa r" aria-label="다음">›</button></div>`;
+  const aw = list.clientWidth || 700, ah = list.clientHeight || 340; M.cw = Math.max(180, Math.min(340, Math.floor(Math.min(aw * (root.classList.contains('sm') ? 0.32 : 0.4), (ah - (root.classList.contains('xs') ? 70 : 104)) * 1.78) / 20) * 20)); const fh = Math.round((M.cw - 14) * MAPH / MAPW) + 38;
+  list.innerHTML = `<div class="mapv" style="--cw:${M.cw}px;--fh:${fh}px"><div class="tsum mh" style="margin:0;position:static"><span>발견한 곳 ${M.known}</span><span>좌우로 끌어서 넘기기</span></div><div class="film"></div><div class="mcap"></div><button type="button" class="fa l" aria-label="이전">‹</button><button type="button" class="fa r" aria-label="다음">›</button></div>`;
   M.el = list.firstChild; M.cells = new Map(); M.shown = -1; M.drag = null; M.hold = null; M.fast = false; M.t = performance.now(); mapLayout();
   const film = M.el.querySelector('.film');
   film.addEventListener('pointerdown', e => { try { film.setPointerCapture(e.pointerId); } catch (er) {} M.drag = { id: e.pointerId, x0: locX(e), p0: M.pos, moved: false, v: 0, lx: locX(e), lt: e.timeStamp }; });
@@ -813,9 +872,9 @@ function renderShop() {
   st = C.stats(S); $('#sGold').textContent = fmt(S.gold);
   $('#sZones').innerHTML = `<b>${S.zone + 1}번째 구역 · ${Z[S.zone].name}</b>`;
   const isUp = C.BRANCH.some(b => b[0] === tab), list = $('#sList'), det = $('#sDet'), keepScroll = renderShop.tab === tab, sc0 = [list.scrollLeft, list.scrollTop]; renderShop.tab = tab;
-  $('#sTabs').classList.toggle('many', transOpen());
+  $('#sTabs').classList.toggle('many', transOpen()); $('.shead h2').textContent = root.classList.contains('xs') ? (TABS.find(t => t[0] === tab) || [0, '업그레이드'])[1] : '업그레이드';
   $('#sTabs').innerHTML = TABS.filter(t => t[0] !== 'trans' || transOpen()).map(([id, name, ic]) => { const n = id === 'trans' ? C.TPERKS.filter(q => C.tl(S, q.id) < q.max && !C.tLock(S, q.id) && S.shards >= C.tCost(q, C.tl(S, q.id))).length : id === 'star' ? (starOpen() ? C.PERKS.filter(perkCan).length : 0) : C.UPS.filter(u => u.br === id && C.canBuy(S, u.id)).length, veil = id === 'star' && !starOpen(); return `<button type="button" class="tab${tab === id ? ' on' : ''}${veil ? ' vl' : ''}" data-t="${id}" style="--bc:${BCOL[id]}">${icon(veil ? 't_lock' : ic)}${veil ? '???' : name}${n ? `<i>${n}</i>` : ''}</button>`; }).join('');
-  list.className = isUp || tab === 'star' ? 'tree' : tab === 'map' ? 'tree mapt' : tab === 'opt' ? 'tree grid opt' : 'tree grid';
+  list.className = isUp || tab === 'star' ? 'tree' : tab === 'map' ? 'tree mapt' : tab === 'opt' ? 'tree grid opt' : tab === 'skin' ? 'tree grid skg' : 'tree grid';
   if (isUp) { const items = C.UPS.filter(u => u.br === tab), free = items.filter(u => !C.lockReason(S, u.id)).length, full = items.filter(u => C.lvl(S, u.id) >= u.max).length, pick = items.filter(u => C.canBuy(S, u.id)).sort((x, y) => C.cost(S, x.id) - C.cost(S, y.id))[0];
     list.innerHTML = `<div class="tsum"><span>해금 ${free} / ${items.length}</span><span>최대 ${full}</span>${pick ? `<button type="button" data-pick="${pick.id}">구매 가능 · ${pick.name} ${fmt(C.cost(S, pick.id))}</button>` : ''}</div>` + treeHTML(items, false); }
   else if (tab === 'star' && !starOpen()) { sel.star = null;
@@ -1331,7 +1390,7 @@ function hud(r) {
       const pz = 1 + 0.3 * Math.max(0, 1 - (nowT - liveT) / 220), gt = fmt(pv.total); g.font = `${22 * pz}px ${D}`; const wv = g.measureText(gt).width;
       g.fillStyle = '#f5b014'; g.strokeStyle = '#2b2233'; g.lineWidth = 2.5; g.beginPath(); g.arc(W / 2 - wv / 2 - 13, 78, 8, 0, 7); g.fill(); g.stroke(); g.textAlign = 'center'; txt(gt, W / 2 + 4, 86, 22 * pz, '#ffd24a'); txt(`보너스 ×${pv.mult.toFixed(2)}`, W / 2, 102, 12, '#fff6e6'); g.textAlign = 'left'; }
     if (r.golden) { g.textAlign = 'left'; txt('황금 판 ×3', 16, 86, 13, '#ffd24a'); }
-    const cl = st.comboT - (r.tr - r.comboT); if (r.combo >= 1 && cl > 0 && (r.combo >= 2 || r.slams)) { const pz = 1 + 0.4 * Math.max(0, 1 - (performance.now() - goldPopT) / 160); g.textAlign = 'left'; txt(r.combo + ' 콤보', 16, 116, 23 * pz, r.combo >= 20 ? '#ff5a8a' : r.combo >= 10 ? '#ffd24a' : '#fff'); g.fillStyle = '#2b2233'; g.fillRect(14, 122, 84, 6); g.fillStyle = '#ffd24a'; g.fillRect(16, 124, 80 * cl / st.comboT, 2); }
+    const cl = st.comboT - (r.tr - r.comboT); if (r.combo >= 1 && cl > 0 && (r.combo >= 2 || r.slams)) { const pz = 1 + 0.4 * Math.max(0, 1 - (performance.now() - goldPopT) / 160); const xs = root.classList.contains('xs'), cx0 = xs ? 124 : 16, cy0 = xs ? 88 : 116; g.textAlign = 'left'; txt(r.combo + ' 콤보', cx0, cy0, (xs ? 19 : 23) * pz, r.combo >= 20 ? '#ff5a8a' : r.combo >= 10 ? '#ffd24a' : '#fff'); g.fillStyle = '#2b2233'; g.fillRect(cx0 - 2, cy0 + 6, 84, 6); g.fillStyle = '#ffd24a'; g.fillRect(cx0, cy0 + 8, 80 * cl / st.comboT, 2); }
   } else if (state === 'aim' || state === 'charge' || state === 'push') {
     g.textAlign = 'center'; txt(state === 'aim' ? '꾹 눌러서 당기기!' : state === 'charge' ? '흰 구간에서 손을 떼세요' : '발사대 끝에서 한 번 더 탭!', W / 2, H * 0.2, 28);
     if (state === 'aim') { txt(`보유 골드 ${fmt(S.gold)}   ·   최고 ${fmtD(S.best)}`, W / 2, H * 0.2 + 26, 14, '#fff6e6'); txt('공중에서 화면 좌우를 누르면 회전 · 바퀴로 착지하면 보너스', W / 2, H * 0.2 + 48, 12, '#fff6e6'); if (root.classList.contains('kb')) txt('Space 발사·킥·부스트 · W 도약 · E 대시 · S 급강하 · A/D 회전', W / 2, H * 0.2 + 68, 12, '#ffd24a'); }
