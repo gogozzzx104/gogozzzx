@@ -200,7 +200,7 @@ button{font-family:var(--disp);touch-action:manipulation}
 .mcap b{color:#ffcf4a;font-weight:700}
 .fa{position:absolute;top:50%;transform:translateY(-50%);width:34px;height:46px;border-radius:12px;border:2px solid #4a3d8a;background:rgba(18,14,40,.85);color:#efeaff;font:24px/1 var(--disp);padding:0;z-index:4}
 .fa.l{left:8px}.fa.r{right:8px}
-.fa:active{transform:translateY(-50%) scale(.94)}
+.fa:active,.fa.down{transform:translateY(-50%) scale(.94);background:#ffb057;color:#17122e;border-color:#fff}
 .tree.grid.opt{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
 .oc{gap:5px;padding:8px 10px}
 .seg{display:flex;gap:4px;margin-top:2px}
@@ -260,7 +260,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 85, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 86, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -603,7 +603,7 @@ const locX = e => portrait ? e.clientY : e.clientX, locY = e => portrait ? H - e
 const keys = new Set(); let ptrSide = 0;
 cv.addEventListener('pointerdown', e => { e.preventDefault(); snd(); try { cv.setPointerCapture(e.pointerId); } catch (er) {} if (state === 'ending') { endSkip(); return; } if (state === 'aim') { startCharge(); return; } ptrSide = locX(e) < W / 2 ? 1 : -1; if (state === 'push') tryKick(); });
 const spinOff = () => { ptrSide = 0; if (state === 'charge') release(); }; cv.addEventListener('pointerup', spinOff); cv.addEventListener('pointercancel', spinOff);
-addEventListener('blur', () => { keys.clear(); ptrSide = 0; boostHeld = false; });
+addEventListener('blur', () => { keys.clear(); ptrSide = 0; boostHeld = false; mapHold(0); });
 // Scrolling by drag, in stage coordinates, so it also works while the stage is rotated for a portrait-locked phone.
 function dragScroll(el) { let id = null, x0 = 0, y0 = 0, sx = 0, sy = 0, moved = false, vx = 0, vy = 0, lx = 0, ly = 0, lt = 0, raf = 0; const k = () => el.id === 'result' ? 1 + (uiK - 1) * 0.45 : uiK;
   el.addEventListener('pointerdown', e => { id = e.pointerId; x0 = lx = locX(e); y0 = ly = locY(e); sx = el.scrollLeft; sy = el.scrollTop; moved = false; vx = vy = 0; lt = e.timeStamp; cancelAnimationFrame(raf); });
@@ -616,8 +616,8 @@ const hold = (el, on, off) => { el.addEventListener('pointerdown', e => { e.prev
 hold(boostBtn, () => boostHeld = true, () => boostHeld = false); hold(skillBtn, () => skillTap = true); hold(dashBtn, () => dashTap = true); hold(diveBtn, () => diveTap = true);
 endBtn.addEventListener('click', () => { if (state === 'fly' && run && !run.over) { run.over = true; run.why = '여기까지!'; endRun(); } });
 const KB = matchMedia('(pointer: fine)').matches; if (KB) root.classList.add('kb');
-addEventListener('keydown', e => { if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); keys.add(e.code); if (e.repeat) return; snd(); root.classList.add('kb'); if (state === 'ending') { if (e.code === 'Space' || e.code === 'Enter') endSkip(); return; } if (state === 'shop' && e.code === 'Escape') toAim(); if (state === 'shop' && tab === 'map' && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) mapGo(e.code === 'ArrowLeft' ? -1 : 1); if (state === 'result' && e.code === 'KeyU') openShop(); if (e.code === 'Space') { if (state === 'aim') startCharge(); else if (state === 'push') tryKick(); else if (state === 'fly') boostHeld = true; else if (state === 'result') toAim(); } if (e.code === 'KeyW' || e.code === 'ArrowUp' || e.code === 'ShiftLeft') skillTap = true; if (e.code === 'KeyE') dashTap = true; if (e.code === 'KeyS' || e.code === 'ArrowDown' || e.code === 'KeyQ') diveTap = true; });
-addEventListener('keyup', e => { keys.delete(e.code); if (e.code === 'Space') { boostHeld = false; if (state === 'charge') release(); } });
+addEventListener('keydown', e => { if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); keys.add(e.code); if (e.repeat) return; snd(); root.classList.add('kb'); if (state === 'ending') { if (e.code === 'Space' || e.code === 'Enter') endSkip(); return; } if (state === 'shop' && e.code === 'Escape') toAim(); if (state === 'shop' && tab === 'map' && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) mapHold(e.code === 'ArrowLeft' ? -1 : 1); if (state === 'result' && e.code === 'KeyU') openShop(); if (e.code === 'Space') { if (state === 'aim') startCharge(); else if (state === 'push') tryKick(); else if (state === 'fly') boostHeld = true; else if (state === 'result') toAim(); } if (e.code === 'KeyW' || e.code === 'ArrowUp' || e.code === 'ShiftLeft') skillTap = true; if (e.code === 'KeyE') dashTap = true; if (e.code === 'KeyS' || e.code === 'ArrowDown' || e.code === 'KeyQ') diveTap = true; });
+addEventListener('keyup', e => { keys.delete(e.code); if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') mapHold(0); if (e.code === 'Space') { boostHeld = false; if (state === 'charge') release(); } });
 document.addEventListener('contextmenu', e => e.preventDefault());
 $('#rAgain').addEventListener('click', toAim); $('#rShop').addEventListener('click', openShop); $('#shopBtn').addEventListener('click', openShop); $('#optBtn').addEventListener('click', () => { tab = 'opt'; openShop(); }); $('#sClose').addEventListener('click', toAim);
 
@@ -757,24 +757,32 @@ function mapCell(i) { const M = MAP, el = document.createElement('div'); el.clas
   if (i < 0 || i >= M.n) { el.classList.add('ld'); return o; }
   if (i >= M.known) { el.innerHTML = '<i class="fn">??</i><div class="fp q"><b>??</b></div>'; return o; }
   const k = Math.min(2.5, uiK * (devicePixelRatio || 1)), pw = Math.min(MAPW, Math.round((M.cw - 14) * k)), cv2 = document.createElement('canvas'); cv2.width = pw; cv2.height = Math.round(pw * MAPH / MAPW);
-  el.innerHTML = `<i class="fn">${String(i + 1).padStart(2, '0')} ▸</i><div class="fp"></div>`; el.lastChild.appendChild(cv2); o.cv = cv2; mapScene(cv2, i, 0); return o; }
+  el.innerHTML = `<i class="fn">${String(i + 1).padStart(2, '0')} ▸</i><div class="fp"></div>`; el.lastChild.appendChild(cv2); o.cv = cv2; if (M.fast) o.dirty = true; else mapScene(cv2, i, 0); return o; }
 // places every frame near the middle on the cylinder and drops the ones that rolled out of view
 function mapLayout() { const M = MAP; if (!M.el) return; const strip = M.el.querySelector('.film'), R = M.cw / (2 * Math.sin(MAP_A / 2)), lo = Math.floor(M.pos) - 4, hi = Math.ceil(M.pos) + 4;
   for (const [i, c] of M.cells) if (i < lo || i > hi || i < -2 || i > M.n + 1) { c.el.remove(); M.cells.delete(i); }
   for (let i = Math.max(-2, lo); i <= Math.min(M.n + 1, hi); i++) { let c = M.cells.get(i); if (!c) { c = mapCell(i); M.cells.set(i, c); strip.appendChild(c.el); }
     const d = i - M.pos, th = d * MAP_A, ad = Math.abs(d), out = i < 0 ? -i : i >= M.n ? i - M.n + 1 : 0;
     c.el.style.transform = `translate3d(${(R * Math.sin(th)).toFixed(1)}px,0,${(R * (Math.cos(th) - 1)).toFixed(1)}px) rotateY(${th.toFixed(4)}rad)`; c.el.style.zIndex = String(100 - Math.round(ad * 10)); c.el.style.filter = `brightness(${Math.max(0.35, 1 - 0.2 * ad).toFixed(2)})`; c.el.style.opacity = out ? String(Math.max(0, 0.7 - 0.35 * out)) : '1'; }
-  const f = Math.max(0, Math.min(M.n - 1, Math.round(M.pos))); if (f !== M.shown) { if (M.shown >= 0) tone(880, 640, 0.03, 0.05, 'square'); M.shown = f; const cap = M.el.querySelector('.mcap'), un = f >= M.known, zn = Z[f];
+  const f = Math.max(0, Math.min(M.n - 1, Math.round(M.pos))); if (f !== M.shown) { const tn = performance.now(); if (M.shown >= 0 && tn - (M.sndT || 0) > 45) { M.sndT = tn; tone(880, 640, 0.03, 0.05, 'square'); } M.shown = f; const cap = M.el.querySelector('.mcap'), un = f >= M.known, zn = Z[f];
     cap.innerHTML = un ? `<h3>??</h3><p>아직 가 보지 못한 곳</p>` : `<h3>${zn.name}</h3><p>${f + 1}번째 구역 · ${km(zn.at)}부터${f === S.zone ? ' · <b>이번 생 여기까지</b>' : ''}${f === M.known - 1 && f !== S.zone ? ' · <b>가장 멀리 간 곳</b>' : ''}</p>`; } }
 function mapGo(d) { const M = MAP; M.target = Math.max(0, Math.min(M.n - 1, Math.round(M.target) + d)); }
-function mapTick(now) { const M = MAP; if (!M.el || !M.el.isConnected) return; const dt = Math.min(0.05, (now - M.t) / 1000); M.t = now;
-  if (!M.drag) { const d = M.target - M.pos; if (Math.abs(d) > 0.002) { M.pos += d * Math.min(1, dt * 11); mapLayout(); } else if (M.pos !== M.target) { M.pos = M.target; mapLayout(); } }
-  if (now - M.liveT > 40 && !RM) { M.liveT = now; const i = Math.round(M.pos), c = M.cells.get(i); if (c && c.cv) mapScene(c.cv, i, now * 0.012); } }
+// Holding a side button (or an arrow key): one step at once, then after a short pause the strip keeps rolling and its speed doubles
+// about every 0.45 s up to 90 frames a second, so even a long strip reaches its end in a few seconds.  Letting go stops on the next frame.
+function mapHold(d) { const M = MAP; if (d) { if (M.hold && M.hold.d === d) return; mapGo(d); M.hold = { d, t: performance.now() }; return; }
+  if (!M.hold) return; const was = M.hold.d; M.hold = null; M.fast = false; M.target = Math.max(0, Math.min(M.n - 1, was > 0 ? Math.ceil(M.pos - 0.2) : Math.floor(M.pos + 0.2))); }
+function mapTick(now) { const M = MAP; if (!M.el || !M.el.isConnected) { M.hold = null; return; } const dt = Math.min(0.05, (now - M.t) / 1000); M.t = now;
+  const held = M.hold && !M.drag ? (now - M.hold.t) / 1000 - 0.28 : -1;
+  if (held > 0) { const v = Math.min(90, 5 * Math.pow(2, held / 0.45)); M.fast = v > 14; M.pos = Math.max(0, Math.min(M.n - 1, M.pos + M.hold.d * v * dt)); M.target = M.pos; mapLayout(); }
+  else if (!M.drag) { const d = M.target - M.pos; if (Math.abs(d) > 0.002) { M.pos += d * Math.min(1, dt * 11); mapLayout(); } else if (M.pos !== M.target) { M.pos = M.target; mapLayout(); } }
+  if (M.fast) return;
+  { const todo = []; for (const [i, c] of M.cells) if (c.dirty) todo.push(i); todo.sort((x, y) => Math.abs(x - M.pos) - Math.abs(y - M.pos)); for (const i of todo.slice(0, 2)) { const c = M.cells.get(i); mapScene(c.cv, i, 0); c.dirty = false; } }
+  if (now - M.liveT > 40 && !RM) { M.liveT = now; const i = Math.round(M.pos), c = M.cells.get(i); if (c && c.cv && !c.dirty) mapScene(c.cv, i, now * 0.012); } }
 function mapMount(list) { const M = MAP, far = C.reached(S), all = far >= Z.length - 1; M.known = far + 1; M.n = M.known + (all ? 0 : 1);
   if (M.pos == null || M.pos > M.n - 1) M.pos = M.target = Math.min(S.zone, M.n - 1); M.target = Math.max(0, Math.min(M.n - 1, Math.round(M.target))); M.pos = M.target;
   const aw = list.clientWidth || 700, ah = list.clientHeight || 340; M.cw = Math.max(180, Math.min(340, Math.floor(Math.min(aw * 0.4, (ah - 104) * 1.78) / 20) * 20)); const fh = Math.round((M.cw - 14) * MAPH / MAPW) + 38;
   list.innerHTML = `<div class="mapv" style="--cw:${M.cw}px;--fh:${fh}px"><div class="tsum" style="margin:0;position:static"><span>발견한 곳 ${M.known}</span><span>좌우로 끌어서 넘기기</span></div><div class="film"></div><div class="mcap"></div><button type="button" class="fa l" aria-label="이전">‹</button><button type="button" class="fa r" aria-label="다음">›</button></div>`;
-  M.el = list.firstChild; M.cells = new Map(); M.shown = -1; M.drag = null; M.t = performance.now(); mapLayout();
+  M.el = list.firstChild; M.cells = new Map(); M.shown = -1; M.drag = null; M.hold = null; M.fast = false; M.t = performance.now(); mapLayout();
   const film = M.el.querySelector('.film');
   film.addEventListener('pointerdown', e => { try { film.setPointerCapture(e.pointerId); } catch (er) {} M.drag = { id: e.pointerId, x0: locX(e), p0: M.pos, moved: false, v: 0, lx: locX(e), lt: e.timeStamp }; });
   film.addEventListener('pointermove', e => { const D = M.drag; if (!D || D.id !== e.pointerId) return; const x = locX(e), pitch = M.cw * uiK; if (Math.abs(x - D.x0) > 6) D.moved = true; if (!D.moved) return;
@@ -784,7 +792,10 @@ function mapMount(list) { const M = MAP, far = C.reached(S), all = far >= Z.leng
     M.target = Math.max(0, Math.min(M.n - 1, Math.round(M.pos + Math.max(-2.5, Math.min(2.5, D.v * 180))))); };
   film.addEventListener('pointerup', up); film.addEventListener('pointercancel', up);
   let wt = 0; film.addEventListener('wheel', e => { e.preventDefault(); const tn = performance.now(); if (tn - wt < 110) return; wt = tn; mapGo((Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) > 0 ? 1 : -1); }, { passive: false });
-  M.el.querySelector('.fa.l').addEventListener('click', () => mapGo(-1)); M.el.querySelector('.fa.r').addEventListener('click', () => mapGo(1)); }
+  for (const [q, d] of [['.fa.l', -1], ['.fa.r', 1]]) { const bt = M.el.querySelector(q), off = () => { bt.classList.remove('down'); mapHold(0); };
+    bt.addEventListener('pointerdown', e => { e.preventDefault(); try { bt.setPointerCapture(e.pointerId); } catch (er) {} bt.classList.add('down'); mapHold(d); });
+    bt.addEventListener('pointerup', off); bt.addEventListener('pointercancel', off); bt.addEventListener('lostpointercapture', off);
+    bt.addEventListener('click', e => { if (e.detail === 0) mapGo(d); }); } }
 // Settings: every row is a set of choices; the note under the title says what the current choice does.
 const VOL = [[0, '0'], [0.25, '25'], [0.5, '50'], [0.75, '75'], [1, '100']];
 const OPTS = [
@@ -1530,6 +1541,6 @@ const liveLS = LS.get('cart.live');   // read before the first toAim clears it
 toAim(); requestAnimationFrame(frame);
 { let booted = false; const boot = d => { if (booted) return; booted = true; try { if (d && d.v === 1 && Date.now() - d.at < 300000) { liveRestore(d, true); return; } const j = JSON.parse(liveLS || 'null'); if (j && Date.now() - j.at < 90000) liveRestore(j, false); } catch (e) {} };
   try { if (HOT && HOT.ready) { HOT.ready(boot); setTimeout(() => boot(HOT.data), 1500); } else boot(HOT && HOT.data); } catch (e) { boot(null); } }
-window.__cart = { C, get S() { return S; }, set S(v) { S = v; }, get run() { return run; }, get state() { return state; }, launch, toAim, openShop, save, set peek(v) { peekZ = v; }, CLOUD, get slot() { return slot; }, startCharge, release, tryKick, get charge() { return charge; }, get audio() { return actx ? actx.state : 'none'; }, MUS, EFF, PEFF, OPT, PERF, AUD, liveSnap, liveStore, get Q() { return Q; }, get updated() { return updated; } };
+window.__cart = { C, get S() { return S; }, set S(v) { S = v; }, get run() { return run; }, get state() { return state; }, launch, toAim, openShop, save, set peek(v) { peekZ = v; }, CLOUD, get slot() { return slot; }, startCharge, release, tryKick, get charge() { return charge; }, get audio() { return actx ? actx.state : 'none'; }, MUS, EFF, PEFF, OPT, PERF, AUD, liveSnap, liveStore, MAP, get Q() { return Q; }, get updated() { return updated; } };
 })();
 </script>
