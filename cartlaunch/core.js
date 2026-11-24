@@ -197,11 +197,12 @@ const CORE = (() => {
   const TK = (id, name, max, desc, gate) => ({ id, name, max, desc, gate: gate || 0 });
   const TPERKS = [
     TK('t_speed', '차원 엔진', 100, '발사 속도 ×1.25'), TK('t_gold', '차원 금고', 100, '모든 골드 ×2'), TK('t_star', '별의 기억', 30, '환생 때 받는 별 +50%'),
-    TK('t_cap', '한계 돌파', 15, '최고 속도 한도 +0.2배'), TK('t_time', '지구력', 10, '최고 속도가 10% 더 천천히 줄어듦'), TK('t_keep', '전생 각인', 5, '초월 때 환생 트리 유지 +10% (기본 50%)'), TK('t_auto', '자동 구매', 1, '판이 끝날 때마다 살 수 있는 업그레이드 자동 구매'),
-    TK('t_land', '완벽주의', 20, '착지·슬램 골드 보너스 +50%', 3), TK('t_multi', '다중 광선', 15, '견인 광선이 한 번에 상자·코인을 1개 더 끌어옴', 5), TK('t_beam', '견인 강화', 20, '견인 광선 주기 -8%', 8),
-    TK('t_starpow', '별의 힘', 25, '지금까지 받은 별이 많을수록 발사 속도 증가 · 초월해도 유지', 10), TK('t_rekindle', '재점화', 10, '깔끔한 착지마다 최고 속도 한도가 올라가고 그만큼 바로 가속 (완벽 착지는 3배)', 12), TK('t_deep', '심연 개척', 25, '미지의 영역에서 받는 차원석 +10%', 15),
+    TK('t_cap', '한계 돌파', 20, '최고 속도 한도 +0.2배'), TK('t_time', '지구력', 10, '최고 속도가 10% 더 천천히 줄어듦'), TK('t_keep', '전생 각인', 5, '초월 때 환생 트리 유지 +10% (기본 50%)'), TK('t_auto', '자동 구매', 1, '판이 끝날 때마다 살 수 있는 업그레이드 자동 구매'),
+    TK('t_land', '완벽주의', 20, '착지·슬램 골드 보너스 +50%', 3), TK('t_multi', '다중 광선', 20, '견인 광선이 한 번에 상자·코인을 1개 더 끌어옴', 5), TK('t_beam', '견인 강화', 25, '견인 광선 주기 -8%', 8),
+    TK('t_starpow', '별의 힘', 30, '지금까지 받은 별이 많을수록 발사 속도 증가 · 초월해도 유지', 10), TK('t_rekindle', '재점화', 10, '깔끔한 착지마다 최고 속도 한도가 올라가고 그만큼 바로 가속 (완벽 착지는 3배)', 12), TK('t_deep', '심연 개척', 30, '미지의 영역에서 받는 차원석 +10%', 15),
   ];
-  const TP = Object.fromEntries(TPERKS.map(q => [q.id, q])), tCost = (q, l) => q.id === 't_auto' ? 3 : q.id === 't_multi' ? Math.ceil(30 * Math.pow(1.3, l)) : Math.ceil((l + 1) * Math.pow(1.05, l)), deepEver = s => Math.max(s.deepEver || 0, zoneAt(s.best || 0) - LAST, 0), tLock = (s, id) => deepEver(s) < TP[id].gate ? `미지의 영역 ${TP[id].gate} 도달 시 열림` : '', tl = (s, id) => (s.tperks || {})[id] || 0;
+  // TW: the strongest abilities cost a multiple of the base price and climb faster past level 10
+  const TP = Object.fromEntries(TPERKS.map(q => [q.id, q])), TW = { t_starpow: 3, t_deep: 3, t_cap: 2, t_beam: 2 }, tCost = (q, l) => q.id === 't_auto' ? 3 : q.id === 't_multi' ? Math.ceil(30 * Math.pow(1.3, l) * Math.pow(1.1, Math.max(0, l - 10))) : Math.ceil((TW[q.id] || 1) * (l + 1) * Math.pow(1.05, l) * (TW[q.id] ? Math.pow(1.15, Math.max(0, l - 10)) : 1)), deepEver = s => Math.max(s.deepEver || 0, zoneAt(s.best || 0) - LAST, 0), tLock = (s, id) => deepEver(s) < TP[id].gate ? `미지의 영역 ${TP[id].gate} 도달 시 열림` : '', tl = (s, id) => (s.tperks || {})[id] || 0;
   const starsEver = s => Math.max(s.starsEver || 0, s.starsTotal || 0);   // every star ever earned; transcending does not reset it
   const cycleBest = s => Math.max(s.bestT || 0, s.bestLife || 0);
   // shards for a transcendence: 5 for reaching the end of time, more for every uncharted zone beyond it
