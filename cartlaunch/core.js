@@ -200,7 +200,7 @@ const CORE = (() => {
     TK('t_cap', '한계 돌파', 50, '최고 속도 한도 +0.2배'), TK('t_time', '지구력', 10, '최고 속도가 10% 더 천천히 줄어듦'), TK('t_keep', '전생 각인', 5, '초월 때 환생 트리 유지 +10% (기본 50%)'), TK('t_auto', '자동 구매', 1, '판이 끝날 때마다 살 수 있는 업그레이드 자동 구매'),
     TK('t_land', '완벽주의', 20, '착지·슬램 골드 보너스 +50%', 3), TK('t_multi', '다중 광선', 20, '견인 광선이 한 번에 상자·코인을 1개 더 끌어옴', 5), TK('t_beam', '견인 강화', 25, '견인 광선 주기 -8%', 8),
     TK('t_starpow', '별의 힘', 50, '지금까지 받은 별이 많을수록 발사 속도 증가 · 초월해도 유지', 10), TK('t_rekindle', '재점화', 10, '깔끔한 착지마다 최고 속도 한도가 올라가고 그만큼 바로 가속 (완벽 착지는 3배)', 12), TK('t_deep', '심연 개척', 50, '미지의 영역에서 받는 차원석 +10%', 15),
-    TK('t_spin', '초회전', 50, '카트 회전 속도 +4%', 16), TK('t_judge', '수호 보호막', 50, '착지 판정이 넓어짐 · 판정 범위가 보호막으로 보임', 18),
+    TK('t_spin', '초회전', 50, '2초 넘게 계속 돌리면 회전 속도 +4%', 16), TK('t_judge', '수호 보호막', 50, '착지 판정이 넓어짐 · 판정 범위가 보호막으로 보임 · Lv50은 어느 방향이든 완벽 착지', 18),
   ];
   // TW: the strongest abilities cost a multiple of the base price; the 50-level ones climb faster in each band of ten levels (10, 20, 30, 40)
   const TP = Object.fromEntries(TPERKS.map(q => [q.id, q])), TW = { t_starpow: 3, t_deep: 3, t_cap: 1.45, t_beam: 2, t_judge: 2 }, tStep = l => Math.pow(1.03, Math.max(0, Math.min(10, l - 10))) * Math.pow(1.06, Math.max(0, Math.min(10, l - 20))) * Math.pow(1.09, Math.max(0, Math.min(10, l - 30))) * Math.pow(1.12, Math.max(0, l - 40)), tCost = (q, l) => q.id === 't_auto' ? 3 : q.id === 't_multi' ? Math.ceil(30 * Math.pow(1.3, l) * Math.pow(1.1, Math.max(0, l - 10))) : Math.ceil((TW[q.id] || 1) * (l + 1) * Math.pow(1.05, l) * (q.max === 50 ? tStep(l) : TW[q.id] ? Math.pow(1.15, Math.max(0, l - 10)) : 1)), deepEver = s => Math.max(s.deepEver || 0, zoneAt(s.best || 0) - LAST, 0), tLock = (s, id) => deepEver(s) < TP[id].gate ? `미지의 영역 ${TP[id].gate} 도달 시 열림` : '', tl = (s, id) => (s.tperks || {})[id] || 0;
@@ -265,7 +265,7 @@ const CORE = (() => {
       pioneer: 1 + 0.5 * P('r_skip'), double: P('r_double'), phoenix: P('r_phoenix'), encore: 1 + 0.05 * L('encore'), refuel: (0.1 + 0.02 * L('refuel')), tractor: L('tractor') ? (8 - 0.5 * L('tractor')) * Math.pow(0.92, tl(s, 't_beam')) : 0, ampP: 4 * L('amp'), burnP: 5 * L('burn'), turbine: 0.02 * L('turbine'), pit: L('pit'), pslam: 0.012 * L('pslam'), jspring: L('jspring'), draft: 0.02 * L('draft'), streakB: 0.006 * L('streak'), burnK: 1 + 0.04 * L('burn'), comboT: 3 + 0.15 * L('ctime'), beamN: 1 + tl(s, 't_multi'), multi: 0.15 * L('multi'), allB: 0.012 * L('allr'),
       leap: 0.02 + 0.01 * L('leap'), crater: 0.02 + 0.008 * L('crater'), time: 10 * P('r_time'),
       perfB: 0.3 * (1 + 0.5 * P('r_perf')), landG: 0.03 * (1 + 0.5 * P('r_land')) * (1 + 0.5 * tl(s, 't_land')), landP: 0.08 * (1 + 0.5 * P('r_land')) * (1 + 0.5 * tl(s, 't_land')), slamB: 0.08 * (1 + 0.5 * P('r_land')) * (1 + 0.5 * tl(s, 't_land')),
-      vcap: 3 + 0.2 * tl(s, 't_cap'), tire: 30 * (1 + 0.1 * tl(s, 't_time')), rekindle: 0.005 * tl(s, 't_rekindle'), spinK: (1 + 0.08 * L('gyro')) * (1 + 0.04 * tl(s, 't_spin')), spinMax: 9 * (1 + 0.04 * tl(s, 't_spin')), judgeG: 0.26 + 0.01 * L('gyro') + 0.012 * tl(s, 't_judge'), judgeP: 0.11 + 0.004 * L('gyro') + 0.006 * tl(s, 't_judge'), judgeT: 0.7 + 0.04 * L('gyro') + 0.012 * tl(s, 't_judge'),
+      vcap: 3 + 0.2 * tl(s, 't_cap'), tire: 30 * (1 + 0.1 * tl(s, 't_time')), rekindle: 0.005 * tl(s, 't_rekindle'), spinK: 1 + 0.08 * L('gyro'), spinUp: 0.04 * tl(s, 't_spin'), judgeG: 0.26 + 0.01 * L('gyro') + 0.0606 * tl(s, 't_judge'), judgeP: 0.11 + 0.004 * L('gyro') + 0.0606 * tl(s, 't_judge'), judgeT: 0.7 + 0.04 * L('gyro') + 0.0606 * tl(s, 't_judge'),
       rate: Math.pow(2, tl(s, 't_gold')) * (1 + 0.06 * L('ad')) * (1 + 0.25 * P('p_gold')) * (1 + STAR_GOLD * bless * s.starsTotal) * (1 + 0.01 * L('sponsor') * s.zone) * (1 + 0.03 * achCount(s)),
       coin: (1 + 0.08 * L('coin')) * (1 + 0.4 * P('r_coin')), magnet: L('magnet'), magR: L('magnet') ? 0.9 + 0.3 * L('magnet') : 0, style: 0.0025 * L('style'), alt: 0.01 * L('alt'), crate: L('crate'), combo: 0.002 * L('combo'),
       trick: 0.03 * (1 + 0.5 * P('r_trick')) * (1 + 0.2 * L('trickpay')), lucky: 0.02 * L('lucky'),
@@ -338,8 +338,9 @@ const CORE = (() => {
     if (inp.dive && r.dive > 0 && !grounded0) { r.dive--; r.slam = true; r.vy = -Math.max(Math.abs(r.vy), 0.9 * r.v0); r.vx += vRef * (0.05 + 0.02 * st.dive) + 4; r.spin = 0; r.ev.push({ k: 'dive', x: r.x, y: r.y }); }
     if (r.air) r.airT += dtReal; else r.airT = 0;
     if (r.air) { const sd = inp.spin || 0;
-      if (sd) { r.spin += sd * 16 * st.spinK * dtReal; r.spin = Math.max(-st.spinMax, Math.min(st.spinMax, r.spin)); r.spinT = r.tr; }
-      else { r.spin *= Math.pow(0.02, dtReal); if (Math.abs(r.rotAcc) < 0.6 && r.tr - r.spinT > 1) { const want = Math.max(-0.9, Math.min(0.9, Math.atan2(r.vy, Math.max(1, r.vx)))); let d = want - r.ang; d = Math.atan2(Math.sin(d), Math.cos(d)); r.ang += d * Math.min(1, dtReal * 4); } }
+      // hyper spin only kicks in after the stick has been held one way for 2 s, so short taps stay easy to aim
+      if (sd) { r.spinH = sd === r.spinD ? (r.spinH || 0) + dtReal : 0; r.spinD = sd; const up = 1 + st.spinUp * Math.max(0, Math.min(1, (r.spinH - 2) / 0.4)), mx = 9 * up; r.spin += sd * 16 * st.spinK * up * up * dtReal; r.spin = Math.max(-mx, Math.min(mx, r.spin)); r.spinT = r.tr; r.spinUp = up; }
+      else { r.spinD = 0; r.spinH = 0; r.spin *= Math.pow(0.02, dtReal); if (Math.abs(r.rotAcc) < 0.6 && r.tr - r.spinT > 1) { const want = Math.max(-0.9, Math.min(0.9, Math.atan2(r.vy, Math.max(1, r.vx)))); let d = want - r.ang; d = Math.atan2(Math.sin(d), Math.cos(d)); r.ang += d * Math.min(1, dtReal * 4); } }
       r.ang += r.spin * dtReal; r.rotAcc += r.spin * dtReal;
       if (st.double && !r.doubled && r.vy < 0 && r.tr > 0.3) { r.doubled = true; const add = 0.25 * r.v0; r.vx += add * 0.92; r.vy += add * 0.4 + Math.max(0, -r.vy) * 0.5; r.ev.push({ k: 'double', x: r.x, y: r.y }); } }
     if (r.boosting) { r.usedBoost = true; r.fuel -= dtReal * st.burnK; const dv = st.thrust * dtReal * 1.15; r.vx += dv * (1 + st.nozzle); r.vy += dv * (grounded0 ? 0.45 : 0.16) + (r.vy < 0 ? Math.min(-r.vy, dv * 0.5) : 0); if (grounded0 && r.vy > 0) r.air = true; }
@@ -359,7 +360,7 @@ const CORE = (() => {
           let al = 0; const imp = -vn, water = isWater(r.x, U), Z = ZONES[zoneAt(r.x)], soft = Math.max(0.15, 1 - 0.085 * st.wide);
           if (r.air) { const sa = Math.atan(sl), dd = Math.atan2(Math.sin(r.ang - sa), Math.cos(r.ang - sa)), flips = Math.round(Math.abs(r.rotAcc) / 6.2832);
             // flips and landing attitude are judged separately: a flip that ends wheels-down earns the trick bonus and the landing bonus
-            const trick = flips >= 1 && Math.abs(dd) < st.judgeT, crash = !trick && Math.abs(r.rotAcc) > 1.2 && Math.abs(dd) > 1.4, long = r.airT > 0.35;
+            const trick = flips >= 1 && Math.abs(dd) < st.judgeT, crash = !trick && Math.abs(r.rotAcc) > 1.2 && Math.abs(dd) > Math.max(1.4, st.judgeG), long = r.airT > 0.35;
             if (trick) { r.tricks += flips + st.multi * (Math.min(flips, 5) - 1); vt *= 1 + Math.min(0.25, 0.05 * flips); r.ev.push({ k: 'trick', x: r.x, y: r.y, n: flips, clean: Math.abs(dd) < 0.2 }); }
             if (crash) { vt *= 0.75; r.crashes++; r.ev.push({ k: 'crash', x: r.x, y: r.y }); }
             if (long && Math.abs(dd) < st.judgeG) { const pf = Math.abs(dd) < st.judgeP; al = pf ? 2 : 1; r.cleans++; if (pf) r.perfLands++; if (st.rekindle) { const up = Math.min(st.rekindle * (pf ? 3 : 1), 10 * st.rekindle - (r.rew || 0)); r.rew = (r.rew || 0) + up; r.vx *= 1 + up; r.vy *= 1 + up; if (up > 0) r.ev.push({ k: 'rekindle', x: r.x, y: r.y }); } r.landStreak++; if (r.landStreak > r.maxStreak) r.maxStreak = r.landStreak;
