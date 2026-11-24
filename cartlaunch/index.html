@@ -240,7 +240,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 82, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 83, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -318,9 +318,10 @@ function perfTick(dtMs, workMs, flying) { PERF.dt += (dtMs - PERF.dt) * 0.05; PE
 //                                           music -> music gain -> low-pass --+--> limiter -> speakers
 //                                           effects (send) -> generated room reverb -> sfx gain
 // The limiter keeps a pile of simultaneous blips from clipping; the low-pass muffles the music behind menus; the music ducks under big hits.
+// (A wind noise that followed the cart's speed was removed at the player's request.)
 let actx = null, sndMode = 0, sndOn = true, musOn = true; try { sndMode = +(localStorage.getItem('cart.snd2') || (localStorage.getItem('cart.snd') === '0' ? 2 : 0)); } catch (e) {} sndOn = sndMode < 2; musOn = sndMode === 0;   // 0 sound+music · 1 effects only · 2 off
 const snd = () => { if (!sndOn) return null; if (!actx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null; actx = new AC(); } if (actx.state === 'suspended') actx.resume(); AUD.build(actx); return actx; };
-const AUD = { a: null, sfxG: null, musG: null, lp: null, rev: null, lpF: 18000, wind: null, windG: null, windF: null,
+const AUD = { a: null, sfxG: null, musG: null, lp: null, rev: null, lpF: 18000,
   build(a) { if (this.a === a) return; this.a = a;
     const c = a.createDynamicsCompressor(); c.threshold.value = -11; c.knee.value = 9; c.ratio.value = 14; c.attack.value = 0.003; c.release.value = 0.2; c.connect(a.destination);
     this.sfxG = a.createGain(); this.sfxG.gain.value = OPT.sfx; this.sfxG.connect(c);
@@ -331,12 +332,8 @@ const AUD = { a: null, sfxG: null, musG: null, lp: null, rev: null, lpF: 18000, 
   vol() { const a = this.a; if (!a) return; this.sfxG.gain.setTargetAtTime(OPT.sfx, a.currentTime, 0.03); this.musG.gain.setTargetAtTime(OPT.mus, a.currentTime, 0.03); },
   // the music dips for a moment so a big hit reads clearly, then comes back
   duck(k = 0.5, hold = 0.35) { const a = this.a; if (!a || a.state !== 'running') return; const t = a.currentTime, gn = this.musG.gain; gn.cancelScheduledValues(t); gn.setTargetAtTime(OPT.mus * (1 - k), t, 0.015); gn.setTargetAtTime(OPT.mus, t + hold, 0.22); },
-  // every frame: music is muffled behind the result card and the shop; wind noise follows the cart's speed
-  tick() { const a = this.a; if (!a || a.state !== 'running') return; const f = state === 'result' ? 1300 : state === 'shop' ? 3200 : 18000; if (f !== this.lpF) { this.lpF = f; this.lp.frequency.setTargetAtTime(f, a.currentTime, 0.12); }
-    const fly = state === 'fly' && run && !run.over && sndOn, k = fly ? Math.min(1.4, Math.hypot(run.vx, run.vy) / (run.v0 + 1)) : 0;
-    if (!this.wind) { if (!fly) return; const len = a.sampleRate * 2, b = a.createBuffer(1, len, a.sampleRate), d = b.getChannelData(0); let l = 0; for (let i = 0; i < len; i++) { l = l * 0.96 + (Math.random() * 2 - 1) * 0.2; d[i] = l; }
-      const n = a.createBufferSource(); n.buffer = b; n.loop = true; this.windF = a.createBiquadFilter(); this.windF.type = 'bandpass'; this.windF.Q.value = 0.6; this.windG = a.createGain(); this.windG.gain.value = 0; n.connect(this.windF); this.windF.connect(this.windG); this.windG.connect(this.sfxG); n.start(); this.wind = n; }
-    this.windG.gain.setTargetAtTime(fly ? (run.air ? 0.5 : 0.22) * k * k : 0, a.currentTime, 0.15); this.windF.frequency.setTargetAtTime(260 + 900 * k, a.currentTime, 0.2); } };
+  // every frame: music is muffled behind the result card and the shop
+  tick() { const a = this.a; if (!a || a.state !== 'running') return; const f = state === 'result' ? 1300 : state === 'shop' ? 3200 : 18000; if (f !== this.lpF) { this.lpF = f; this.lp.frequency.setTargetAtTime(f, a.currentTime, 0.12); } } };
 let toneT = 0, toneN = 0;   // at most six blips per 60 ms
 const jit = (c = 0.04) => 1 + (Math.random() * 2 - 1) * c;   // small pitch variation so a repeated sound never plays twice the same
 // o: { rev: reverb send 0..1, pan: -1..1 }
