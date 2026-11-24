@@ -138,6 +138,11 @@ button{font-family:var(--disp);touch-action:manipulation}
 .sk small{font:700 10px var(--body);color:#b3a9dd}
 .sk.on{border-color:#ffcf4a;box-shadow:0 0 12px rgba(255,207,74,.5)}
 .sk.lock{opacity:.5;border-style:dashed}
+.tree.grid.opt{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.oc{gap:5px;padding:8px 10px}
+.seg{display:flex;gap:4px;margin-top:2px}
+.seg button{flex:1;min-width:0;border:2px solid #53468f;border-radius:9px;background:#1b1538;color:#cfc6f5;font-size:14px;padding:6px 2px;white-space:nowrap}
+.seg button.on{background:linear-gradient(#ffd75e,#f5a614);border-color:#0d0a1c;color:#2b2233;box-shadow:0 3px 0 #0d0a1c}
 .ic{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .ic .f{fill:currentColor;stroke:none}
 #toast{position:absolute;left:50%;top:33%;transform:translateX(-50%);font:30px var(--disp);color:#fff;text-shadow:0 3px 0 var(--ink),0 0 12px rgba(0,0,0,.4);pointer-events:none;opacity:0;transition:opacity .3s;white-space:nowrap;text-align:center}
@@ -149,7 +154,7 @@ button{font-family:var(--disp);touch-action:manipulation}
 <div id="root">
   <canvas id="cv"></canvas>
   <div id="toast"></div>
-  <div id="topbar"><button class="pill" id="sndBtn" type="button">소리 켬</button><button class="pill" id="shopBtn" type="button">업그레이드</button></div>
+  <div id="topbar"><button class="pill" id="optBtn" type="button">설정</button><button class="pill" id="sndBtn" type="button">소리 켬</button><button class="pill" id="shopBtn" type="button">업그레이드</button></div>
   <button class="hbtn" id="skillBtn" type="button" data-key="W" hidden>도약<small></small></button>
   <button class="hbtn" id="dashBtn" type="button" data-key="E" hidden>대시<small></small></button>
   <button class="hbtn" id="diveBtn" type="button" data-key="S" hidden>급강하<small></small></button>
@@ -200,10 +205,10 @@ const save = () => { S.rev = (S.rev || 0) + 1; LS.set(skey(slot), JSON.stringify
     for (let n = 1; n <= SLOTS; n++) { const local = loadSlot(n), cloud = got[n].exists ? parseSave(got[n].data().json) : null, force = LS.get('cart.force.' + n);
       if (force || ahead(local, cloud)) CLOUD.dirty[n] = 1;   // this device is further along (or the slot was reset here): the account copy follows
       else if (ahead(cloud, local)) { if (local) LS.set(skey(n) + '.bak', JSON.stringify(local)); LS.set(skey(n), JSON.stringify(cloud)); if (n === slot) adopt = true; } }   // the account is further along: keep the old local copy as a backup and continue from the account
-    if (adopt) { S = loadSlot(slot) || S; toAim(); toast('계정에 저장된 기록을 불러왔어요', 2400); }
+    if (adopt) { if (state === 'fly' || state === 'ending') adoptLater = true; else { S = loadSlot(slot) || S; toAim(); toast('계정에 저장된 기록을 불러왔어요', 2400); } }
     cloudPush(); if (state === 'shop') renderShop();
   } catch (e) { CLOUD.state = 'off'; } })();
-addEventListener('visibilitychange', () => { if (document.hidden && CLOUD.state === 'on') { clearTimeout(CLOUD.timer); cloudPush(); } });
+addEventListener('visibilitychange', () => { if (document.hidden) liveStore(); if (document.hidden && CLOUD.state === 'on') { clearTimeout(CLOUD.timer); cloudPush(); } });
 function switchSlot(n) { if (n === slot || n < 1 || n > SLOTS) return; save(); slot = n; LS.set('cart.slot', String(n)); S = loadSlot(n) || C.newSave(); toAim(); openShop(); toast('슬롯 ' + n + (S.runs ? ' 불러옴' : ' · 새 게임'), 1600); }
 if (S.migrated != null) { const n = S.migrated; delete S.migrated; save(); setTimeout(() => toast(`밸런스 대개편! 업그레이드·골드는 초기화되고${n ? ' 보상으로 ★ ' + n + '개를 받았어요' : ', 별·환생 트리·업적은 그대로예요'}`, 5000), 800); }
 const big = v => v >= 10000 ? fmt(v) : v.toFixed(2);
@@ -213,29 +218,89 @@ function fmt(n) { n = Math.floor(n); if (!isFinite(n)) return '∞'; if (n < 100
   return (n >= 100 ? n.toFixed(0) : n >= 10 ? n.toFixed(1) : n.toFixed(2)) + UNIT[u] + (k ? ' 무량' + ['', '', '²', '³', '⁴'][k] : ''); }
 const fmtD = m => m < 1000 ? m.toFixed(1) + 'm' : m < 1e6 ? (m / 1000).toFixed(2) + 'km' : fmt(m / 1000) + 'km';
 
+/* ---------------- options ---------------- */
+// Kept on this device only.  gfx: auto | low | mid | high · fps: 0 (no limit) | 30 | 60 · shake / flash: strength 0..1
+const RM = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
+const OPT = Object.assign({ gfx: 'auto', fps: 0, shake: RM ? 0.4 : 1, flash: RM ? 0.35 : 1, vib: 1, sfx: 1, mus: 1, meter: 0, pops: 1 }, (() => { try { return JSON.parse(LS.get('cart.opt') || '{}') || {}; } catch (e) { return {}; } })());
+const saveOpt = () => LS.set('cart.opt', JSON.stringify(OPT));
+// What each graphics mode draws.  dpr: pixel-ratio ceiling · part: particle amount · cap: live particles · cnt: sky object amount
+// glow: blurred glows · haze, far, shade, shadow, rays, vig, trail: the extra scenery passes
+const QL = {
+  low: { n: 0, name: '절전', dpr: 1, part: 0.4, cap: 150, cnt: 0.5, glow: 0, haze: 0, far: 0, shade: 0, shadow: 0, rays: 0, vig: 0, trail: 0 },
+  mid: { n: 1, name: '균형', dpr: 1.5, part: 1, cap: 420, cnt: 1, glow: 1, haze: 1, far: 1, shade: 1, shadow: 1, rays: 0, vig: 0, trail: 0 },
+  high: { n: 2, name: '화려함', dpr: 2, part: 1.3, cap: 600, cnt: 1, glow: 1, haze: 1, far: 1, shade: 1, shadow: 1, rays: 1, vig: 1, trail: 1 } };
+const QN = ['low', 'mid', 'high'];
+let Q = QL.high, autoQ = Math.max(0, Math.min(2, +(LS.get('cart.autoq') || 2)));
+
 /* ---------------- stage ---------------- */
-const root = $('#root'), cv = $('#cv'); let g = cv.getContext('2d');
+const root = $('#root'), cv = $('#cv'); let g = cv.getContext('2d', { alpha: false }) || cv.getContext('2d');
+const FONT = getComputedStyle(root).getPropertyValue('--disp');
 let W = 800, H = 400, portrait = false, DPR = 1, uiK = 1, hudK = 1;
 function layout() { const vw = innerWidth, vh = innerHeight; portrait = vh > vw; W = portrait ? vh : vw; H = portrait ? vw : vh; uiK = Math.max(1, Math.min(2.2, W / 940, H / 470)); root.style.setProperty('--k', uiK.toFixed(3)); hudK = Math.max(1, Math.min(1.7, W / 1100, H / 560)); root.style.setProperty('--hk', hudK.toFixed(3)); root.style.setProperty('--ck', (1 + (uiK - 1) * 0.45).toFixed(3));   // big screens: shop, result card and flight HUD each get their own scale
   root.style.width = W + 'px'; root.style.height = H + 'px'; root.style.transform = portrait ? `rotate(90deg) translateY(-${H}px)` : 'none';
-  DPR = Math.min(devicePixelRatio || 1, 2); cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); }
-addEventListener('resize', layout); layout();
+  DPR = Math.min(devicePixelRatio || 1, Q.dpr); cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); }
+addEventListener('resize', layout);
+// Switches the graphics mode.  Blurred glows are the most expensive thing the canvas draws, so the low mode turns them off at the source.
+function setQ() { const cv0 = g; Q = QL[OPT.gfx === 'auto' ? QN[autoQ] : OPT.gfx] || QL.high;
+  if (Q.glow) delete cv0.shadowBlur; else Object.defineProperty(cv0, 'shadowBlur', { configurable: true, get: () => 0, set: () => {} });
+  layout(); }
+setQ();
+// Auto mode: watches how long frames take while flying and steps the mode down when they run late, back up only after a long smooth stretch.
+const PERF = { dt: 16.7, work: 4, bad: 0, good: 0, hold: 0, fps: 60 };
+function perfTick(dtMs, workMs, flying) { PERF.dt += (dtMs - PERF.dt) * 0.05; PERF.work += (workMs - PERF.work) * 0.05; PERF.fps = 1000 / Math.max(1, PERF.dt);
+  if (OPT.gfx !== 'auto' || !flying || document.hidden) { PERF.bad = PERF.good = 0; return; }
+  const target = OPT.fps ? 1000 / OPT.fps : 16.7, late = PERF.dt > target * 1.3 || PERF.work > 13, easy = PERF.dt < target * 1.12 && PERF.work < 4.5;
+  PERF.bad = late ? PERF.bad + dtMs : 0; PERF.good = easy ? PERF.good + dtMs : 0; PERF.hold = Math.max(0, PERF.hold - dtMs);
+  if (PERF.bad > 1800 && autoQ > 0) { autoQ--; PERF.bad = 0; PERF.hold = 45000; PERF.dt = target; LS.set('cart.autoq', String(autoQ)); setQ(); }
+  else if (PERF.good > 9000 && autoQ < 2 && !PERF.hold) { autoQ++; PERF.good = 0; PERF.dt = target; LS.set('cart.autoq', String(autoQ)); setQ(); } }
 
-/* ---------------- sound (tiny synth blips) ---------------- */
+/* ---------------- sound ---------------- */
+// Everything is synthesised.  Signal path:  effects -> sfx gain --+
+//                                           music -> music gain -> low-pass --+--> limiter -> speakers
+//                                           effects (send) -> generated room reverb -> sfx gain
+// The limiter keeps a pile of simultaneous blips from clipping; the low-pass muffles the music behind menus; the music ducks under big hits.
 let actx = null, sndMode = 0, sndOn = true, musOn = true; try { sndMode = +(localStorage.getItem('cart.snd2') || (localStorage.getItem('cart.snd') === '0' ? 2 : 0)); } catch (e) {} sndOn = sndMode < 2; musOn = sndMode === 0;   // 0 sound+music · 1 effects only · 2 off
-const snd = () => { if (!sndOn) return null; if (!actx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null; actx = new AC(); } if (actx.state === 'suspended') actx.resume(); return actx; };
+const snd = () => { if (!sndOn) return null; if (!actx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null; actx = new AC(); } if (actx.state === 'suspended') actx.resume(); AUD.build(actx); return actx; };
+const AUD = { a: null, sfxG: null, musG: null, lp: null, rev: null, lpF: 18000, wind: null, windG: null, windF: null,
+  build(a) { if (this.a === a) return; this.a = a;
+    const c = a.createDynamicsCompressor(); c.threshold.value = -11; c.knee.value = 9; c.ratio.value = 14; c.attack.value = 0.003; c.release.value = 0.2; c.connect(a.destination);
+    this.sfxG = a.createGain(); this.sfxG.gain.value = OPT.sfx; this.sfxG.connect(c);
+    this.lp = a.createBiquadFilter(); this.lp.type = 'lowpass'; this.lp.frequency.value = 18000; this.lp.Q.value = 0.4; this.lp.connect(c);
+    this.musG = a.createGain(); this.musG.gain.value = OPT.mus; this.musG.connect(this.lp);
+    try { const len = Math.floor(a.sampleRate * 1.2), ir = a.createBuffer(2, len, a.sampleRate); for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.8); }
+      const cv2 = a.createConvolver(), rg = a.createGain(); cv2.buffer = ir; rg.gain.value = 0.2; this.rev = a.createGain(); this.rev.connect(cv2); cv2.connect(rg); rg.connect(this.sfxG); } catch (e) { this.rev = null; } },
+  vol() { const a = this.a; if (!a) return; this.sfxG.gain.setTargetAtTime(OPT.sfx, a.currentTime, 0.03); this.musG.gain.setTargetAtTime(OPT.mus, a.currentTime, 0.03); },
+  // the music dips for a moment so a big hit reads clearly, then comes back
+  duck(k = 0.5, hold = 0.35) { const a = this.a; if (!a || a.state !== 'running') return; const t = a.currentTime, gn = this.musG.gain; gn.cancelScheduledValues(t); gn.setTargetAtTime(OPT.mus * (1 - k), t, 0.015); gn.setTargetAtTime(OPT.mus, t + hold, 0.22); },
+  // every frame: music is muffled behind the result card and the shop; wind noise follows the cart's speed
+  tick() { const a = this.a; if (!a || a.state !== 'running') return; const f = state === 'result' ? 1300 : state === 'shop' ? 3200 : 18000; if (f !== this.lpF) { this.lpF = f; this.lp.frequency.setTargetAtTime(f, a.currentTime, 0.12); }
+    const fly = state === 'fly' && run && !run.over && sndOn, k = fly ? Math.min(1.4, Math.hypot(run.vx, run.vy) / (run.v0 + 1)) : 0;
+    if (!this.wind) { if (!fly) return; const len = a.sampleRate * 2, b = a.createBuffer(1, len, a.sampleRate), d = b.getChannelData(0); let l = 0; for (let i = 0; i < len; i++) { l = l * 0.96 + (Math.random() * 2 - 1) * 0.2; d[i] = l; }
+      const n = a.createBufferSource(); n.buffer = b; n.loop = true; this.windF = a.createBiquadFilter(); this.windF.type = 'bandpass'; this.windF.Q.value = 0.6; this.windG = a.createGain(); this.windG.gain.value = 0; n.connect(this.windF); this.windF.connect(this.windG); this.windG.connect(this.sfxG); n.start(); this.wind = n; }
+    this.windG.gain.setTargetAtTime(fly ? (run.air ? 0.5 : 0.22) * k * k : 0, a.currentTime, 0.15); this.windF.frequency.setTargetAtTime(260 + 900 * k, a.currentTime, 0.2); } };
 let toneT = 0, toneN = 0;   // at most six blips per 60 ms
-function tone(f0, f1, dur, vol, type = 'triangle', delay = 0) { const tn = performance.now(); if (tn - toneT > 60) { toneT = tn; toneN = 0; } if (++toneN > 6) return; const a = snd(); if (!a) return; const t = a.currentTime + delay, o = a.createOscillator(), v = a.createGain(); o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
-  v.gain.setValueAtTime(0.0001, t); v.gain.exponentialRampToValueAtTime(vol, t + 0.01); v.gain.exponentialRampToValueAtTime(0.0001, t + dur); o.connect(v); v.connect(a.destination); o.start(t); o.stop(t + dur + 0.05); }
-function noise(dur, vol, freq) { const a = snd(); if (!a) return; const n = Math.floor(a.sampleRate * dur), b = a.createBuffer(1, n, a.sampleRate), d = b.getChannelData(0); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = a.createBufferSource(), f = a.createBiquadFilter(), v = a.createGain(); s.buffer = b; f.type = 'lowpass'; f.frequency.value = freq; v.gain.value = vol; s.connect(f); f.connect(v); v.connect(a.destination); s.start(); }
-const SFX = { launch: () => { noise(0.5, 0.5, 900); tone(120, 500, 0.35, 0.2, 'sawtooth'); }, bounce: v => { noise(0.12, Math.min(0.5, 0.15 + v), 500); tone(110, 60, 0.12, 0.25, 'sine'); }, coin: () => tone(1320, 1760, 0.09, 0.1), crate: () => [660, 880, 1320].forEach((f, i) => tone(f, f, 0.12, 0.12, 'triangle', i * 0.07)),
-  pad: () => tone(300, 900, 0.2, 0.15, 'sawtooth'), tramp: () => tone(200, 700, 0.22, 0.2, 'sine'), ring: () => tone(700, 1400, 0.18, 0.12), bonk: () => { noise(0.15, 0.4, 300); tone(160, 80, 0.15, 0.2, 'square'); }, spring: () => tone(250, 1000, 0.25, 0.2, 'square'),
-  dash: () => { noise(0.25, 0.3, 2500); tone(500, 1500, 0.2, 0.12, 'sawtooth'); }, zone: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, f, 0.2, 0.14, 'triangle', i * 0.09)), buy: () => tone(880, 1320, 0.1, 0.12), splash: () => noise(0.6, 0.5, 700), perfect: () => [784, 1175].forEach((f, i) => tone(f, f, 0.15, 0.14, 'triangle', i * 0.06)) };
+const jit = (c = 0.04) => 1 + (Math.random() * 2 - 1) * c;   // small pitch variation so a repeated sound never plays twice the same
+// o: { rev: reverb send 0..1, pan: -1..1 }
+function tone(f0, f1, dur, vol, type = 'triangle', delay = 0, o) { const tn = performance.now(); if (tn - toneT > 60) { toneT = tn; toneN = 0; } if (++toneN > 6) return; const a = snd(); if (!a) return; const t = a.currentTime + delay, os = a.createOscillator(), v = a.createGain(); os.type = type; os.frequency.setValueAtTime(f0, t); os.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+  v.gain.setValueAtTime(0.0001, t); v.gain.exponentialRampToValueAtTime(vol, t + 0.01); v.gain.exponentialRampToValueAtTime(0.0001, t + dur); os.connect(v);
+  let end = v; if (o && o.pan && !portrait && a.createStereoPanner) { const pn = a.createStereoPanner(); pn.pan.value = Math.max(-0.7, Math.min(0.7, o.pan)); v.connect(pn); end = pn; }
+  end.connect(AUD.sfxG); if (o && o.rev && AUD.rev && Q.n > 0) { const sg = a.createGain(); sg.gain.value = o.rev; end.connect(sg); sg.connect(AUD.rev); } os.start(t); os.stop(t + dur + 0.05); }
+function noise(dur, vol, freq, o) { const a = snd(); if (!a) return; const n = Math.floor(a.sampleRate * dur), b = a.createBuffer(1, n, a.sampleRate), d = b.getChannelData(0); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n); const sr = a.createBufferSource(), f = a.createBiquadFilter(), v = a.createGain(); sr.buffer = b; f.type = 'lowpass'; f.frequency.value = freq; v.gain.value = vol; sr.connect(f); f.connect(v); v.connect(AUD.sfxG); if (o && o.rev && AUD.rev && Q.n > 0) { const sg = a.createGain(); sg.gain.value = o.rev; v.connect(sg); sg.connect(AUD.rev); } sr.start(); }
+// coins climb the chord of whatever tune is playing: root, third, fifth, then the next octave, so a streak sounds like a rising arpeggio in key
+const COIN_DEG = [0, 2, 4, 7, 9, 11, 14, 16, 18];
+function coinHz(combo) { const k = MUS.key(), M = k[1], d = COIN_DEG[Math.min(COIN_DEG.length - 1, Math.max(0, combo - 1))], m = k[0] + 24 + M[d % 7] + 12 * Math.floor(d / 7); return 440 * Math.pow(2, (m - 69) / 12); }
+const SFX = { launch: () => { noise(0.5, 0.5, 900); tone(120, 500, 0.35, 0.2, 'sawtooth'); tone(95, 36, 0.5, 0.3, 'sine'); AUD.duck(0.45, 0.3); },
+  bounce: v => { const j = jit(0.08); noise(0.12, Math.min(0.5, 0.15 + v), 500 * j); tone(110 * j, 60 * j, 0.12, 0.25, 'sine'); },
+  coin: (combo, pan) => { const f = coinHz(combo || 1) * jit(0.006); tone(f, f * 1.335, 0.09, 0.1, 'triangle', 0, { pan }); if (combo > 6) tone(f * 2, f * 2.67, 0.07, 0.03, 'sine', 0.02, { pan }); },
+  crate: pan => { const f = coinHz(1); [1, 1.335, 2].forEach((m, i) => tone(f * m, f * m, 0.12, 0.12, 'triangle', i * 0.07, { rev: 0.5, pan })); },
+  pad: () => tone(300 * jit(), 900, 0.2, 0.15, 'sawtooth'), tramp: () => tone(200 * jit(), 700, 0.22, 0.2, 'sine'), ring: () => tone(700 * jit(), 1400, 0.18, 0.12, 'triangle', 0, { rev: 0.3 }), bonk: () => { noise(0.15, 0.4, 300); tone(160 * jit(0.08), 80, 0.15, 0.2, 'square'); }, spring: () => tone(250 * jit(), 1000, 0.25, 0.2, 'square'),
+  dash: () => { noise(0.25, 0.3, 2500); tone(500 * jit(), 1500, 0.2, 0.12, 'sawtooth'); }, zone: () => { [523, 659, 784, 1047].forEach((f, i) => tone(f, f, 0.2, 0.14, 'triangle', i * 0.09, { rev: 0.6 })); AUD.duck(0.4, 0.45); }, buy: () => tone(880 * jit(0.02), 1320, 0.1, 0.12), splash: () => noise(0.6, 0.5, 700, { rev: 0.4 }), perfect: () => [784, 1175].forEach((f, i) => tone(f, f, 0.15, 0.14, 'triangle', i * 0.06, { rev: 0.5 })),
+  slam: () => { tone(80, 32, 0.35, 0.4, 'sine'); noise(0.3, 0.55, 420, { rev: 0.35 }); AUD.duck(0.5, 0.25); }, ui: () => tone(620, 760, 0.05, 0.06), lock: () => tone(220, 160, 0.09, 0.08, 'square'), level: () => { tone(660, 990, 0.09, 0.1); tone(990, 1320, 0.1, 0.08, 'triangle', 0.06); } };
 const sndBtn = $('#sndBtn'); const sndLabel = () => sndBtn.textContent = ['소리·음악 켬', '효과음만', '소리 끔'][sndMode]; sndLabel();
 sndBtn.addEventListener('click', () => { sndMode = (sndMode + 1) % 3; sndOn = sndMode < 2; musOn = sndMode === 0; try { localStorage.setItem('cart.snd2', String(sndMode)); } catch (e) {} sndLabel(); snd(); });
 // boost: a looping rumble that fades in and out with the button
 const BST = { n: null, g: null, set(on) { const a = actx; if (!a || a.state !== 'running') return; if (!this.n) { if (!on) return; const len = a.sampleRate, b = a.createBuffer(1, len, a.sampleRate), d = b.getChannelData(0); for (let k = 0; k < len; k++) d[k] = Math.random() * 2 - 1;
-    const s = a.createBufferSource(), f = a.createBiquadFilter(), o = a.createOscillator(), og = a.createGain(); this.g = a.createGain(); s.buffer = b; s.loop = true; f.type = 'bandpass'; f.frequency.value = 520; f.Q.value = 0.7; o.type = 'sawtooth'; o.frequency.value = 62; og.gain.value = 0.35; this.g.gain.value = 0; s.connect(f); f.connect(this.g); o.connect(og); og.connect(this.g); this.g.connect(a.destination); s.start(); o.start(); this.n = s; }
+    const sr = a.createBufferSource(), f = a.createBiquadFilter(), os = a.createOscillator(), og = a.createGain(); this.g = a.createGain(); sr.buffer = b; sr.loop = true; f.type = 'bandpass'; f.frequency.value = 520; f.Q.value = 0.7; os.type = 'sawtooth'; os.frequency.value = 62; og.gain.value = 0.35; this.g.gain.value = 0; sr.connect(f); f.connect(this.g); os.connect(og); og.connect(this.g); this.g.connect(AUD.sfxG); sr.start(); os.start(); this.n = sr; }
   this.g.gain.setTargetAtTime(on && sndOn ? 0.2 : 0, a.currentTime, on ? 0.03 : 0.08); } };
 // music: one small generated loop per zone.  A new tune only starts on a bar line and never sooner than 3 s after the last change,
 // and the game asks for a zone's tune only after the cart has stayed there a moment, so racing through zones does not cut tunes up.
@@ -301,7 +366,7 @@ const MUS = (() => {
     const p = phrase[step % 32]; if (p != null) voice(t, n(p, 2), sd * (drums ? 1.7 : 3.5), lw === 'sine' || lw === 'triangle' ? 0.045 : 0.022, lw);
     if (drums) { if (s % 8 === 0 || (drums === 2 && s === 10)) { const a = actx, o = a.createOscillator(), v = a.createGain(); o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.11); v.gain.setValueAtTime(0.16, t); v.gain.exponentialRampToValueAtTime(0.0001, t + 0.14); o.connect(v); v.connect(out); o.start(t); o.stop(t + 0.16); }
       if (s % 4 === 2) hit(t, 0.03, 0.03, 7000, 'highpass'); if (drums === 2 && s % 8 === 4) hit(t, 0.1, 0.06, 1800, 'bandpass'); } }
-  return { T, want(id) { if (T[id]) want = id; }, get cur() { return cur; }, tick() { const a = actx; if (!a || a.state !== 'running') return; if (!out) { out = a.createGain(); out.connect(a.destination); } out.gain.setTargetAtTime(musOn ? 1 : 0, a.currentTime, 0.1); if (!musOn) { nextT = 0; return; }
+  return { T, want(id) { if (T[id]) want = id; }, get cur() { return cur; }, key() { const t = T[cur || want] || T.lot; return [t[0], MODE[t[1]]]; }, tick() { const a = actx; if (!a || a.state !== 'running') return; if (!out) { out = a.createGain(); out.connect(AUD.musG); } out.gain.setTargetAtTime(musOn ? 1 : 0, a.currentTime, 0.1); if (!musOn) { nextT = 0; return; }
       if (nextT < a.currentTime) nextT = a.currentTime + 0.06;
       while (nextT < a.currentTime + 0.22) { if (step % 16 === 0 && want !== cur && (!cur || a.currentTime - lastSw > 3)) { cur = want; build(cur); step = 0; lastSw = a.currentTime; } sched(nextT); nextT += 15 / T[cur][2]; step++; } } };
 })();
@@ -315,14 +380,14 @@ const CU = () => run ? run.U : aim.U, G = x => C.ground(x, CU());
 const boostBtn = $('#boostBtn'), skillBtn = $('#skillBtn'), dashBtn = $('#dashBtn'), diveBtn = $('#diveBtn'), endBtn = $('#endBtn');
 const flyUI = on => { boostBtn.hidden = !(on && st.thrust); skillBtn.hidden = !(on && st.springN); dashBtn.hidden = !(on && st.dashN); diveBtn.hidden = !(on && st.diveN); endBtn.hidden = !on; $('#topbar').hidden = on; };
 function toast(t, ms = 1600) { const el = $('#toast'); el.innerHTML = t; el.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(() => el.classList.remove('show'), ms); }
-function toAim() { MUS.want('lot'); st = C.stats(S); aim = C.scaleOf(st, st.power * st.perfect); run = null; state = 'aim'; meterT = 0; parts = []; pops = []; spinDir = 0; bgScroll = 0; resetDoll(); humStop(); charge = 0; rampU = 0.5; cam.x = 0; cam.y = 0; cam.vw = 34; rot = -st.angle; $('#result').hidden = true; $('#shop').hidden = true; flyUI(false); fxs = []; trail = []; }
+function toAim() { LS.del('cart.live'); MUS.want('lot'); st = C.stats(S); aim = C.scaleOf(st, st.power * st.perfect); run = null; state = 'aim'; meterT = 0; parts = []; pops = []; spinDir = 0; bgScroll = 0; resetDoll(); humStop(); charge = 0; rampU = 0.5; cam.x = 0; cam.y = 0; cam.vw = 34; rot = -st.angle; $('#result').hidden = true; $('#shop').hidden = true; flyUI(false); fxs = []; trail = []; }
 // Launch = hold to stretch the band (the gauge slows as tension builds and slips if you over-pull), let go inside the
 // white band for a perfect, then tap once more as the cart reaches the ramp edge for a kick.
 let charge = 0, slipT = 0, pushT = 0, pushFrom = 0.5, pushM = 0, kick = 1, kicked = false, kickMsg = '', rampU = 0.5, hum = null, lastTick = 0;
 const PUSH_T = 0.57, KICK_AT = 0.5; let pushStart = 0;   // the cart reaches the lip at KICK_AT and leaves at PUSH_T
-function humStart() { const a = snd(); if (!a) return; const o = a.createOscillator(), v = a.createGain(); o.type = 'triangle'; o.frequency.value = 110; v.gain.value = 0.05; o.connect(v); v.connect(a.destination); o.start(); hum = { o, v }; }
+function humStart() { const a = snd(); if (!a) return; const o = a.createOscillator(), v = a.createGain(); o.type = 'triangle'; o.frequency.value = 110; v.gain.value = 0.05; o.connect(v); v.connect(AUD.sfxG); o.start(); hum = { o, v }; }
 function humStop() { if (!hum) return; try { hum.v.gain.setTargetAtTime(0.0001, actx.currentTime, 0.03); hum.o.stop(actx.currentTime + 0.15); } catch (e) {} hum = null; }
-const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
+const buzz = ms => { if (!OPT.vib) return; try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
 function startCharge() { state = 'charge'; charge = 0; slipT = 0; lastTick = 0; humStart(); }
 function chargeStep(dt) {
   const R = 1.6 / st.meter; charge += R * 1.5 * Math.pow(Math.max(0.02, 1.06 - charge), 0.7) * dt; slipT = Math.max(0, slipT - dt);
@@ -354,7 +419,7 @@ function launch() {
 // Ending: the light swallows the screen, the cart rolls up to the last checkout, is scanned, and a receipt of the whole journey prints.
 function endSkip() { if (state === 'ending' && performance.now() - endT > 4000) endRun(); }
 function drawEnding(a) {
-  const D = getComputedStyle(root).getPropertyValue('--disp'), cl = v => Math.max(0, Math.min(1, v)), ez = v => { v = cl(v); return 1 - (1 - v) * (1 - v) * (1 - v); }, once = (k, fn) => { if (!endS[k]) { endS[k] = 1; fn(); } };
+  const D = FONT, cl = v => Math.max(0, Math.min(1, v)), ez = v => { v = cl(v); return 1 - (1 - v) * (1 - v) * (1 - v); }, once = (k, fn) => { if (!endS[k]) { endS[k] = 1; fn(); } };
   const sx = W * 0.63, sy = H * 0.3; g.save(); g.textAlign = 'center';
   // 0-1.5 s: the light takes the whole screen
   g.fillStyle = `rgba(255,255,255,${0.75 + 0.25 * cl(a / 1.2)})`; g.fillRect(0, 0, W, H); once('boom', () => { noise(1.8, 0.5, 2400); tone(220, 1760, 1.4, 0.2, 'sine'); tone(110, 55, 1.6, 0.3, 'sine'); });
@@ -383,6 +448,8 @@ function drawEnding(a) {
   g.restore(); if (a > 40) endRun();
 }
 function endRun() {
+  LS.del('cart.live');
+  if (adoptLater) { adoptLater = false; S = loadSlot(slot) || S; toAim(); toast('계정에 저장된 기록을 불러왔어요', 2400); return; }
   pay = C.finish(run, S); if (C.tl(S, 't_auto')) C.buyAll(S); save(); state = 'result'; flyUI(false);
   $('#rWhy').textContent = run.why; $('#rDist').innerHTML = fmtD(run.maxX);
   const tags = []; for (const a of pay.ach) tags.push('업적: ' + a.name); if (pay.record) tags.push('신기록'); if (pay.newZone) tags.push(Z[pay.zone].name + ' 첫 도달'); if (run.dbl) tags.push('더블 퍼펙트'); else if (run.perfect) tags.push('퍼펙트 발사'); if (run.kick > 1) tags.push((run.kick > 1.05 ? '퍼펙트 킥 +' : '굿 킥 +') + Math.round((run.kick - 1) * 100) + '%'); if (run.golden) tags.push('황금 판 ×3');
@@ -395,6 +462,7 @@ function endRun() {
   if (pay.gold > 1) rows.push(['황금 판', '×3']);
   $('#rRows').innerHTML = rows.map(r => `<span>${r[0]}</span><b>${r[1]}</b>`).join('') + `<span class="tot">획득 골드</span><b class="tot">${fmt(pay.total)}</b>`;
   $('#result').hidden = false; if (pay.newZone) SFX.zone();
+  if (updated) { updated = false; setTimeout(() => toast('새 버전이 적용됐어요', 2000), 900); }
 }
 
 /* ---------------- input ---------------- */
@@ -418,7 +486,7 @@ const KB = matchMedia('(pointer: fine)').matches; if (KB) root.classList.add('kb
 addEventListener('keydown', e => { if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); keys.add(e.code); if (e.repeat) return; snd(); root.classList.add('kb'); if (state === 'ending') { if (e.code === 'Space' || e.code === 'Enter') endSkip(); return; } if (state === 'shop' && e.code === 'Escape') toAim(); if (state === 'result' && e.code === 'KeyU') openShop(); if (e.code === 'Space') { if (state === 'aim') startCharge(); else if (state === 'push') tryKick(); else if (state === 'fly') boostHeld = true; else if (state === 'result') toAim(); } if (e.code === 'KeyW' || e.code === 'ArrowUp' || e.code === 'ShiftLeft') skillTap = true; if (e.code === 'KeyE') dashTap = true; if (e.code === 'KeyS' || e.code === 'ArrowDown' || e.code === 'KeyQ') diveTap = true; });
 addEventListener('keyup', e => { keys.delete(e.code); if (e.code === 'Space') { boostHeld = false; if (state === 'charge') release(); } });
 document.addEventListener('contextmenu', e => e.preventDefault());
-$('#rAgain').addEventListener('click', toAim); $('#rShop').addEventListener('click', openShop); $('#shopBtn').addEventListener('click', openShop); $('#sClose').addEventListener('click', toAim);
+$('#rAgain').addEventListener('click', toAim); $('#rShop').addEventListener('click', openShop); $('#shopBtn').addEventListener('click', openShop); $('#optBtn').addEventListener('click', () => { tab = 'opt'; openShop(); }); $('#sClose').addEventListener('click', toAim);
 
 /* ---------------- shop ---------------- */
 let tab = 'launch', confirmKey = '';
@@ -479,11 +547,13 @@ const IC = {
   warp: e_(12, 12, 9, 4) + e_(12, 12, 5, 2) + p_('M12 2v4M12 18v4'), tail: p_('M3 7h10a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 17h7'), over: c_(12, 12, 9) + p_('M12 12l4-5M12 5v2M5 12h2M17 12h2'), encore: p_(LOOP) + p_('M12 8v8M8 12h8'),
   r_perf: p_('M12 2l3 6 6 1-4.5 4 1 6-5.5-3-5.5 3 1-6L3 9l6-1z') + c_(12, 12, 1.5), r_land: p_('M4 20h16M7 16l5-10 5 10M9 12h6'), r_time: c_(12, 13, 8) + p_('M12 13V8M12 13l3 2M9 2h6'),
   t_trans: p_('M12 2l8 5v10l-8 5-8-5V7zM12 2v20M4 7l16 10M20 7L4 17'),
+  t_opt: c_(12, 12, 3.2) + c_(12, 12, 6.8) + p_('M12 2.5v2.7M12 18.8v2.7M2.5 12h2.7M18.8 12h2.7M5.3 5.3l1.9 1.9M16.8 16.8l1.9 1.9M18.7 5.3l-1.9 1.9M7.2 16.8l-1.9 1.9'),
+  t_lock: r_(5.5, 10.5, 13, 9.5, 2.2) + p_('M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3M12 14v2.5'), t_check: p_('M5 12.5l4.5 4.5L19 7.5'),
   t_skin: p_('M8 3l-5 4 3 4 2-1v11h8V10l2 1 3-4-5-4q-2 3-4 3t-4-3z'), t_info: p_('M7 4h10v5a5 5 0 0 1-10 0zM7 6H3q0 5 4 5M17 6h4q0 5-4 5M12 14v4M8 21h8') };
 const icon = id => `<svg class="ic" viewBox="0 0 24 24">${IC[id] || c_(12, 12, 7)}</svg>`;
-const BCOL = { launch: '#ff8a66', body: '#6cbcff', gear: '#3fe6c5', money: '#ffcf4a', star: '#c59bff', trans: '#7df3da', skin: '#ff9de0', info: '#9fb0ff', might: '#ff8a66', flight: '#6cbcff', wealth: '#ffcf4a' };
+const BCOL = { launch: '#ff8a66', body: '#6cbcff', gear: '#3fe6c5', money: '#ffcf4a', star: '#c59bff', trans: '#7df3da', skin: '#ff9de0', info: '#9fb0ff', opt: '#c3cde0', might: '#ff8a66', flight: '#6cbcff', wealth: '#ffcf4a' };
 const transOpen = () => (S.trans || 0) > 0 || (S.shards || 0) > 0 || C.cycleBest(S) >= Z[C.LAST].at;
-const TABS = [['launch', '발사', 'ramp'], ['body', '차체', 'frame'], ['gear', '장치', 'rocket'], ['money', '수익', 'coin'], ['star', '환생', 'style'], ['trans', '초월', 't_trans'], ['skin', '스킨', 't_skin'], ['info', '기록', 't_info']];
+const TABS = [['launch', '발사', 'ramp'], ['body', '차체', 'frame'], ['gear', '장치', 'rocket'], ['money', '수익', 'coin'], ['star', '환생', 'style'], ['trans', '초월', 't_trans'], ['skin', '스킨', 't_skin'], ['info', '기록', 't_info'], ['opt', '설정', 't_opt']];
 const NUM = /[+\-×]?\d[\d,.]*(?:만|억|조|경|해)?(?:%p|%|초|회|°|m\/s|개|번)?/g;
 const arrow = (a, b) => { const na = a.match(NUM) || [], nb = b.match(NUM) || [], ta = a.split(NUM), tb = b.split(NUM), same = na.length === nb.length && ta.join('|') === tb.join('|'), nx = same ? nb.filter((v, i) => v !== na[i]).join(' · ') : b; return `${a}<br><i>다음 Lv</i>${nx}`; };   // the current line in full, then only the numbers the next level changes
 const sel = {}, perkCan = q => { const l = S.perks[q.id] || 0; return l < q.max && !C.perkLock(S, q.id) && S.stars >= C.perkCost(q, l); };
@@ -513,12 +583,25 @@ function upDetail(u) { const l = C.lvl(S, u.id), lock = C.lockReason(S, u.id), m
   return `<div class="dh" style="--bc:${BCOL[u.br]}"><div class="di">${icon(u.id)}</div><div><h3>${u.name}</h3><span>Lv ${l} / ${u.max}</span></div></div><p>${u.desc}</p>${eff ? `<p class="eff">${eff}</p>` : ''}${reqs ? `<div class="dr">${reqs}</div>` : ''}<div class="brow"><button class="buy" data-up="${u.id}" ${can ? '' : 'disabled'}>${mx ? '최대 레벨' : lock ? '잠김' : fmt(C.cost(S, u.id)) + '<small>골드</small>'}</button><button class="buy sm" data-max="${u.id}" ${can ? '' : 'disabled'}>최대로</button></div>`; }
 function perkDetail(q) { const l = S.perks[q.id] || 0, mx = l >= q.max, lock = C.perkLock(S, q.id), c = C.perkCost(q, l), reqs = q.req.map(([r, n]) => `<span class="${(S.perks[r] || 0) >= n ? 'ok' : ''}">${C.PK[r].name} Lv${n}</span>`).join('');
   return `<div class="dh" style="--bc:${BCOL[q.br]}"><div class="di">${icon(q.id)}</div><div><h3>${q.name}</h3><span>${q.cap ? '궁극' : 'Lv ' + l + ' / ' + q.max}</span></div></div><p>${q.desc}</p>${PEFF[q.id] ? `<p class="eff">${mx ? PEFF[q.id](l) : arrow(PEFF[q.id](l), PEFF[q.id](l + 1))}</p>` : ''}${reqs ? `<div class="dr">${reqs}</div>` : ''}<button class="buy star" data-perk="${q.id}" ${perkCan(q) ? '' : 'disabled'}>${mx ? '완료' : lock ? '잠김' : '★ ' + c}</button>`; }
+// Settings: every row is a set of choices; the note under the title says what the current choice does.
+const VOL = [[0, '0'], [0.25, '25'], [0.5, '50'], [0.75, '75'], [1, '100']];
+const OPTS = [
+  ['gfx', '그래픽 모드', () => OPT.gfx === 'auto' ? `기기 속도를 재서 스스로 고릅니다 · 지금 ${Q.name}` : { low: '해상도와 효과를 줄여 발열·배터리를 아낍니다', mid: '효과는 그대로, 해상도만 조금 낮춥니다', high: '빛살·그림자·안개까지 모두 그립니다' }[OPT.gfx], [['auto', '자동'], ['low', '절전'], ['mid', '균형'], ['high', '화려함']]],
+  ['fps', '프레임 제한', () => OPT.fps ? `초당 ${OPT.fps}장까지만 그립니다` : '화면이 낼 수 있는 만큼 그립니다', [[30, '30'], [60, '60'], [0, '최대']]],
+  ['shake', '화면 흔들림', () => '충돌·착지 때 화면이 흔들리는 정도', [[0, '끔'], [0.4, '약하게'], [1, '보통']]],
+  ['flash', '번쩍임', () => '발사·슬램 때 화면이 밝아지는 정도', [[0.35, '줄임'], [1, '보통']]],
+  ['pops', '글자 효과', () => OPT.pops ? '착지·코인마다 글자가 뜹니다' : '중요한 글자만 뜹니다', [[0, '적게'], [1, '보통']]],
+  ['vib', '진동', () => '지원하는 휴대폰에서만 울립니다', [[0, '끔'], [1, '켬']]],
+  ['sfx', '효과음 크기', () => '', VOL], ['mus', '음악 크기', () => '', VOL],
+  ['meter', '성능 표시', () => '화면 아래에 fps와 프레임 처리 시간을 표시', [[0, '끔'], [1, '켬']]] ];
+function optHTML() { return `<div class="bh">설정 · 이 기기에만 저장</div>` + OPTS.map(([k, name, note, ch]) => `<div class="ac oc"><h3>${name}</h3>${note() ? `<p>${note()}</p>` : ''}<div class="seg">${ch.map(([v, lb]) => `<button type="button" class="${OPT[k] === v ? 'on' : ''}" data-opt="${k}" data-v="${v}">${lb}</button>`).join('')}</div></div>`).join(''); }
+function setOpt(k, v) { OPT[k] = isNaN(+v) ? v : +v; saveOpt(); if (k === 'gfx') setQ(); if (k === 'sfx' || k === 'mus') { snd(); AUD.vol(); } SFX.ui(); }
 function renderShop() {
   st = C.stats(S); $('#sGold').textContent = fmt(S.gold);
   $('#sZones').innerHTML = Z.slice(0, C.LAST + 1).map((z, i) => `<i class="${i <= S.zone ? 'on' : ''}" title="${z.name}"></i>`).join('') + (S.zone > C.LAST ? `<b>${Z[S.zone].name}</b>` : '');
   const isUp = C.BRANCH.some(b => b[0] === tab), list = $('#sList'), det = $('#sDet');
   $('#sTabs').innerHTML = TABS.filter(t => t[0] !== 'trans' || transOpen()).map(([id, name, ic]) => { const n = id === 'trans' ? C.TPERKS.filter(q => C.tl(S, q.id) < q.max && !C.tLock(S, q.id) && S.shards >= C.tCost(q, C.tl(S, q.id))).length : id === 'star' ? C.PERKS.filter(perkCan).length : C.UPS.filter(u => u.br === id && C.canBuy(S, u.id)).length; return `<button type="button" class="tab${tab === id ? ' on' : ''}" data-t="${id}" style="--bc:${BCOL[id]}">${icon(ic)}${name}${n ? `<i>${n}</i>` : ''}</button>`; }).join('');
-  list.className = isUp || tab === 'star' ? 'tree' : 'tree grid';
+  list.className = isUp || tab === 'star' ? 'tree' : tab === 'opt' ? 'tree grid opt' : 'tree grid';
   if (isUp) list.innerHTML = treeHTML(C.UPS.filter(u => u.br === tab), false);
   else if (tab === 'star') { const gain = C.starGain(S), per = Math.round(C.STAR_GOLD * (S.perks.r_bless ? 1.5 : 1) * 100), keep = (S.perks.r_mem || 0) * 8;
     list.innerHTML = `<div class="rbar"><div><h3>환생 · 보유 ★ ${S.stars} · 별 보너스 골드 +${S.starsTotal * per}%</h3><p>골드·업그레이드${keep ? `(${keep}% 유지)` : ''}를 비우고 ★을 받아요. ★ 하나당 골드 +${per}%. 별·트리·업적은 남습니다.</p><p>이번 생 ${fmtD(S.bestLife)} · 다음 ★ ${(d => isFinite(d) ? fmtD(d) : '더 없음')(C.nextStarAt(S.bestLife))}${S.rebirths >= 2 ? ' · 환생 3회부터 구역 조건은 유지' : ''}</p></div><button class="buy star" data-rebirth="1" ${gain > 0 ? '' : 'disabled'}>${confirmKey === 'rebirth' ? '정말요?<small>한 번 더 누르기</small>' : '환생하기<small>★ +' + gain + '</small>'}</button></div>` + treeHTML(C.PERKS, true); }
@@ -528,6 +611,7 @@ function renderShop() {
   else if (tab === 'skin') { const cur = skinNow().id;
     list.innerHTML = `<div class="bh">스킨</div>` + SKINS.map(k => `<button type="button" class="sk${k.id === cur ? ' on' : ''}${skinOpen(k) ? '' : ' lock'}" data-skin="${k.id}"><canvas width="220" height="140" data-skin="${k.id}"></canvas>${k.name}<small>${skinOpen(k) ? (k.id === cur ? '사용 중' : '눌러서 변경') : k.how || Z[k.z].name + ' 도달 시'}</small></button>`).join('');
     for (const c2 of list.querySelectorAll('canvas')) { const g0 = g; g = c2.getContext('2d'); pvSkin = SKINS.find(k => k.id === c2.dataset.skin); g.setTransform(2, 0, 0, 2, 0, 0); drawCart(64, 54, 0, 1.25); pvSkin = null; g = g0; } }
+  else if (tab === 'opt') list.innerHTML = optHTML();
   else { const n = C.achCount(S);
     const slots = []; for (let k = 1; k <= SLOTS; k++) { const q = k === slot ? S : loadSlot(k); slots.push(`<div class="ac${k === slot ? ' done' : ''}"><h3>슬롯 ${k}${k === slot ? ' · 지금 플레이 중' : ''}</h3><p>${q && (q.runs || k === slot) ? `${Z[Math.min(q.zone, Z.length - 1)].name} · 환생 ${q.rebirths}회 · 초월 ${q.trans || 0}회 · ${fmt(q.runs)}판` : '빈 슬롯 · 새 게임'}</p>${k === slot ? '' : `<button class="buy sm" data-slot="${k}">이 슬롯으로</button>`}</div>`); }
     list.innerHTML = `<div class="bh">계정 · 저장 슬롯 3개</div><p class="note">${CLOUD.state === 'on' ? '로그인한 계정에 저장돼요. 다른 기기에서 같은 계정으로 열면 이어서 할 수 있어요.' : CLOUD.state === 'local' ? '이 계정은 이 페이지에 저장할 권한이 없어서 이 기기에만 저장돼요.' : '지금은 이 기기에만 저장돼요. claude.ai에 로그인한 상태로 열면 계정에 저장됩니다.'}</p>` + slots.join('') + `<div class="bh">기록</div><div class="ac done"><h3>최고 ${fmtD(S.best)}</h3><p>${S.runs}판 · 업그레이드 ${C.total(S)}Lv · 환생 ${S.rebirths}회</p><p>업적 ${n}개 → 골드 +${n * 3}%</p></div>` +
@@ -536,7 +620,8 @@ function renderShop() {
       `<div class="bh">기타</div><p class="note">코인은 공중에 2~3개씩 떠 있어요. 부스트·도약·대시·급강하로 높이를 맞춰 보세요.</p><div class="ac"><h3>골드만 비우기</h3><p>업그레이드·별은 그대로 두고 보유 골드만 0으로. 이 기기의 내 기록에만 적용됩니다.</p><button class="buy sm" data-zero="1">${confirmKey === 'zero' ? '정말요? 한 번 더' : '골드 0으로'}</button></div><div class="ac"><h3>처음부터 다시</h3><p>지금 슬롯의 별·업적까지 모두 지웁니다. 다른 슬롯은 그대로예요.</p><button class="buy sm" data-wipe="1">${confirmKey === 'wipe' ? '정말요? 한 번 더' : '초기화'}</button></div>`; }
 }
 $('#sTabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if (!b) return; tab = b.dataset.t; confirmKey = ''; $('#sList').scrollTop = 0; $('#sDet').scrollTop = 0; renderShop(); });
-const shopClick = e => { const nd = e.target.closest('.nd'), sk = e.target.closest('.sk'), b = e.target.closest('.buy'), k1 = $('#sList').scrollTop, k2 = 0;
+const shopClick = e => { const nd = e.target.closest('.nd'), sk = e.target.closest('.sk'), b = e.target.closest('.buy'), ob = e.target.closest('[data-opt]'), k1 = $('#sList').scrollTop, k2 = 0;
+  if (ob) { setOpt(ob.dataset.opt, ob.dataset.v); renderShop(); $('#sList').scrollTop = k1; return; }
   if (nd) { sel[tab] = sel[tab] === nd.dataset.id ? null : nd.dataset.id; confirmKey = ''; }
   else if (sk) { if (sk.classList.contains('lock')) return; S.skin = sk.dataset.skin; SFX.buy(); }
   else if (b && !b.disabled) {
@@ -565,19 +650,19 @@ let ppm = 20, ox = 0, oy = 0, dollJolt = 0;
 // --- juice: screen-space sparks, rings, coins flying to the counter, a ribbon behind the cart, flashes ---
 let zoneIn = 0, zoneSaid = true, jingleT = -9e9, landT = -9e9, fuelShown = 1, fuelUpT = -9e9, liveG = 0, liveT = -9e9, launchFx = null;
 let fxs = [], trail = [], flash = 0, flashCol = '#fff', goldPopT = 0, dashT = 0, sonicLv = 0, cartX = 200, cartY = 200;
-const burst = (x, y, n, cols, spd, life, o = {}) => { if (fxs.length > 420) return; for (let i = 0; i < n; i++) { const a = (o.a0 ?? 0) + (o.spread ?? 6.283) * (Math.random() - 0.5), v = spd * (0.35 + Math.random() * 0.65); fxs.push({ k: 's', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: life * (0.6 + Math.random() * 0.6), c: cols[i % cols.length], g: o.g ?? 500, z: (o.z ?? 5) * (0.6 + Math.random() * 0.8), sq: o.sq }); } };
+const burst = (x, y, n, cols, spd, life, o = {}) => { if (fxs.length > Q.cap) return; n = Math.max(1, Math.round(n * Q.part)); for (let i = 0; i < n; i++) { const a = (o.a0 ?? 0) + (o.spread ?? 6.283) * (Math.random() - 0.5), v = spd * (0.35 + Math.random() * 0.65); fxs.push({ k: 's', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: life * (0.6 + Math.random() * 0.6), c: cols[i % cols.length], g: o.g ?? 500, z: (o.z ?? 5) * (0.6 + Math.random() * 0.8), sq: o.sq }); } };
 const ringFx = (x, y, c, r1, life = 0.45, w = 5, delay = 0) => fxs.push({ k: 'r', x, y, t: -delay, life, c, r1, w });
 const confetti = (x, y, n) => burst(x, y, n, ['#f0452f', '#f5b014', '#12a594', '#3f8cff', '#ff8ab3', '#fff'], 420, 1.1, { a0: -1.57, spread: 3.4, g: 700, z: 6, sq: 1 });
 const coinFly = (x, y, n) => { for (let i = 0; i < n; i++) fxs.push({ k: 'c', x, y, x0: x, y0: y, t: -i * 0.05, life: 0.45, mx: x + (Math.random() - 0.5) * 120, my: y - 60 - Math.random() * 60 }); };
 function drawFx(dt) {
-  if (flash > 0.01) { g.globalAlpha = Math.min(0.6, flash); g.fillStyle = flashCol; g.fillRect(0, 0, W, H); g.globalAlpha = 1; flash *= Math.pow(0.001, dt); }
+  if (flash > 0.01) { g.globalAlpha = Math.min(0.6, flash) * OPT.flash; g.fillStyle = flashCol; g.fillRect(0, 0, W, H); g.globalAlpha = 1; flash *= Math.pow(0.001, dt); }
   g.globalCompositeOperation = 'lighter';
   for (const f of fxs) { f.t += dt; if (f.t < 0) continue; const p = f.t / f.life, q = 1 - p;
     if (f.k === 's') { f.x += f.vx * dt; f.y += f.vy * dt; f.vy += f.g * dt; f.vx *= 1 - dt * 1.5; g.globalAlpha = Math.max(0, q); g.fillStyle = f.c; const z = f.z * (0.4 + 0.6 * q); if (f.sq) { g.save(); g.translate(f.x, f.y); g.rotate(f.t * 9 + f.z); g.fillRect(-z, -z * 0.5, z * 2, z); g.restore(); } else { g.beginPath(); g.arc(f.x, f.y, z, 0, 7); g.fill(); } }
     else if (f.k === 'r') { const e = 1 - q * q * q; g.globalAlpha = Math.max(0, q); g.strokeStyle = f.c; g.lineWidth = Math.max(0.5, f.w * q); g.beginPath(); g.arc(f.x, f.y, 6 + f.r1 * e, 0, 7); g.stroke(); } }
   g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
   for (const f of fxs) { if (f.k !== 'c' || f.t < 0) continue; const p = Math.min(1, f.t / f.life), e = p * p, a = 1 - p, tx = 23, ty = 84, x = a * a * f.x0 + 2 * a * p * f.mx + e * tx, y = a * a * f.y0 + 2 * a * p * f.my + e * ty; g.fillStyle = '#f5b014'; g.strokeStyle = '#2b2233'; g.lineWidth = 2; g.beginPath(); g.ellipse(x, y, 6 * Math.abs(Math.cos(f.t * 14)) + 1.5, 6, 0, 0, 7); g.fill(); g.stroke(); if (p >= 1 && !f.done) { f.done = 1; goldPopT = performance.now(); } }
-  fxs = fxs.filter(f => f.t < f.life); if (fxs.length > 420) fxs.splice(0, fxs.length - 420);
+  fxs = fxs.filter(f => f.t < f.life); if (fxs.length > Q.cap) fxs.splice(0, fxs.length - Q.cap);
 }
 const SX = x => (x - cam.x) * ppm + ox, SY = y => oy - (y - cam.y) * ppm;
 let finP = 0, endT = 0, endS = {};   // finale progress 0-1, when the ending began, one-shot sounds already played
@@ -599,10 +684,10 @@ function drawWorld(cx, cy, dt) {
     g.strokeStyle = Z[z].water ? '#bfe9ff' : Z[z].edge || ({ moon: '#d4d4de', lava: '#ff6a2a', star: '#ff9df5', cloud: '#ffb6dc', hole: '#b04cff', end: '#ffffff', canyon: '#ffd09a', forest: '#8fd46a', rock: '#a89c8c' })[Z[z].deco] || 'rgba(255,255,255,.35)'; g.lineWidth = 3; g.stroke(); }
   // distance signs
   const span = cam.vw, pw = Math.pow(10, Math.floor(Math.log10(span / 2.2))), every = span / pw > 11 ? pw * 5 : span / pw > 4.5 ? pw * 2 : pw;
-  g.font = `13px ${getComputedStyle(root).getPropertyValue('--disp')}`; g.textAlign = 'center';
+  g.font = `13px ${FONT}`; g.textAlign = 'center';
   for (let k = 0, m0 = Math.max(every, Math.ceil(x0 / every) * every), m = m0; k < 40 && m < x1 && every > Math.abs(x1) * 1e-13; k++, m = m0 + k * every) { const x = SX(m), y = SY(G(m)); g.fillStyle = 'rgba(43,34,51,.7)'; g.fillRect(x - 1.5, y - 30, 3, 30); g.fillStyle = '#fff6e6'; g.strokeStyle = '#2b2233'; g.lineWidth = 2; const t = fmtD(m).replace('.0m', 'm').replace('.00km', 'km'), tw = g.measureText(t).width + 12; g.beginPath(); g.rect(x - tw / 2, y - 48, tw, 20); g.fill(); g.stroke(); g.fillStyle = '#2b2233'; g.fillText(t, x, y - 33); }
   // zone gates + best flag
-  for (let z = 1, lastG = -1e9; z < Z.length; z++) { const m = Z[z].at; if (m < x0 || m > x1) continue; const x = SX(m); if (x - lastG < 70) continue; lastG = x; const y = SY(G(m)); g.fillStyle = '#f0452f'; g.fillRect(x - 3, y - 120, 6, 120); g.fillStyle = '#fff'; g.font = `17px ${getComputedStyle(root).getPropertyValue('--disp')}`; g.strokeStyle = '#2b2233'; g.lineWidth = 4; g.strokeText(Z[z].name, x, y - 128); g.fillText(Z[z].name, x, y - 128); }
+  for (let z = 1, lastG = -1e9; z < Z.length; z++) { const m = Z[z].at; if (m < x0 || m > x1) continue; const x = SX(m); if (x - lastG < 70) continue; lastG = x; const y = SY(G(m)); g.fillStyle = '#f0452f'; g.fillRect(x - 3, y - 120, 6, 120); g.fillStyle = '#fff'; g.font = `17px ${FONT}`; g.strokeStyle = '#2b2233'; g.lineWidth = 4; g.strokeText(Z[z].name, x, y - 128); g.fillText(Z[z].name, x, y - 128); }
   if (S.best > 3 && S.best > x0 && S.best < x1) { const x = SX(S.best), y = SY(G(S.best)); g.fillStyle = '#2b2233'; g.fillRect(x - 1.5, y - 64, 3, 64); g.fillStyle = '#f5b014'; g.beginPath(); g.moveTo(x, y - 64); g.lineTo(x + 30, y - 55); g.lineTo(x, y - 46); g.fill(); g.fillStyle = '#2b2233'; g.font = '700 10px sans-serif'; g.textAlign = 'left'; g.fillText('BEST', x + 4, y - 51); g.textAlign = 'center'; }
   // objects
   if (run) { const i0 = Math.max(0, Math.floor(x0 / run.cw - 1.2)), i1 = Math.min(i0 + 40, Math.floor(x1 / run.cw - 1.2));
@@ -610,7 +695,6 @@ function drawWorld(cx, cy, dt) {
     for (const m of run.mag) { const f = Math.min(1, (run.tr - m.t0) / (m.d || 0.3)), e = f * f, o = m.o, tx = o.x + (run.x - o.x) * e, ty = o.y + (run.y + 0.5 * run.S - o.y) * e; g.strokeStyle = m.beam ? `rgba(255,226,122,${0.85 * (1 - f * 0.5)})` : `rgba(255,90,90,${0.5 * (1 - f)})`; g.lineWidth = m.beam ? 4 : 2; g.beginPath(); g.moveTo(SX(tx), SY(ty)); g.lineTo(SX(run.x), SY(run.y + 0.5 * run.S)); g.stroke(); drawObj(Object.assign({}, o, { x: tx, y: ty })); } }
 }
 // --- scenery: sky bodies, clouds and two parallax layers per zone, all placed by hash so they never flicker ---
-const DISP = () => getComputedStyle(root).getPropertyValue('--disp');
 // animated sky layers of the five far zones, drawn over the base backdrop
 // skies beyond the named universe: each picture is a stack of motifs  [motif, 'r,g,b', amount]
 const DFX = {
@@ -622,6 +706,7 @@ const DFX = {
   h0: [['arch', '255,215,140', 1]], h1: [['river', '200,230,255', 1], ['arch', '160,215,255', 1]],
   g0: [['glow', '90,255,190', 0.4], ['bloom', '170,255,210', 5], ['bub', '210,255,230', 22]], g1: [['aur', '255,170,220', 3], ['bloom', '255,190,230', 7], ['bub', '255,220,240', 26]],
   f1: [['gate', '190,210,255', 1]], f2: [['throne', '255,170,210', 1]], f3: [['checkout', '255,255,255', 1]] };
+const DCNT = new Set(['bub', 'rain', 'shard', 'mote', 'jelly', 'web', 'bloom']);
 const DM = {
   glow(c, n) { const gr = g.createRadialGradient(W * 0.55, H * 0.32, 0, W * 0.55, H * 0.32, W * 0.6); gr.addColorStop(0, `rgba(${c},${n * 0.6})`); gr.addColorStop(1, `rgba(${c},0)`); g.fillStyle = gr; g.fillRect(0, 0, W, H); },
   jelly(c, n, tm, base, PX) { for (let i = 0; i < n; i++) { const x = PX(i, n, 0.08) + Math.sin(tm * 0.4 + i) * 20, y = H * (0.1 + 0.5 * hsh(i * 7 + 3)) + Math.sin(tm * 0.7 + i * 2) * 14, r = 14 + 26 * hsh(i * 5 + 1), sq = 1 + 0.12 * Math.sin(tm * 2 + i);
@@ -701,7 +786,7 @@ const DM = {
 function zoneFx(fx, tm, base) {
   const PX = (i, n, k) => { const span = W + 240; return (((i * span / n - bgScroll * k) % span) + span) % span - 120; };
   g.save();
-  if (DFX[fx]) { if (Z_dark(fx)) { g.fillStyle = '#fff'; DM.stars(50, tm, 0.5); } for (const [m, c, n] of DFX[fx]) { g.save(); DM[m](c, n, tm, base, PX); g.restore(); } g.restore(); return; }
+  if (DFX[fx]) { if (Z_dark(fx)) { g.fillStyle = '#fff'; DM.stars(Math.round(50 * Q.cnt), tm, 0.5); } for (const [m, c, n] of DFX[fx]) { g.save(); DM[m](c, DCNT.has(m) ? Math.max(2, Math.round(n * Q.cnt)) : n, tm, base, PX); g.restore(); } g.restore(); return; }
   if (fx === 'rift') {   // pulsing tears in space with shards drifting out of them
     for (let i = 0; i < 4; i++) { const x = PX(i, 4, 0.1), w = 9 + 7 * Math.sin(tm * 2 + i * 1.7), top = H * (0.05 + 0.1 * hsh(i * 7 + 1)), n = 9, L = [], R = [];
       for (let j = 0; j <= n; j++) { const y = top + (base - top) * j / n, off = (hsh(i * 31 + j) - 0.5) * 46, ww = w * Math.sin(Math.PI * j / n) + 1; L.push([x + off - ww, y]); R.push([x + off + ww, y]); }
@@ -958,7 +1043,7 @@ function drawCart(x, y, ang, sc) {
   g.restore();
 }
 function hud(r) {
-  const D = getComputedStyle(root).getPropertyValue('--disp'), z = C.zoneAt(r ? r.maxX : 0);
+  const D = FONT, z = C.zoneAt(r ? r.maxX : 0);
   g.textAlign = 'left'; g.lineJoin = 'round'; const txt = (t, x, y, size, col = '#fff') => { g.font = `${size}px ${D}`; g.lineWidth = Math.max(3, size * 0.16); g.strokeStyle = '#2b2233'; g.strokeText(t, x, y); g.fillStyle = col; g.fillText(t, x, y); };
   if (r) { const sp = Math.hypot(r.vx, r.vy), alt = Math.max(0, r.y - G(r.x));
     txt(fmtD(r.maxX), 14, 40, 34); { const mx = r.tr - r.capT < 0.25; txt(`${fmt(sp * 3.6)} km/h${mx ? ' · 최고 속도' : ''}   고도 ${fmtD(alt)}`, 16, 62, 14, mx ? '#ffd24a' : '#fff6e6'); }
@@ -1000,9 +1085,19 @@ function hud(r) {
     g.restore();
   }
 }
+// One animation frame: honours the frame limit, times the work for the auto graphics mode, and draws nothing behind the opaque shop.
 function frame(now) {
   requestAnimationFrame(frame);
+  if (OPT.fps && now - last < 1000 / OPT.fps - 3) return;
+  const t0 = performance.now(), d0 = now - last;
   MUS.tick(); if (state === 'shop') MUS.want('shop'); else if (state !== 'fly') BST.set(false);
+  AUD.tick(now);
+  if (state === 'shop') { last = now; return; }
+  draw(now);
+  perfTick(d0, performance.now() - t0, state === 'fly');
+  if (OPT.meter) { g.setTransform(DPR, 0, 0, DPR, 0, 0); g.font = '700 11px sans-serif'; g.textAlign = 'left'; const t = `${Math.round(PERF.fps)} fps · ${PERF.work.toFixed(1)} ms · ${Q.name}`; g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(4, H - 20, g.measureText(t).width + 10, 16); g.fillStyle = '#9dffb0'; g.fillText(t, 9, H - 8); }
+}
+function draw(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   g.setTransform(DPR, 0, 0, DPR, 0, 0);
   if (state === 'charge') chargeStep(dt);
@@ -1014,8 +1109,8 @@ function frame(now) {
     for (const e of run.ev) {
       const ex = Math.max(-40, Math.min(W + 40, SX(e.x))), ey = Math.max(-40, Math.min(H + 40, SY(e.y)));
       if (e.k === 'bounce') { const hard = Math.min(1, e.imp / (0.5 * run.v0 + 1)); shake = Math.max(shake, 2 + 6 * hard); SFX.bounce(0.1 + 0.3 * hard); burst(cartX, cartY + 8, 4 + Math.round(6 * hard), ['#ffffff', '#e8dcc0'], 200, 0.45, { a0: -1.57, spread: 2.6, g: 600, z: 4 }); if (hard > 0.5) ringFx(cartX, cartY + 8, '#ffffff', 40 + 40 * hard, 0.35, 3); }
-      else if (e.k === 'coin') { const tn = performance.now(); if (tn - goldPopT > 140) pops.push({ x: e.x, y: e.y, t: 0, txt: '+' + fmt(e.g * st.rate) }); SFX.coin(); burst(ex, ey, 4, ['#ffd24a', '#fff3b0'], 220, 0.4, { g: 300, z: 4 }); coinFly(ex, ey, 1); goldPopT = tn; }
-      else if (e.k === 'crate') { pops.push({ x: e.x, y: e.y, t: 0, txt: '+' + fmt(e.g * st.rate) }); SFX.crate(); confetti(ex, ey, 14); coinFly(ex, ey, 5); ringFx(ex, ey, '#ffd24a', 70, 0.5, 5); shake = Math.max(shake, 4); goldPopT = performance.now(); }
+      else if (e.k === 'coin') { const tn = performance.now(); if (tn - goldPopT > 140) pops.push({ x: e.x, y: e.y, t: 0, txt: '+' + fmt(e.g * st.rate) }); SFX.coin(run.combo, ex / W * 2 - 1); burst(ex, ey, 4, ['#ffd24a', '#fff3b0'], 220, 0.4, { g: 300, z: 4 }); coinFly(ex, ey, 1); goldPopT = tn; }
+      else if (e.k === 'crate') { pops.push({ x: e.x, y: e.y, t: 0, txt: '+' + fmt(e.g * st.rate) }); SFX.crate(ex / W * 2 - 1); confetti(ex, ey, 14); coinFly(ex, ey, 5); ringFx(ex, ey, '#ffd24a', 70, 0.5, 5); shake = Math.max(shake, 4); goldPopT = performance.now(); }
       else if (e.k === 'smash') { pops.push({ x: e.x, y: e.y, t: 0, txt: '+' + fmt(e.g * st.rate) }); SFX.bonk(); SFX.coin(); burst(ex, ey, 9, ['#ff8a1f', '#7a6f80', '#ffd24a'], 380, 0.6, { a0: -0.6, spread: 2.4, z: 5, sq: 1 }); coinFly(ex, ey, 2); shake = 5; }
       else if (e.k === 'pad') { SFX.pad(); ringFx(cartX, cartY, '#ff8a1f', 70, 0.4, 6); burst(cartX - 10, cartY, 8, ['#ff8a1f', '#ffd24a'], 520, 0.4, { a0: Math.PI, spread: 0.7, g: 0, z: 4 }); }
       else if (e.k === 'tramp') { SFX.tramp(); ringFx(cartX, cartY + 10, '#3f8cff', 80, 0.5, 6); ringFx(cartX, cartY + 10, '#bfe0ff', 50, 0.4, 3, 0.07); burst(cartX, cartY + 10, 10, ['#bfe0ff', '#fff'], 300, 0.5, { a0: -1.57, spread: 1.6, z: 4 }); }
@@ -1024,7 +1119,7 @@ function frame(now) {
       else if (e.k === 'spring' || e.k === 'airspring') { SFX.spring(); ringFx(cartX, cartY + 12, '#12e0c4', 70, 0.4, 6); burst(cartX, cartY + 12, 12, ['#12e0c4', '#fff'], 420, 0.45, { a0: 1.57, spread: 1.2, g: 0, z: 4 }); if (e.k === 'airspring') toast('공중 도약!', 700); }
       else if (e.k === 'dash') { SFX.dash(); dashT = 0.35; ringFx(cartX, cartY, '#5af0ff', 90, 0.4, 6); burst(cartX - 14, cartY, 14, ['#5af0ff', '#ffffff', '#2aa7d8'], 800, 0.4, { a0: Math.PI, spread: 0.7, g: 0, z: 5 }); shake = Math.max(shake, 4); dollJolt = 9; }
       else if (e.k === 'dive') { SFX.dash(); tone(900, 120, 0.4, 0.14, 'sawtooth'); ringFx(cartX, cartY, '#b68cff', 80, 0.4, 7); burst(cartX, cartY, 14, ['#b68cff', '#fff'], 500, 0.4, { a0: -1.57, spread: 0.8, g: 0, z: 4 }); toast('급강하!', 600); }
-      else if (e.k === 'slam') { SFX.bounce(0.4); SFX.launch(); shake = 10; flash = 0.14; flashCol = '#fff'; dollJolt = 14; ringFx(cartX, cartY + 10, '#b68cff', 90, 0.45, 7); ringFx(cartX, cartY + 10, '#ffffff', 140, 0.55, 4, 0.06); burst(cartX, cartY + 10, 18, ['#ffffff', '#e8dcc0', '#b68cff'], 560, 0.6, { a0: -1.57, spread: 3.0, g: 800, z: 6 }); pops.push({ a: 1, t: 0, col: '#d9c2ff', txt: `슬램! 콤보 ${e.combo} · 골드 +${Math.round(st.slamB * 100)}%` }); goldPopT = performance.now(); }
+      else if (e.k === 'slam') { SFX.bounce(0.4); SFX.slam(); shake = 10; flash = 0.14; flashCol = '#fff'; dollJolt = 14; ringFx(cartX, cartY + 10, '#b68cff', 90, 0.45, 7); ringFx(cartX, cartY + 10, '#ffffff', 140, 0.55, 4, 0.06); burst(cartX, cartY + 10, 18, ['#ffffff', '#e8dcc0', '#b68cff'], 560, 0.6, { a0: -1.57, spread: 3.0, g: 800, z: 6 }); pops.push({ a: 1, t: 0, col: '#d9c2ff', txt: `슬램! 콤보 ${e.combo} · 골드 +${Math.round(st.slamB * 100)}%` }); goldPopT = performance.now(); }
       else if (e.k === 'skip' || e.k === 'sink') { SFX.splash(); for (let i = 0; i < 12; i++) parts.push({ x: e.x, y: e.y, vx: (Math.random() - 0.3) * 10, vy: 3 + Math.random() * 9, t: 0, life: 0.7, c: '#bfe9ff', s: 1 }); }
       else if (e.k === 'bonk' || e.k === 'burn') { shake = 9; SFX.bonk(); dollJolt = 10; }
       else if (e.k === 'trick') { confetti(cartX, cartY, 10 + e.n * 8); ringFx(cartX, cartY, '#ffd24a', 80, 0.5, 6); toast(`${e.n}바퀴 ${e.clean ? '완벽 ' : ''}착지!`, 1100); SFX.perfect(); pops.push({ a: 1, t: 0, txt: `공중제비 ${e.n}바퀴 · 골드 +${Math.round(st.trick * 100 * e.n)}%` }); }
@@ -1054,6 +1149,7 @@ function frame(now) {
     dashT = Math.max(0, dashT - dt);
     trail.push({ x: run.x, y: run.y, c: run.boosting ? '#ffb057' : dashT > 0 ? '#5af0ff' : run.slam ? '#b68cff' : run.golden ? '#ffd24a' : '#ffffff' }); if (trail.length > 18) trail.shift();
     finP = run.fin != null ? Math.min(1, (run.tr - run.fin) / C.FIN_T) : 0;
+    if (now - liveAt > (run.used.size > 3000 ? 7000 : 2500)) { liveAt = now; liveStore(); }
     if (run.over) { BST.set(false); if (run.finDone) { state = 'ending'; endT = performance.now(); endS = {}; for (const b2 of [boostBtn, skillBtn, dashBtn, diveBtn, endBtn]) b2.hidden = true; flash = 1; flashCol = '#fff'; shake = 20; } else endRun(); }
   }
   // camera
@@ -1061,7 +1157,9 @@ function frame(now) {
   const cu = Math.max(34 / 22, CU()), vwT = r ? Math.min(180 * cu, Math.max(22 * cu, alt * (W / H) * 2 + 8 * cu)) : 34; if (vwT > cam.vw * 300) cam.vw = vwT / 300; cam.vw *= Math.pow(vwT / cam.vw, Math.min(1, dt * (vwT > cam.vw * 3 ? 6 : 2.5)));
   ppm = W / cam.vw; ox = W * 0.28; oy = H * 0.74; cam.x = px; const camYT = G(px) + Math.max(0, alt - cam.vw * (H / W) * 0.62); cam.y += (camYT - cam.y) * Math.min(1, dt * 6);
   { const dxw = px - (frame.lx || 0); frame.lx = px; bgScroll += Math.max(-80, Math.min(80, dxw * ppm)); const hy = SY(G(px + cam.vw * 0.25)); horizon += (hy - horizon) * Math.min(1, dt * 6); }
-  g.save(); if (shake > 0.3) { g.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake); shake *= Math.pow(0.02, dt); }
+  g.save();
+  // screen shake: smooth noise instead of a fresh random offset every frame, with a touch of roll; strength follows the option
+  if (shake > 0.3) { const k = shake * OPT.shake, tn = now * 0.001; if (k > 0.2) { g.translate(W / 2, H / 2); g.rotate(k * 0.0006 * Math.sin(tn * 71 + 1.7)); g.translate(-W / 2 + k * 0.4 * (Math.sin(tn * 83) + 0.6 * Math.sin(tn * 147 + 2.1)), -H / 2 + k * 0.4 * (Math.sin(tn * 97 + 0.8) + 0.6 * Math.sin(tn * 163 + 4.2))); } shake *= Math.pow(0.02, dt); }
   drawWorld(px, py, dt);
   // speed lines
   if (r && state === 'fly' && r.v0 > 30 && sp > 0.5 * r.v0) { const k = Math.min(1, sp / r.v0 - 0.5); g.strokeStyle = `rgba(255,255,255,${(0.3 * k).toFixed(3)})`; g.lineWidth = 1.5; for (let i = 0; i < 8; i++) { const y = hsh(i + Math.floor(now / 70)) * H, x = hsh(i * 3 + Math.floor(now / 70)) * W, len = 30 + 120 * k; g.beginPath(); g.moveTo(x, y); g.lineTo(x - len, y + len * 0.05); g.stroke(); } }
@@ -1102,8 +1200,8 @@ function frame(now) {
       g.lineCap = 'round'; g.lineWidth = 2; g.strokeStyle = `rgba(150,230,255,${0.6 * pu})`; g.beginPath(); g.arc(0, 0, R, Math.PI / 2 - jg, Math.PI / 2 + jg); g.stroke();
       g.lineWidth = 3.5; g.strokeStyle = `rgba(255,236,150,${0.8 * pu})`; g.beginPath(); g.arc(0, 0, R, Math.PI / 2 - jp, Math.PI / 2 + jp); g.stroke(); g.restore(); }
     drawDoll(cxp, cyp, csc, pins, false); drawCart(cxp, cyp, rot, csc); drawDoll(cxp, cyp, csc, pins, true); }
-  g.textAlign = 'center'; g.font = `15px ${getComputedStyle(root).getPropertyValue('--disp')}`;
-  { let ai = 0; for (const p of pops) { p.t += dt; const life = p.a ? 1.3 : 0.9, x2 = p.a ? Math.max(120, cartX + 20) : SX(p.x), y2 = p.a ? Math.max(150, cartY - 44) - 20 * ai++ - p.t * 26 : SY(p.y) - p.t * 50; g.font = `${p.a ? 17 : 15}px ${getComputedStyle(root).getPropertyValue('--disp')}`; g.globalAlpha = Math.max(0, Math.min(1, (life - p.t) * 3)); g.lineWidth = 3.5; g.strokeStyle = '#2b2233'; g.strokeText(p.txt, x2, y2); g.fillStyle = p.col || '#ffd24a'; g.fillText(p.txt, x2, y2); } } g.globalAlpha = 1; pops = pops.filter(p => p.t < (p.a ? 1.3 : 0.9));
+  g.textAlign = 'center'; g.font = `15px ${FONT}`;
+  { let ai = 0; for (const p of pops) { p.t += dt; const life = p.a ? 1.3 : 0.9, x2 = p.a ? Math.max(120, cartX + 20) : SX(p.x), y2 = p.a ? Math.max(150, cartY - 44) - 20 * ai++ - p.t * 26 : SY(p.y) - p.t * 50; g.font = `${p.a ? 17 : 15}px ${FONT}`; g.globalAlpha = Math.max(0, Math.min(1, (life - p.t) * 3)); g.lineWidth = 3.5; g.strokeStyle = '#2b2233'; g.strokeText(p.txt, x2, y2); g.fillStyle = p.col || '#ffd24a'; g.fillText(p.txt, x2, y2); } } g.globalAlpha = 1; pops = pops.filter(p => p.t < (p.a ? 1.3 : 0.9));
   g.restore();
   drawFx(dt);
   if (launchFx) { const a = (now - launchFx.t) / 1000, T = launchFx.tier, PL = launchFx.plus || 0, EX = launchFx.ext || 0, life = T < 4 ? [0, 0.35, 0.5, 0.6][T] : [0.9, 1.6, 2.0, 2.6, 3.2][PL] + [0, 0.5, 0.7, 0.9, 1.3][PL] * EX, f = a / life; if (f >= 1) launchFx = null; else { const x = W * 0.28, y = H * 0.66; g.save(); g.lineCap = 'round';
@@ -1134,10 +1232,37 @@ function frame(now) {
       g.restore(); } }
   if (state === 'ending') drawEnding((now - endT) / 1000);
   else if (state !== 'shop') { const W0 = W, H0 = H; g.save(); g.scale(hudK, hudK); W = W0 / hudK; H = H0 / hudK; hud(state === 'fly' || state === 'result' ? r : null); W = W0; H = H0; g.restore(); }
-  if (banner) { const a = (now - banner.t) / 1000, life = 1.3; if (a > life) banner = null; else { const D = getComputedStyle(root).getPropertyValue('--disp'), al = Math.min(1, a * 6) * Math.min(1, (life - a) * 3), k = hudK, t = banner.txt + ' 진입!';   // a small see-through tag under the top HUD, so it never hides the cart
+  if (banner) { const a = (now - banner.t) / 1000, life = 1.3; if (a > life) banner = null; else { const D = FONT, al = Math.min(1, a * 6) * Math.min(1, (life - a) * 3), k = hudK, t = banner.txt + ' 진입!';   // a small see-through tag under the top HUD, so it never hides the cart
       g.font = `${20 * k}px ${D}`; const w = g.measureText(t).width + 36 * k, y = 112 * k; g.globalAlpha = al * 0.72; g.fillStyle = '#f0452f'; g.beginPath(); g.roundRect(W / 2 - w / 2, y, w, 30 * k, 15 * k); g.fill(); g.globalAlpha = al; g.fillStyle = '#fff'; g.textAlign = 'center'; g.fillText(t, W / 2, y + 22 * k); g.globalAlpha = 1; } }
 }
+/* ---------------- keeping a run across a reload ---------------- */
+// When a new version of the page is published, the viewer reloads the pages people have open on its own schedule.  So that nobody is
+// thrown out of a flight, the run in progress is handed over (through claude.hot where the viewer offers it, and through this device's
+// storage in any case) and picked up again by the fresh page at the same spot; the new version shows from the next launch on.
+const HOT = (() => { try { return (window.claude && window.claude.hot) || null; } catch (e) { return null; } })();
+let liveAt = 0, updated = false, adoptLater = false;
+function liveSnap() { const d = { v: 1, at: Date.now(), slot, runs: S.runs, state, tab };
+  if ((state === 'fly' || state === 'ending') && run) { d.run = Object.assign({}, run, { used: [...run.used], ev: [] }); d.cam = { vw: cam.vw, y: cam.y }; d.lastZone = lastZone; d.sonicLv = sonicLv; }
+  return d; }
+function liveStore() { try { if (state === 'fly' || state === 'ending' || state === 'shop') LS.set('cart.live', JSON.stringify(liveSnap())); else LS.del('cart.live'); } catch (e) {} }
+function liveRestore(d, fromHot) { if (!d || d.v !== 1 || d.slot !== slot || state !== 'aim') return false; if (fromHot) updated = true;
+  const r = d.run;
+  if (r && d.runs === S.runs && r.st && isFinite(r.x) && isFinite(r.vx)) {
+    // statistics keep the values the cart was launched with; anything a newer version added comes from the current ones
+    r.used = new Set(r.used || []); r.ev = []; r.mag = r.mag || []; r.st = Object.assign({}, C.stats(S), r.st);
+    run = r; state = 'fly'; lastZone = d.lastZone != null ? d.lastZone : C.zoneAt(r.x); zoneSaid = true; zoneIn = r.tr - 2; sonicLv = d.sonicLv || 0; if (d.cam && d.cam.vw > 0) { cam.vw = d.cam.vw; cam.y = d.cam.y; }
+    frame.lx = r.x; pvx = r.vx; pvy = r.vy; rot = -r.ang; trail = []; flyUI(true); last = performance.now();
+    if (r.over && r.finDone) { state = 'ending'; endT = performance.now(); endS = {}; for (const b2 of [boostBtn, skillBtn, dashBtn, diveBtn, endBtn]) b2.hidden = true; } else if (r.over) endRun();
+    return true; }
+  if (d.state === 'shop') { if (TABS.some(t => t[0] === d.tab)) tab = d.tab; openShop(); }
+  if (updated) { updated = false; toast('새 버전이 적용됐어요', 2000); }
+  return false; }
+addEventListener('pagehide', liveStore);
+try { if (HOT && HOT.snapshot) HOT.snapshot(() => liveSnap()); } catch (e) {}
+const liveLS = LS.get('cart.live');   // read before the first toAim clears it
 toAim(); requestAnimationFrame(frame);
-window.__cart = { C, get S() { return S; }, set S(v) { S = v; }, get run() { return run; }, get state() { return state; }, launch, toAim, openShop, save, set peek(v) { peekZ = v; }, CLOUD, get slot() { return slot; }, startCharge, release, tryKick, get charge() { return charge; }, get audio() { return actx ? actx.state : 'none'; }, MUS, EFF, PEFF };
+{ let booted = false; const boot = d => { if (booted) return; booted = true; try { if (d && d.v === 1) { liveRestore(d, true); return; } const j = JSON.parse(liveLS || 'null'); if (j && Date.now() - j.at < 90000) liveRestore(j, false); } catch (e) {} };
+  try { if (HOT && HOT.ready) { HOT.ready(boot); setTimeout(() => boot(HOT.data), 1500); } else boot(HOT && HOT.data); } catch (e) { boot(null); } }
+window.__cart = { C, get S() { return S; }, set S(v) { S = v; }, get run() { return run; }, get state() { return state; }, launch, toAim, openShop, save, set peek(v) { peekZ = v; }, CLOUD, get slot() { return slot; }, startCharge, release, tryKick, get charge() { return charge; }, get audio() { return actx ? actx.state : 'none'; }, MUS, EFF, PEFF, OPT, PERF, AUD, liveSnap, liveStore, get Q() { return Q; }, get updated() { return updated; } };
 })();
 </script>
