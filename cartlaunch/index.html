@@ -200,7 +200,7 @@ button{font-family:var(--disp);touch-action:manipulation}
 @keyframes rowIn{from{opacity:0;transform:translateY(6px)}}
 @keyframes stamp{from{opacity:0;transform:scale(1.7) rotate(-6deg)}}
 @media (prefers-reduced-motion:reduce){.card.in,.card.in .rows>*,.card.in .tagx{animation:none}}
-#toast{position:absolute;left:50%;top:39%;transform:translateX(-50%);font:30px var(--disp);color:#fff;text-shadow:0 3px 0 var(--ink),0 0 12px rgba(0,0,0,.4);pointer-events:none;opacity:0;transition:opacity .3s;white-space:nowrap;text-align:center}
+#toast{position:absolute;left:50%;top:43%;transform:translateX(-50%);font:30px var(--disp);color:#fff;text-shadow:0 3px 0 var(--ink),0 0 12px rgba(0,0,0,.4);pointer-events:none;opacity:0;transition:opacity .3s;white-space:nowrap;text-align:center}
 #toast.show{opacity:1}
 .kb .hbtn::after{content:attr(data-key);position:absolute;top:-6px;right:-2px;background:#2b2233;color:#fff;font:700 11px sans-serif;padding:2px 7px;border-radius:9px;pointer-events:none}
 .hbtn,#topbar,#endBtn,#toast{zoom:var(--hk,1)}
@@ -1459,7 +1459,7 @@ addEventListener('pagehide', liveStore);
 try { if (HOT && HOT.snapshot) HOT.snapshot(() => liveSnap()); } catch (e) {}
 const liveLS = LS.get('cart.live');   // read before the first toAim clears it
 toAim(); requestAnimationFrame(frame);
-{ let booted = false; const boot = d => { if (booted) return; booted = true; try { if (d && d.v === 1) { liveRestore(d, true); return; } const j = JSON.parse(liveLS || 'null'); if (j && Date.now() - j.at < 90000) liveRestore(j, false); } catch (e) {} };
+{ let booted = false; const boot = d => { if (booted) return; booted = true; try { if (d && d.v === 1 && Date.now() - d.at < 300000) { liveRestore(d, true); return; } const j = JSON.parse(liveLS || 'null'); if (j && Date.now() - j.at < 90000) liveRestore(j, false); } catch (e) {} };
   try { if (HOT && HOT.ready) { HOT.ready(boot); setTimeout(() => boot(HOT.data), 1500); } else boot(HOT && HOT.data); } catch (e) { boot(null); } }
 window.__cart = { C, get S() { return S; }, set S(v) { S = v; }, get run() { return run; }, get state() { return state; }, launch, toAim, openShop, save, set peek(v) { peekZ = v; }, CLOUD, get slot() { return slot; }, startCharge, release, tryKick, get charge() { return charge; }, get audio() { return actx ? actx.state : 'none'; }, MUS, EFF, PEFF, OPT, PERF, AUD, liveSnap, liveStore, get Q() { return Q; }, get updated() { return updated; } };
 })();

@@ -10,7 +10,7 @@ const mock = (docs, deny) => { window.__docs = docs; window.claude = { use: asyn
   console.log('1 local ahead, account empty ->', await pg.evaluate(() => ({ state: window.__cart.CLOUD.state, cloudRuns: JSON.parse((window.__docs['data/users/u_test/slot1'] || {}).json || '{}').runs })));
   pg = await open(JSON.stringify(small), { 'data/users/u_test/slot1': { v: 1, json: JSON.stringify(big) } });
   console.log('2 account ahead ->', await pg.evaluate(() => ({ runs: window.__cart.S.runs, rebirths: window.__cart.S.rebirths, backup: JSON.parse(localStorage.getItem('cart.save.bak')).runs })));
-  await pg.evaluate(() => { const c = window.__cart; c.openShop(); document.querySelector('#sTabs .tab:last-child').click(); }); await pg.waitForTimeout(200); await pg.screenshot({ path: process.argv[2] + '/slots.png' });
+  await pg.evaluate(() => { const c = window.__cart; c.openShop(); document.querySelector('#sTabs .tab[data-t="info"]').click(); }); await pg.waitForTimeout(200); await pg.screenshot({ path: process.argv[2] + '/slots.png' });
   await pg.evaluate(() => document.querySelector('[data-slot="2"]').click()); await pg.waitForTimeout(700);
   console.log('3 switch to slot 2 ->', await pg.evaluate(() => ({ slot: window.__cart.slot, runs: window.__cart.S.runs, slot1Kept: JSON.parse(localStorage.getItem('cart.save')).runs })));
   await pg.evaluate(() => { const c = window.__cart; c.S.runs = 3; c.save(); }); await pg.waitForTimeout(16500);
