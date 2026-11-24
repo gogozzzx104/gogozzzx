@@ -288,7 +288,7 @@ const CORE = (() => {
     const far = Math.max(0, Math.min(1, (z - 10) / 12)), ha = h(4), lo = 1.8 * S * (1 + 1.2 * far), hi = Math.max(3.5 * S, 2 * r.c) * (1 + 0.6 * far), at = (k, x) => ground(x, r.U) + lo + (hi - lo) * Math.pow(h(k), 1.6 - 0.7 * far);
     if (ha < 0.30) { const n = h(8) < 0.5 ? 2 : 3, x0 = xa + cw * (0.25 + 0.3 * h(9)), y0 = at(10, x0) - ground(x0, r.U), tilt = (h(11) - 0.5) * 0.8; for (let k = 0; k < n; k++) { const x = x0 + k * 1.5 * S; out.push({ id: i * 8 + 1 + k, type: 'coin', x, y: ground(x, r.U) + Math.max(lo, y0 + k * tilt * S), rad: 0.6 * S, z }); } }
     else if (ha < 0.37) { const x = xm; out.push({ id: i * 8 + 4, type: 'ring', x, y: at(12, x), rad: 1.0 * S, z }); }
-    if (h(5) < 0.03 * (1 + 0.3 * r.st.crate)) { const x = xa + cw * 0.8; out.push({ id: i * 8 + 5, type: 'crate', x, y: ground(x, r.U) + lo + (hi - lo) * (0.55 + 0.45 * h(6)), rad: 0.8 * S, z }); }
+    if (h(5) < 0.03 * (1 + 0.3 * r.st.crate)) { const x = xa + cw * 0.8; out.push({ id: i * 8 + 5, type: 'crate', x, y: ground(x, r.U) + lo + (hi * (1 + Math.min(1.2, 0.06 * (Z.deep || 0))) - lo) * (0.55 + 0.45 * h(6)), rad: 0.8 * S, z }); }
     return out;
   }
   function hit(r, o) {
