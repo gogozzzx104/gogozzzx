@@ -301,7 +301,7 @@ const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (
 function startCharge() { state = 'charge'; charge = 0; slipT = 0; lastTick = 0; humStart(); }
 function chargeStep(dt) {
   const R = 1.6 / st.meter; charge += R * 1.5 * Math.pow(Math.max(0.02, 1.06 - charge), 0.7) * dt; slipT = Math.max(0, slipT - dt);
-  if (st.autoFire && charge >= 1 - st.window * 0.6) { charge = Math.min(charge, 1 - st.window * 0.2); release(); return; }
+  if (st.autoFire && charge >= 0.995) { charge = 1; release(); return; }   // auto launch waits for a completely full gauge
   if (charge >= 1) { charge = 0.45; slipT = 0.35; shake = 8; dollJolt = 8; toast('미끄러졌다! 다시 당기는 중…', 700); buzz(40); SFX.bonk(); }
   const tick = Math.floor(charge * 12); if (tick !== lastTick) { lastTick = tick; buzz(6); }
   if (hum) hum.o.frequency.value = 110 + charge * charge * 620;
