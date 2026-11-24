@@ -177,9 +177,34 @@ button{font-family:var(--disp);touch-action:manipulation}
 const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 
 /* ---------------- save ---------------- */
-let S = C.newSave();
-try { const j = JSON.parse(localStorage.getItem('cart.save') || 'null'); if (j && j.lv) { S = Object.assign(C.newSave(), j); S.v = j.v; C.migrate(S); } } catch (e) {}   // older saves are converted by the core
-const save = () => { try { localStorage.setItem('cart.save', JSON.stringify(S)); } catch (e) {} };
+// Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
+// private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
+const SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
+const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
+const loadSlot = n => parseSave(LS.get(skey(n)));
+let slot = Math.min(SLOTS, Math.max(1, +LS.get('cart.slot') || 1)), S = loadSlot(slot) || C.newSave();
+const CLOUD = { state: 'off', ref: null, busy: false, dirty: {}, last: 0, timer: 0 };   // off: no account here · on: kept in the account · local: signed in but may not write
+// which of two copies of a slot is further along: more launches played, then more saves
+const ahead = (a, b) => !a ? false : !b ? true : (a.runs || 0) !== (b.runs || 0) ? (a.runs || 0) > (b.runs || 0) : (a.rev || 0) > (b.rev || 0);
+function cloudMark(n) { if (CLOUD.state !== 'on') return; CLOUD.dirty[n] = 1; clearTimeout(CLOUD.timer); CLOUD.timer = setTimeout(cloudPush, Math.max(300, 15000 - (Date.now() - CLOUD.last))); }
+async function cloudPush() { if (CLOUD.state !== 'on' || CLOUD.busy) return; const n = +Object.keys(CLOUD.dirty)[0]; if (!n) return; delete CLOUD.dirty[n]; CLOUD.busy = true; CLOUD.last = Date.now();
+  try { const t = LS.get(skey(n)); if (t) await CLOUD.ref(n).set({ v: 1, json: t, at: Date.now() }); else await CLOUD.ref(n).delete(); LS.del('cart.force.' + n); }
+  catch (e) { if (e && e.code === 'unavailable') CLOUD.dirty[n] = 1; else { CLOUD.state = 'local'; CLOUD.dirty = {}; } }   // a refused write means this viewer may only read: stay on this device
+  CLOUD.busy = false; if (CLOUD.state === 'on' && Object.keys(CLOUD.dirty).length) { clearTimeout(CLOUD.timer); CLOUD.timer = setTimeout(cloudPush, 15000); } }
+const save = () => { S.rev = (S.rev || 0) + 1; LS.set(skey(slot), JSON.stringify(S)); cloudMark(slot); };
+(async () => { try { if (!window.claude || !claude.use) return; const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]); if (!db || !user) return; const uid = await user.id(); if (!uid) return;
+    CLOUD.ref = n => db.doc('data/users/' + uid + '/slot' + n); let adopt = false; const got = [];
+    for (let n = 1; n <= SLOTS; n++) got[n] = await CLOUD.ref(n).get();
+    CLOUD.state = 'on';
+    for (let n = 1; n <= SLOTS; n++) { const local = loadSlot(n), cloud = got[n].exists ? parseSave(got[n].data().json) : null, force = LS.get('cart.force.' + n);
+      if (force || ahead(local, cloud)) CLOUD.dirty[n] = 1;   // this device is further along (or the slot was reset here): the account copy follows
+      else if (ahead(cloud, local)) { if (local) LS.set(skey(n) + '.bak', JSON.stringify(local)); LS.set(skey(n), JSON.stringify(cloud)); if (n === slot) adopt = true; } }   // the account is further along: keep the old local copy as a backup and continue from the account
+    if (adopt) { S = loadSlot(slot) || S; toAim(); toast('계정에 저장된 기록을 불러왔어요', 2400); }
+    cloudPush(); if (state === 'shop') renderShop();
+  } catch (e) { CLOUD.state = 'off'; } })();
+addEventListener('visibilitychange', () => { if (document.hidden && CLOUD.state === 'on') { clearTimeout(CLOUD.timer); cloudPush(); } });
+function switchSlot(n) { if (n === slot || n < 1 || n > SLOTS) return; save(); slot = n; LS.set('cart.slot', String(n)); S = loadSlot(n) || C.newSave(); toAim(); openShop(); toast('슬롯 ' + n + (S.runs ? ' 불러옴' : ' · 새 게임'), 1600); }
 if (S.migrated != null) { const n = S.migrated; delete S.migrated; save(); setTimeout(() => toast(`밸런스 대개편! 업그레이드·골드는 초기화되고${n ? ' 보상으로 ★ ' + n + '개를 받았어요' : ', 별·환생 트리·업적은 그대로예요'}`, 5000), 800); }
 const big = v => v >= 10000 ? fmt(v) : v.toFixed(2);
 const UNIT = ['', '만', '억', '조', '경', '해', '자', '양', '구', '간', '정', '재', '극', '항하사', '아승기', '나유타', '불가사의', '무량대수'];
@@ -501,13 +526,14 @@ function renderShop() {
     list.innerHTML = `<div class="rbar" style="grid-column:1/-1;margin:0"><div><h3>초월 · 차원석 ◆ ${S.shards || 0} · 초월 ${S.trans || 0}회</h3><p>골드·업그레이드·별을 비우고 차원석을 받아요. 환생 트리는 ${50 + 10 * C.tl(S, 't_keep')}% 남고, 환생 횟수·업적·스킨·차원 능력은 그대로예요.</p><p>${g2 ? `지금 초월하면 ◆ +${g2} · 미지의 영역을 더 깊이 갈수록 많이 받아요` : `${Z[C.LAST].name}에 도달해야 초월할 수 있어요`}</p></div><button class="buy star" data-trans="1" ${g2 ? '' : 'disabled'}>${confirmKey === 'trans' ? '정말요?<small>한 번 더 누르기</small>' : '초월하기<small>◆ +' + g2 + '</small>'}</button></div>` +
       `<div class="bh">차원 능력 · 초월해도 남음</div>` + C.TPERKS.map(q => { const l = C.tl(S, q.id), mx = l >= q.max, c = C.tCost(q, l), lk = C.tLock(S, q.id); if (lk) return `<div class="ac off"><h3>${q.name}</h3><p>${q.desc}</p><p>${lk}</p></div>`; return `<div class="ac${l ? ' done' : ''}"><h3>${q.name} <small style="color:#7df3da">Lv ${l}/${q.max}</small></h3><p>${q.desc}</p><p style="color:#fff;font-weight:700">${TE[q.id](l)}${mx ? '' : ' → ' + TE[q.id](l + 1)}</p><button class="buy sm" data-tp="${q.id}" ${!mx && S.shards >= c ? '' : 'disabled'}>${mx ? '완료' : '◆ ' + c}</button></div>`; }).join(''); }
   else if (tab === 'skin') { const cur = skinNow().id;
-    list.innerHTML = `<div class="bh">스킨</div>` + SKINS.map(k => `<button type="button" class="sk${k.id === cur ? ' on' : ''}${skinOpen(k) ? '' : ' lock'}" data-skin="${k.id}"><canvas width="220" height="140" data-skin="${k.id}"></canvas>${k.name}<small>${skinOpen(k) ? (k.id === cur ? '사용 중' : '눌러서 변경') : Z[k.z].name + ' 도달 시'}</small></button>`).join('');
+    list.innerHTML = `<div class="bh">스킨</div>` + SKINS.map(k => `<button type="button" class="sk${k.id === cur ? ' on' : ''}${skinOpen(k) ? '' : ' lock'}" data-skin="${k.id}"><canvas width="220" height="140" data-skin="${k.id}"></canvas>${k.name}<small>${skinOpen(k) ? (k.id === cur ? '사용 중' : '눌러서 변경') : k.how || Z[k.z].name + ' 도달 시'}</small></button>`).join('');
     for (const c2 of list.querySelectorAll('canvas')) { const g0 = g; g = c2.getContext('2d'); pvSkin = SKINS.find(k => k.id === c2.dataset.skin); g.setTransform(2, 0, 0, 2, 0, 0); drawCart(64, 54, 0, 1.25); pvSkin = null; g = g0; } }
   else { const n = C.achCount(S);
-    list.innerHTML = `<div class="ac done"><h3>최고 ${fmtD(S.best)}</h3><p>${S.runs}판 · 업그레이드 ${C.total(S)}Lv · 환생 ${S.rebirths}회</p><p>업적 ${n}개 → 골드 +${n * 3}%</p></div>` +
+    const slots = []; for (let k = 1; k <= SLOTS; k++) { const q = k === slot ? S : loadSlot(k); slots.push(`<div class="ac${k === slot ? ' done' : ''}"><h3>슬롯 ${k}${k === slot ? ' · 지금 플레이 중' : ''}</h3><p>${q && (q.runs || k === slot) ? `${Z[Math.min(q.zone, Z.length - 1)].name} · 환생 ${q.rebirths}회 · 초월 ${q.trans || 0}회 · ${fmt(q.runs)}판` : '빈 슬롯 · 새 게임'}</p>${k === slot ? '' : `<button class="buy sm" data-slot="${k}">이 슬롯으로</button>`}</div>`); }
+    list.innerHTML = `<div class="bh">계정 · 저장 슬롯 3개</div><p class="note">${CLOUD.state === 'on' ? '로그인한 계정에 저장돼요. 다른 기기에서 같은 계정으로 열면 이어서 할 수 있어요.' : CLOUD.state === 'local' ? '이 계정은 이 페이지에 저장할 권한이 없어서 이 기기에만 저장돼요.' : '지금은 이 기기에만 저장돼요. claude.ai에 로그인한 상태로 열면 계정에 저장됩니다.'}</p>` + slots.join('') + `<div class="bh">기록</div><div class="ac done"><h3>최고 ${fmtD(S.best)}</h3><p>${S.runs}판 · 업그레이드 ${C.total(S)}Lv · 환생 ${S.rebirths}회</p><p>업적 ${n}개 → 골드 +${n * 3}%</p></div>` +
       `<div class="bh">구역</div>` + Z.filter((z, i) => i <= Math.max(C.LAST, S.zone + 1)).map((z, i) => `<div class="ac${i <= S.zone ? ' done' : ' off'}"><h3>${i + 1}. ${i <= S.zone + 1 ? z.name : '???'}</h3><p>${fmtD(z.at)}부터${i === S.zone + 1 ? ' · 다음 목표' : ''}</p></div>`).join('') +
       `<div class="bh">업적 · 하나당 골드 +3%</div>` + C.ACH.map(a => `<div class="ac${S.ach[a.id] ? ' done' : ' off'}"><h3>${a.name}</h3><p>${a.desc}</p></div>`).join('') +
-      `<div class="bh">기타</div><p class="note">코인은 공중에 2~3개씩 떠 있어요. 부스트·도약·대시·급강하로 높이를 맞춰 보세요.</p><div class="ac"><h3>골드만 비우기</h3><p>업그레이드·별은 그대로 두고 보유 골드만 0으로. 이 기기의 내 기록에만 적용됩니다.</p><button class="buy sm" data-zero="1">${confirmKey === 'zero' ? '정말요? 한 번 더' : '골드 0으로'}</button></div><div class="ac"><h3>처음부터 다시</h3><p>별·업적까지 모두 지웁니다.</p><button class="buy sm" data-wipe="1">${confirmKey === 'wipe' ? '정말요? 한 번 더' : '초기화'}</button></div>`; }
+      `<div class="bh">기타</div><p class="note">코인은 공중에 2~3개씩 떠 있어요. 부스트·도약·대시·급강하로 높이를 맞춰 보세요.</p><div class="ac"><h3>골드만 비우기</h3><p>업그레이드·별은 그대로 두고 보유 골드만 0으로. 이 기기의 내 기록에만 적용됩니다.</p><button class="buy sm" data-zero="1">${confirmKey === 'zero' ? '정말요? 한 번 더' : '골드 0으로'}</button></div><div class="ac"><h3>처음부터 다시</h3><p>지금 슬롯의 별·업적까지 모두 지웁니다. 다른 슬롯은 그대로예요.</p><button class="buy sm" data-wipe="1">${confirmKey === 'wipe' ? '정말요? 한 번 더' : '초기화'}</button></div>`; }
 }
 $('#sTabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if (!b) return; tab = b.dataset.t; confirmKey = ''; $('#sList').scrollTop = 0; $('#sDet').scrollTop = 0; renderShop(); });
 const shopClick = e => { const nd = e.target.closest('.nd'), sk = e.target.closest('.sk'), b = e.target.closest('.buy'), k1 = $('#sList').scrollTop, k2 = 0;
@@ -521,7 +547,8 @@ const shopClick = e => { const nd = e.target.closest('.nd'), sk = e.target.close
     else if (b.dataset.tp) { if (C.buyT(S, b.dataset.tp)) SFX.buy(); }
     else if (b.dataset.trans) { if (confirmKey !== 'trans') confirmKey = 'trans'; else { const n = C.transcend(S); if (C.tl(S, 't_auto')) C.buyAll(S); confirmKey = ''; SFX.zone(); SFX.perfect(); toast('초월! ◆ +' + n, 2400); } }
     else if (b.dataset.zero) { if (confirmKey !== 'zero') confirmKey = 'zero'; else { S.gold = 0; confirmKey = ''; toast('골드를 비웠어요', 1500); } }
-    else if (b.dataset.wipe) { if (confirmKey !== 'wipe') confirmKey = 'wipe'; else { S = C.newSave(); confirmKey = ''; } } }
+    else if (b.dataset.wipe) { if (confirmKey !== 'wipe') confirmKey = 'wipe'; else { S = C.newSave(); LS.set('cart.force.' + slot, '1'); confirmKey = ''; } }
+    else if (b.dataset.slot) { switchSlot(+b.dataset.slot); return; } }
   else if (sel[tab] && !e.target.closest('.pop') && e.target.closest('.tw')) sel[tab] = null;   // tap on empty space closes the card
   else return;
   save(); renderShop(); $('#sList').scrollTop = k1; };
@@ -881,8 +908,12 @@ function drawObj(o) {
     else { g.fillStyle = d === 'ice' ? '#b9d6ee' : d === 'hill' ? '#8a8f80' : d === 'canyon' ? '#8a3f22' : d === 'rock' ? '#8c8073' : d === 'cloud' ? '#9aa7c7' : '#5a5560'; g.beginPath(); g.moveTo(x - r * 0.8, y); g.lineTo(x - r * 0.4, y - r * 0.8); g.lineTo(x + r * 0.3, y - r); g.lineTo(x + r * 0.8, y); g.closePath(); g.fill(); g.stroke(); } }
 }
 const SKINS = [{ id: 'cart', name: '쇼핑카트', z: 0 }, { id: 'car', name: '스포츠카', z: 1, car: 1, col: '#f0452f', col2: '#ffffff', spoiler: 1 }, { id: 'taxi', name: '택시', z: 4, car: 1, col: '#f5b014', col2: '#2b2233', sign: 1 },
-  { id: 'truck', name: '몬스터 트럭', z: 7, car: 1, col: '#3f8cff', col2: '#ffd24a', big: 1 }, { id: 'rocket', name: '로켓카', z: 10, car: 1, col: '#e9edf2', col2: '#f0452f', fin: 1 }, { id: 'gold', name: '황금 카트', z: 26, tint: 'rgba(245,176,20,.8)' }];
-let pvSkin = null; const skinOpen = k => C.zoneAt(S.best) >= k.z, skinNow = () => { if (pvSkin) return pvSkin; const k = SKINS.find(q => q.id === S.skin); return k && skinOpen(k) ? k : SKINS[0]; };
+  { id: 'truck', name: '몬스터 트럭', z: 7, car: 1, col: '#3f8cff', col2: '#ffd24a', big: 1 }, { id: 'rocket', name: '로켓카', z: 10, car: 1, col: '#e9edf2', col2: '#f0452f', fin: 1 }, { id: 'gold', name: '황금 카트', z: 26, tint: 'rgba(245,176,20,.8)' },
+  // late carts: two for transcending from the far layers, one for those who have seen the ending
+  { id: 'astral', name: '영원의 카트', tint: 'rgba(96,56,180,.78)', glow: '#c9a6ff', fx: 'astral', need: q => (q.farT || 0) >= 51, how: '영원의 회랑 이후에서 초월 시' },
+  { id: 'genesis', name: '창세의 카트', tint: 'rgba(40,190,150,.74)', glow: '#9dffd0', fx: 'genesis', need: q => (q.farT || 0) >= 61, how: '창세의 정원 이후에서 초월 시' },
+  { id: 'light', name: '빛의 카트', tint: 'rgba(255,251,228,.94)', glow: '#fff3b0', fx: 'light', need: q => (q.ended || 0) >= 1, how: '엔딩을 본 뒤' }];
+let pvSkin = null; const skinOpen = k => k.need ? k.need(S) : C.zoneAt(S.best) >= k.z, skinNow = () => { if (pvSkin) return pvSkin; const k = SKINS.find(q => q.id === S.skin); return k && skinOpen(k) ? k : SKINS[0]; };
 function carBody(k) { const up = k.big ? 2.4 : 0, wr = k.big ? 6.4 : 4.6;
   g.fillStyle = k.col; g.beginPath(); g.moveTo(-25, -5 - up); g.lineTo(-25, -13 - up); g.lineTo(-13, -15 - up); g.lineTo(7, -15 - up); g.lineTo(21, -12 - up); g.quadraticCurveTo(27, -10 - up, 26, -5 - up); g.closePath(); g.fill(); g.stroke();
   g.fillStyle = k.col2; g.fillRect(-24, -9.5 - up, 49, 2.2);
@@ -893,6 +924,17 @@ function carBody(k) { const up = k.big ? 2.4 : 0, wr = k.big ? 6.4 : 4.6;
   if (k.big) { g.beginPath(); g.moveTo(-14, -17.4); g.lineTo(-14, -27); g.lineTo(-2, -27); g.stroke(); }
   g.fillStyle = '#ffe27a'; g.beginPath(); g.arc(24, -9 - up, 1.8, 0, 7); g.fill(); g.fillStyle = '#ff4d4d'; g.fillRect(-25.6, -12 - up, 2, 3);
   for (const wx of [-13, 14]) { g.fillStyle = '#2b2233'; g.beginPath(); g.arc(wx, 3.6 - wr, wr, 0, 7); g.fill(); g.fillStyle = C.lvl(S, 'hover') ? '#3f8cff' : '#cfd3da'; g.beginPath(); g.arc(wx, 3.6 - wr, wr * 0.42, 0, 7); g.fill(); } }
+// ornaments of the late carts, in cart-local units (basket spans x -17..17, y -24..-6)
+function skinFx(fx) { const t = performance.now() / 1000; g.save();
+  if (fx === 'astral') { g.fillStyle = '#fff3b0'; for (let i = 0; i < 8; i++) { const z = 0.7 + 1.1 * Math.abs(Math.sin(t * 2.4 + i * 1.9)); g.globalAlpha = 0.5 + 0.5 * Math.abs(Math.sin(t * 2.4 + i * 1.9)); g.beginPath(); g.arc(-12 + 24 * hsh(i * 3 + 1), -22 + 14 * hsh(i * 7 + 2), z, 0, 7); g.fill(); } g.globalAlpha = 1;
+    g.strokeStyle = 'rgba(201,166,255,.85)'; g.lineWidth = 1.3; g.beginPath(); g.ellipse(0, -15, 27, 7, -0.22, 0, 7); g.stroke(); const a = t * 2.2; g.fillStyle = '#ffd98a'; g.shadowColor = '#ffd98a'; g.shadowBlur = 8; g.beginPath(); g.arc(Math.cos(a) * 27 * Math.cos(-0.22) - Math.sin(a) * 7 * Math.sin(-0.22), -15 + Math.cos(a) * 27 * Math.sin(-0.22) + Math.sin(a) * 7 * Math.cos(-0.22), 2.4, 0, 7); g.fill(); }
+  else if (fx === 'genesis') { const op = 0.9 + 0.1 * Math.sin(t * 2); g.translate(-24, -31); g.strokeStyle = '#2b2233'; g.lineWidth = 0.9; for (let k = 0; k < 6; k++) { const a = t * 0.6 + k * 1.0472; g.fillStyle = k % 2 ? '#ffc0e0' : '#ff9ec7'; g.beginPath(); g.ellipse(Math.cos(a) * 5 * op, Math.sin(a) * 5 * op, 4.6, 2.1, a, 0, 7); g.fill(); g.stroke(); } g.fillStyle = '#fff3b0'; g.beginPath(); g.arc(0, 0, 2.4, 0, 7); g.fill(); g.stroke();
+    g.translate(24, 31); g.fillStyle = '#7be08a'; for (const [lx, ly, la] of [[-15, -25, -0.5], [10, -25.5, 0.4], [16, -24, 0.9]]) { g.beginPath(); g.ellipse(lx, ly - 2 - Math.sin(t * 3 + lx) * 0.6, 4.4, 1.9, la, 0, 7); g.fill(); g.stroke(); } }
+  else if (fx === 'light') { const pu = 0.6 + 0.4 * Math.sin(t * 3); g.strokeStyle = `rgba(255,243,176,${0.35 + 0.35 * pu})`; g.lineWidth = 1.6; g.lineCap = 'round'; g.beginPath(); for (let k = 0; k < 10; k++) { const a = t * 0.5 + k * 0.6283; g.moveTo(Math.cos(a) * 24, -15 + Math.sin(a) * 16); g.lineTo(Math.cos(a) * (31 + 4 * pu), -15 + Math.sin(a) * (21 + 3 * pu)); } g.stroke();
+    g.fillStyle = '#2b2233'; for (let k = 0; k < 9; k++) g.fillRect(-9 + k * 2.2, -15.5, k % 3 === 0 ? 1.3 : 0.6, 6.5);   // the bar code on the basket
+    g.shadowColor = '#ffe27a'; g.shadowBlur = 10; g.strokeStyle = '#ffd24a'; g.lineWidth = 2.4; g.beginPath(); g.ellipse(0, -37 - Math.sin(t * 2) * 1.2, 11, 3.2, 0, 0, 7); g.stroke(); g.shadowBlur = 0;
+    g.fillStyle = '#fff'; for (let k = 0; k < 4; k++) { const a = t * 1.3 + k * 1.5708, sx = Math.cos(a) * 26, sy = -15 + Math.sin(a) * 15, z = 1.4 + 1.2 * Math.abs(Math.sin(t * 4 + k)); g.beginPath(); g.moveTo(sx, sy - z * 2); g.lineTo(sx + z * 0.5, sy - z * 0.5); g.lineTo(sx + z * 2, sy); g.lineTo(sx + z * 0.5, sy + z * 0.5); g.lineTo(sx, sy + z * 2); g.lineTo(sx - z * 0.5, sy + z * 0.5); g.lineTo(sx - z * 2, sy); g.lineTo(sx - z * 0.5, sy - z * 0.5); g.fill(); } }
+  g.restore(); g.strokeStyle = '#2b2233'; g.lineWidth = 2.5; }
 function drawCart(x, y, ang, sc) {
   g.save(); g.translate(x, y); g.rotate(ang); g.scale(sc, sc); g.lineWidth = 2.5; g.strokeStyle = '#2b2233'; g.lineJoin = 'round';
   const L = id => C.lvl(S, id);
@@ -901,7 +943,7 @@ function drawCart(x, y, ang, sc) {
   if (L('float')) { g.fillStyle = '#ff8a1f'; g.beginPath(); g.ellipse(0, -3, 21, 5, 0, 0, 7); g.fill(); g.stroke(); }
   const sk = skinNow(); if (sk.car) carBody(sk); else {
   // basket
-  g.fillStyle = sk.tint || 'rgba(233,237,242,.5)'; g.beginPath(); g.moveTo(-17, -24); g.lineTo(17, -24); g.lineTo(13, -6); g.lineTo(-13, -6); g.closePath(); g.fill(); g.stroke();
+  if (sk.glow) { g.shadowColor = sk.glow; g.shadowBlur = 14; } g.fillStyle = sk.tint || 'rgba(233,237,242,.5)'; g.beginPath(); g.moveTo(-17, -24); g.lineTo(17, -24); g.lineTo(13, -6); g.lineTo(-13, -6); g.closePath(); g.fill(); g.stroke(); g.shadowBlur = 0; if (sk.fx) skinFx(sk.fx);
   g.lineWidth = 1.2; for (let i = -10; i <= 10; i += 5) { g.beginPath(); g.moveTo(i * 1.25, -24); g.lineTo(i, -6); g.stroke(); } g.beginPath(); g.moveTo(-15.5, -17); g.lineTo(15.5, -17); g.moveTo(-14, -11); g.lineTo(14, -11); g.stroke(); g.lineWidth = 2.5;
   g.beginPath(); g.moveTo(-17, -24); g.lineTo(-24, -31); g.stroke(); g.strokeStyle = '#f0452f'; g.lineWidth = 4; g.beginPath(); g.moveTo(-27, -31); g.lineTo(-21, -31); g.stroke(); g.strokeStyle = '#2b2233'; g.lineWidth = 2.5;
   g.beginPath(); g.moveTo(-12, -6); g.lineTo(-11, -1); g.moveTo(12, -6); g.lineTo(11, -1); g.stroke();
@@ -1095,6 +1137,6 @@ function frame(now) {
       g.font = `${20 * k}px ${D}`; const w = g.measureText(t).width + 36 * k, y = 112 * k; g.globalAlpha = al * 0.72; g.fillStyle = '#f0452f'; g.beginPath(); g.roundRect(W / 2 - w / 2, y, w, 30 * k, 15 * k); g.fill(); g.globalAlpha = al; g.fillStyle = '#fff'; g.textAlign = 'center'; g.fillText(t, W / 2, y + 22 * k); g.globalAlpha = 1; } }
 }
 toAim(); requestAnimationFrame(frame);
-window.__cart = { C, get S() { return S; }, set S(v) { S = v; }, get run() { return run; }, get state() { return state; }, launch, toAim, openShop, save, set peek(v) { peekZ = v; }, startCharge, release, tryKick, get charge() { return charge; }, get audio() { return actx ? actx.state : 'none'; }, MUS, EFF, PEFF };
+window.__cart = { C, get S() { return S; }, set S(v) { S = v; }, get run() { return run; }, get state() { return state; }, launch, toAim, openShop, save, set peek(v) { peekZ = v; }, CLOUD, get slot() { return slot; }, startCharge, release, tryKick, get charge() { return charge; }, get audio() { return actx ? actx.state : 'none'; }, MUS, EFF, PEFF };
 })();
 </script>
