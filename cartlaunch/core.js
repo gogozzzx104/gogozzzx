@@ -205,8 +205,9 @@ const CORE = (() => {
   const starsEver = s => Math.max(s.starsEver || 0, s.starsTotal || 0);   // every star ever earned; transcending does not reset it
   const cycleBest = s => Math.max(s.bestT || 0, s.bestLife || 0);
   // shards for a transcendence: 5 for reaching the end of time, more for every uncharted zone beyond it
-  // past uncharted zone 20 every further zone pays a growing extra
-  const shardsFor = s => { const d = cycleBest(s); return d < ZONES[LAST].at ? 0 : Math.floor(5 + (3 * Math.pow(zoneProg(d) - LAST, 1.2) + 6 * Math.pow(Math.max(0, zoneProg(d) - LAST - 20), 1.5)) * (1 + 0.1 * tl(s, 't_deep'))); };
+  // past uncharted zone 20 every further zone pays a growing extra; reaching 30, 40, 50 and 60 each raises a multiplier on the lot
+  const shardsFor = s => { const d = cycleBest(s); if (d < ZONES[LAST].at) return 0; const z = zoneProg(d) - LAST, m = z >= 60 ? 2.5 : z >= 50 ? 2 : z >= 40 ? 1.6 : z >= 30 ? 1.25 : 1;
+    return Math.floor(5 + (3 * Math.pow(z, 1.2) + 6 * Math.pow(Math.max(0, z - 20), 1.5)) * (1 + 0.1 * tl(s, 't_deep')) * m); };
   function buyT(s, id) { const q = TP[id], l = tl(s, id); if (!q || l >= q.max || tLock(s, id) || (s.shards || 0) < tCost(q, l)) return false; s.shards -= tCost(q, l); s.tperks = s.tperks || {}; s.tperks[id] = l + 1; return true; }
   function transcend(s) { const g = shardsFor(s); if (!g) return 0; s.shards = (s.shards || 0) + g; s.shardsTotal = (s.shardsTotal || 0) + g; s.trans = (s.trans || 0) + 1; const keep = Math.min(1, 0.5 + 0.1 * tl(s, 't_keep')), pk = {};   // half of the rebirth tree always survives, so the new cycle does not start from nothing
     if (keep) for (const k in s.perks) { const n = Math.floor(s.perks[k] * keep); if (n) pk[k] = n; } s.perks = pk; s.gold = 0; s.lv = {}; s.stars = 0; s.starsTotal = 0; s.bestLife = 0; s.bestT = 0; s.lifeGold = 0; s.zone = 0; checkAch(s, null); return g; }
