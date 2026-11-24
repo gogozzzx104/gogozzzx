@@ -181,8 +181,10 @@ let S = C.newSave();
 try { const j = JSON.parse(localStorage.getItem('cart.save') || 'null'); if (j && j.lv) { S = Object.assign(C.newSave(), j); S.v = j.v; C.migrate(S); } } catch (e) {}   // older saves are converted by the core
 const save = () => { try { localStorage.setItem('cart.save', JSON.stringify(S)); } catch (e) {} };
 if (S.migrated != null) { const n = S.migrated; delete S.migrated; save(); setTimeout(() => toast(`밸런스 대개편! 업그레이드·골드는 초기화되고${n ? ' 보상으로 ★ ' + n + '개를 받았어요' : ', 별·환생 트리·업적은 그대로예요'}`, 5000), 800); }
-const UNIT = ['', '만', '억', '조', '경', '해', '자', '양', '구', '간', '정', '재', '극'];
-function fmt(n) { n = Math.floor(n); if (n >= 1e52) return n.toExponential(2).replace('e+', '×10^'); if (n < 10000) return n.toLocaleString('ko-KR'); let u = 0; while (n >= 10000 && u < UNIT.length - 1) { n /= 10000; u++; } return (n >= 100 ? n.toFixed(0) : n >= 10 ? n.toFixed(1) : n.toFixed(2)) + UNIT[u]; }
+const UNIT = ['', '만', '억', '조', '경', '해', '자', '양', '구', '간', '정', '재', '극', '항하사', '아승기', '나유타', '불가사의', '무량대수'];
+// past 무량대수 (10^68) the units start over, counted in 무량 (만 무량 = 10^72, 무량² = 10^136 …)
+function fmt(n) { n = Math.floor(n); if (!isFinite(n)) return '∞'; if (n < 10000) return n.toLocaleString('ko-KR'); let k = 0; while (n >= 1e72) { n /= 1e68; k++; } let u = 0; while (n >= 10000 && u < UNIT.length - 1) { n /= 10000; u++; }
+  return (n >= 100 ? n.toFixed(0) : n >= 10 ? n.toFixed(1) : n.toFixed(2)) + UNIT[u] + (k ? ' 무량' + ['', '', '²', '³', '⁴'][k] : ''); }
 const fmtD = m => m < 1000 ? m.toFixed(1) + 'm' : m < 1e6 ? (m / 1000).toFixed(2) + 'km' : fmt(m / 1000) + 'km';
 
 /* ---------------- stage ---------------- */
