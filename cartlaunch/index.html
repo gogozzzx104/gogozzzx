@@ -54,64 +54,100 @@ button{font-family:var(--disp);touch-action:manipulation}
 .shead h2{font:22px var(--disp);margin:0;color:#ffcf4a;white-space:nowrap;text-shadow:0 2px 0 #0d0a1c}
 .goldv{font:20px var(--disp);font-variant-numeric:tabular-nums;white-space:nowrap;background:#0f0b22;border:2px solid #4a3d8a;border-radius:999px;padding:1px 12px 1px 7px;color:#ffe27a}
 .goldv::before{content:"";display:inline-block;width:15px;height:15px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3b0,#f5b014 60%);border:2px solid #0d0a1c;margin-right:6px;vertical-align:-2px}
-.zonebar{flex:1;display:flex;gap:3px;min-width:0}
-.zonebar i{flex:1;height:8px;border-radius:4px;background:#0f0b22;border:1px solid #4a3d8a}
-.zonebar b{flex:none;font:13px var(--disp);color:#7df3da;margin-left:6px;white-space:nowrap;font-weight:400}
-.zonebar i.on{background:linear-gradient(#5af0d0,#12a594);border-color:#5af0d0}
 #sAll{background:linear-gradient(#7df3da,#12a594)!important}
 #shop .pill{background:linear-gradient(#ffd75e,#f5a614);border-color:#0d0a1c;box-shadow:0 3px 0 #0d0a1c;white-space:nowrap}
-.sbody{position:relative;display:grid;grid-template-columns:86px 1fr;min-height:0}
-#sDet{display:none}
-.sbody.wide{grid-template-columns:86px 1fr}
-.sbody.wide #sDet{display:none}
+.zchip{flex:1;min-width:0;display:flex;align-items:center;gap:8px}
+.zchip b{font:14px var(--disp);font-weight:400;color:#7df3da;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.zchip .lvbar{flex:1;min-width:30px;max-width:240px;--bc:#3fe6c5;border:1px solid #4a3d8a;height:8px;box-sizing:border-box}
+.sbody{position:relative;display:grid;grid-template-columns:86px 1fr;min-height:0;overflow:hidden}
+#sDet{position:absolute;right:0;top:0;bottom:0;width:244px;z-index:6;transform:translateX(106%);transition:transform .16s ease-out;visibility:hidden}
+.sbody.det #sDet{transform:none;visibility:visible}
+.tree{position:relative;overflow:auto;touch-action:none;min-width:0;scrollbar-width:thin;scrollbar-color:#4a3d8a transparent}
+.tw{position:relative}
+.edges{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}
+.edges path{fill:none;stroke:#3a3070;stroke-width:3;stroke-linecap:round}
+.edges path.sec{stroke-width:2;stroke-dasharray:1 6}
+.edges path.on{stroke:var(--bc)}
+.edges rect{fill:#120e28;stroke:#3a3070;stroke-width:1.5}
+.edges rect.on{stroke:var(--bc)}
+.edges text{font:700 9.5px var(--body);fill:#8176b8;text-anchor:middle}
+.edges text.on{fill:#fff}
+.nd{position:absolute;width:54px;height:54px;padding:0;border:0;border-radius:16px;background:linear-gradient(160deg,#3d3275,#251d4b);color:var(--bc);display:grid;place-items:center;box-shadow:0 4px 0 #0d0a1c}
+.nd>.ic{width:54%;height:54%;position:relative}
+.nd .ring{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.ring rect{fill:none;stroke-width:3}
+.ring .rt{stroke:#53468f}
+.ring .rf{stroke:var(--bc);stroke-linecap:round}
+.nd b{position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);background:#120e28;border:1.5px solid #53468f;border-radius:8px;padding:0 6px;font:700 10px/14px var(--body);color:#efeaff;white-space:nowrap;font-variant-numeric:tabular-nums}
+.nd .bd{position:absolute;right:-7px;top:-7px;width:19px;height:19px;border-radius:50%;display:grid;place-items:center;border:2px solid #120e28;box-sizing:content-box}
+.nd .bd .ic{width:11px;height:11px;stroke-width:3.2}
+.nd span{position:absolute;left:50%;top:calc(100% + 11px);width:var(--cw);transform:translateX(-50%);text-align:center;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:1px}
+.nd em{display:inline-block;font:12px/1.12 var(--disp);font-style:normal;color:#e4dcff;word-break:keep-all;background:rgba(18,14,40,.9);border-radius:6px;padding:1px 4px}
+.nd u{font:700 10.5px/1.35 var(--body);text-decoration:none;color:#ffe27a;white-space:nowrap;font-variant-numeric:tabular-nums;background:rgba(18,14,40,.9);border-radius:6px;padding:0 5px}
+.nd u.poor{color:#8479b8}
+.nd.lock{background:#191335;color:#5d5488;box-shadow:none}
+.nd.lock .rt{stroke:#3a3070;stroke-dasharray:4 4}
+.nd.lock em{color:#7d72ad}
+.nd.lock b{color:#8479b8;border-color:#3a3070}
+.nd.lock .bd{background:#3a3070;color:#cfc6f5}
+.nd.can{animation:glow 1.5s ease-in-out infinite}
+.nd.can .bd{background:#3fe6a0;color:#0d2b1c}
+.nd.max{background:linear-gradient(160deg,#77601a,#42340f);color:#ffe27a}
+.nd.max .rt,.nd.max .rf{stroke:#ffcf4a}
+.nd.max b{border-color:#ffcf4a;color:#ffe27a}
+.nd.max .bd{background:#ffcf4a;color:#3d300f}
+.nd.sel{outline:3px solid #fff;outline-offset:3px;z-index:2}
+@keyframes glow{0%,100%{box-shadow:0 4px 0 #0d0a1c,0 0 0 0 var(--bc)}50%{box-shadow:0 4px 0 #0d0a1c,0 0 14px 3px var(--bc)}}
+.bl{position:absolute;transform:translateX(-50%);font:14px var(--disp);color:var(--bc);white-space:nowrap}
+.tsum{display:flex;gap:6px;align-items:center;margin:8px 10px 0;position:sticky;left:10px;width:fit-content;z-index:3}
+.tsum span,.tsum button{font:700 10.5px/1.5 var(--body);color:#cfc6f5;background:rgba(13,10,28,.6);border:1.5px solid #3a3070;border-radius:999px;padding:2px 10px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.tsum button{color:#0d2b1c;background:#3fe6a0;border-color:#0d0a1c}
+.dp{overflow:auto;touch-action:none;padding:12px;background:linear-gradient(180deg,#261d52,#161135);border-left:2px solid var(--bc,#4a3d8a);box-shadow:-10px 0 26px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:8px;box-sizing:border-box}
+.dh{display:flex;align-items:center;gap:9px}
+.di{width:44px;height:44px;flex:none;border-radius:13px;border:2px solid var(--bc);background:linear-gradient(160deg,#3d3275,#251d4b);color:var(--bc);display:grid;place-items:center}
+.di .ic{width:60%;height:60%}
+.dh h3{font:18px/1.1 var(--disp);margin:0;font-weight:400;color:#fff}
+.dh span{font:700 11px var(--body);color:var(--bc);font-variant-numeric:tabular-nums}
+.dx{margin-left:auto;align-self:flex-start;width:28px;height:28px;border-radius:8px;border:2px solid #53468f;background:#1b1538;color:#cfc6f5;font:700 13px/1 var(--body);padding:0;flex:none}
+.lvbar{height:6px;border-radius:3px;background:#120e28;overflow:hidden}
+.lvbar i{display:block;height:100%;border-radius:3px;background:var(--bc,#7df3da)}
+.dp p{margin:0;font-size:12px;line-height:1.45;color:#cfc6f5}
+.eff{background:rgba(255,255,255,.07);border-radius:9px;padding:6px 9px;font-variant-numeric:tabular-nums}
+.dp .eff p{color:#fff;font-weight:700}
+.dp .eff .nx{color:#7df3da;margin-top:2px}
+.eff .nx i{font:700 10px var(--body);font-style:normal;color:#9d92d6;margin-right:6px}
+.dr{display:flex;flex-direction:column;gap:3px;margin:0;padding:0;list-style:none}
+.dr li{display:flex;align-items:center;gap:6px;font:700 11px var(--body);color:#ff9d9d}
+.dr li.ok{color:#7df3da}
+.dr li .ic{width:13px;height:13px;stroke-width:3;flex:none}
+.dp .brow{margin-top:auto}
+.rbar{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin:8px 10px 0;padding:7px 9px;border:2px solid #9a66ff;border-radius:12px;background:rgba(154,102,255,.13);position:sticky;left:10px;z-index:3}
+.sbody.det .rbar{margin-right:254px}
+.chips{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:5px}
+.chip{display:flex;flex-direction:column;justify-content:center;padding:3px 10px;border-radius:9px;background:rgba(13,10,28,.55);font:15px/1.15 var(--disp);color:#fff;white-space:nowrap;font-variant-numeric:tabular-nums}
+.chip i{font:700 9.5px/1.25 var(--body);font-style:normal;color:#b3a9dd}
+.chip.hi{color:#ffe27a}
+.rbar .cap{flex-basis:100%;margin:0;font:700 11px var(--body);color:#ffc9c9}
+.rbar .buy{flex:none;padding:6px 16px}
+.veil{position:relative;height:100%;min-height:250px;overflow:hidden}
+.veil .vt{position:absolute;inset:0;filter:blur(7px) saturate(.3) brightness(.55);opacity:.85;pointer-events:none}
+.veil .vf{position:absolute;inset:-25%;pointer-events:none;background:radial-gradient(40% 35% at 30% 40%,rgba(160,130,255,.4),transparent 70%),radial-gradient(45% 40% at 70% 60%,rgba(110,90,220,.36),transparent 70%),radial-gradient(35% 30% at 55% 25%,rgba(200,170,255,.26),transparent 70%);animation:fog 13s ease-in-out infinite alternate}
+.veil .vf.b{animation-duration:19s;animation-direction:alternate-reverse;opacity:.7}
+@keyframes fog{0%{transform:translate(-7%,-3%) scale(1)}100%{transform:translate(7%,4%) scale(1.18)}}
+.veil .vc{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;padding:16px 28px;border-radius:16px;background:rgba(13,10,28,.62);border:2px solid rgba(197,155,255,.5);box-shadow:0 0 44px rgba(120,90,220,.5)}
+.vc>.ic{width:30px;height:30px;color:#c59bff}
+.vc h3{margin:0;font:26px/1 var(--disp);font-weight:400;color:#e6d6ff;letter-spacing:.22em;text-indent:.22em}
+.vc b{font:21px/1.1 var(--disp);font-weight:400;color:#ffe27a;white-space:nowrap}
+.vc .lvbar{width:190px;--bc:#c59bff}
+.vc span{font:700 11px var(--body);color:#b3a9dd;white-space:nowrap}
+.tab.vl{border-style:dashed;color:#8479b8;letter-spacing:.12em}
+@media (prefers-reduced-motion:reduce){.nd.can,.veil .vf{animation:none}#sDet{transition:none}}
 .tabs{display:flex;flex-direction:column;gap:5px;padding:8px 6px;background:rgba(0,0,0,.28);border-right:2px solid #4a3d8a;overflow:auto}
-.tab{position:relative;display:flex;align-items:center;gap:5px;border:2px solid #4a3d8a;border-radius:10px;background:linear-gradient(#2e2560,#221a48);color:#cfc6f5;font-size:15px;padding:5px 6px;box-shadow:0 3px 0 #0d0a1c;text-align:left;white-space:nowrap}
+.tab{position:relative;display:flex;align-items:center;gap:5px;border:2px solid #4a3d8a;border-radius:10px;background:linear-gradient(#2e2560,#221a48);color:#cfc6f5;font-size:15px;padding:4px 6px;flex:none;box-shadow:0 3px 0 #0d0a1c;text-align:left;white-space:nowrap}
 .tab .ic{width:20px;height:20px;flex:none;color:var(--bc)}
 .tab.on{background:var(--bc);color:#17122e;border-color:#fff;box-shadow:none;transform:translateY(3px)}
 .tab.on .ic{color:#17122e}
 .tab i{position:absolute;top:-5px;right:-4px;min-width:16px;height:16px;border-radius:8px;background:#ff5a5a;color:#fff;font:700 10px/16px var(--body);text-align:center;font-style:normal;padding:0 3px;box-sizing:border-box}
-.tree{position:relative;overflow:auto;touch-action:none;min-width:0}
-.tw{position:relative;min-height:100%}
-.edges{position:absolute;inset:0;pointer-events:none}
-.edges path{fill:none;stroke:#3b3170;stroke-width:3;stroke-linejoin:round}
-.edges path.on{stroke:var(--bc);opacity:.85}
-.edges text{font:700 9px var(--body);fill:#7d72b5}
-.edges text.on{fill:#fff}
-.nd{position:absolute;border-radius:14px;border:2px solid #53468f;background:linear-gradient(160deg,#3a2f6e,#241c47);color:var(--bc);display:grid;place-items:center;box-shadow:0 4px 0 #0d0a1c;padding:0}
-.nd .ic{width:58%;height:58%}
-.nd b{position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);background:#0f0b22;border:1.5px solid #53468f;border-radius:8px;padding:0 5px;font:700 10px/14px var(--body);color:#efeaff;white-space:nowrap}
-.nd span{position:absolute;left:50%;top:calc(100% + 11px);width:var(--cw);transform:translateX(-50%);text-align:center}
-.nd em{display:block;font:11.5px/1.1 var(--disp);font-style:normal;color:#cfc6f5;word-break:keep-all}
-.nd.lock{border-style:dashed;color:#6d6399;background:#1b1538;box-shadow:none}
-.nd.lock em{color:#6d6399}
-.nd u{display:block;margin-top:2px;font:700 10.5px var(--body);text-decoration:none;color:#ffe27a;white-space:nowrap}
-.nd u.poor{color:#8479b8}
-.pop{position:absolute;width:236px;z-index:5;border:2px solid var(--bc);border-radius:14px;background:linear-gradient(160deg,#322867,#1c1640);box-shadow:0 8px 0 rgba(0,0,0,.45),0 0 22px rgba(0,0,0,.55);padding:10px;display:flex;flex-direction:column;gap:7px;box-sizing:border-box}
-.pop p{margin:0;font-size:12px;line-height:1.4;color:#cfc6f5}
-.pop .eff i{display:inline-block;min-width:40px;margin-right:4px;font:700 10px var(--body);font-style:normal;color:#9d92d6}
-.pop .eff{color:#fff;font-weight:700;background:rgba(255,255,255,.08);border-radius:8px;padding:5px 8px;font-variant-numeric:tabular-nums}
-.rbar{display:flex;align-items:center;gap:10px;margin:8px 10px 0;padding:7px 10px;border:2px solid #9a66ff;border-radius:12px;background:rgba(154,102,255,.14)}
-.rbar div{flex:1;min-width:0}
-.rbar h3{font:16px var(--disp);margin:0;font-weight:400;color:#e6d6ff}
-.rbar p{margin:0;font-size:11.5px;color:#cfc6f5;line-height:1.35}
-.rbar .buy{flex:none;padding:6px 16px}
-.nd.can{border-color:var(--bc);animation:glow 1.4s ease-in-out infinite}
-.nd.max{border-color:#ffcf4a;background:linear-gradient(160deg,#6a5416,#3d300f);color:#ffe27a}
-.nd.max b{border-color:#ffcf4a;color:#ffe27a}
-.nd.sel{outline:3px solid #fff;outline-offset:2px}
-@keyframes glow{0%,100%{box-shadow:0 4px 0 #0d0a1c,0 0 0 0 var(--bc)}50%{box-shadow:0 4px 0 #0d0a1c,0 0 12px 2px var(--bc)}}
-.bl{position:absolute;transform:translateX(-50%);font:14px var(--disp);color:var(--bc);white-space:nowrap}
-.dp{position:relative;overflow:auto;touch-action:none;padding:10px;background:rgba(8,5,22,.5);border-left:2px solid #4a3d8a;display:flex;flex-direction:column;gap:7px;min-width:0}
-.dh{display:flex;align-items:center;gap:9px}
-.di{width:46px;height:46px;flex:none;border-radius:12px;border:2px solid var(--bc);background:linear-gradient(160deg,#3a2f6e,#241c47);color:var(--bc);display:grid;place-items:center}
-.di .ic{width:62%;height:62%}
-.dh h3{font:19px/1.1 var(--disp);margin:0;font-weight:400;color:#fff}
-.dh span{font:700 11px var(--body);color:var(--bc)}
-.dp p{margin:0;font-size:12px;line-height:1.4;color:#cfc6f5}
-.dp .eff{color:#fff;font-weight:700;background:rgba(255,255,255,.07);border-radius:8px;padding:5px 8px;font-variant-numeric:tabular-nums}
-.dr{display:flex;flex-wrap:wrap;gap:4px}
-.dr span{font:700 10.5px var(--body);border-radius:6px;padding:2px 6px;background:rgba(255,90,90,.18);color:#ff9d9d}
-.dr span.ok{background:rgba(90,240,208,.15);color:#7df3da}
 .buy{border:2px solid #0d0a1c;border-radius:10px;background:linear-gradient(#ffd75e,#f5a614);color:#2b2233;font:17px var(--disp);padding:8px 6px;box-shadow:0 4px 0 #0d0a1c;font-variant-numeric:tabular-nums}
 .buy small{display:block;font:700 10px var(--body)}
 .buy:disabled{background:#2a2350;color:#7d72b5;box-shadow:none;border-color:#3b3170}
@@ -132,6 +168,13 @@ button{font-family:var(--disp);touch-action:manipulation}
 .ac.off p{color:#5f558f}
 .ac.done{border-color:#ffcf4a}
 .ac.done h3::before{content:"★ ";color:#ffcf4a}
+.ac h3 .ic{width:13px;height:13px;vertical-align:-1px;margin-right:4px}
+.ac.tc{gap:4px}
+.ac.tc h3{display:flex;align-items:baseline;gap:6px}
+.ac.tc h3 small{margin-left:auto;font:700 10.5px var(--body);color:#7df3da;white-space:nowrap}
+.ac.tc .lvbar{--bc:#7df3da;height:5px}
+.ac .tv{color:#fff;font-weight:700;font-variant-numeric:tabular-nums}
+.ac.tc .buy{margin-top:auto}
 .note{grid-column:1/-1;font-size:11.5px;color:#b3a9dd;line-height:1.5;margin:0}
 .sk{border:2px solid #53468f;border-radius:12px;background:linear-gradient(160deg,#30275e,#221a45);color:#fff;padding:6px;display:flex;flex-direction:column;align-items:center;gap:2px;font:15px var(--disp)}
 .sk canvas{width:110px;height:70px;background:linear-gradient(#8fc4ff,#dff1ff);border-radius:8px}
@@ -170,7 +213,7 @@ button{font-family:var(--disp);touch-action:manipulation}
   </section>
 
   <section id="shop" hidden>
-    <div class="shead"><h2>업그레이드</h2><span class="goldv" id="sGold"></span><div class="zonebar" id="sZones"></div><button class="pill" id="sAll" type="button">모두 구매</button><button class="pill" id="sClose" type="button">밀러 가기</button></div>
+    <div class="shead"><h2>업그레이드</h2><span class="goldv" id="sGold"></span><div class="zchip" id="sZones"></div><button class="pill" id="sAll" type="button">모두 구매</button><button class="pill" id="sClose" type="button">밀러 가기</button></div>
     <div class="sbody"><div class="tabs" id="sTabs"></div><div class="tree" id="sList"></div><div class="dp" id="sDet"></div></div>
   </section>
 </div>
@@ -184,7 +227,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 82, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -450,9 +493,9 @@ function drawEnding(a) {
 function endRun() {
   LS.del('cart.live');
   if (adoptLater) { adoptLater = false; S = loadSlot(slot) || S; toAim(); toast('계정에 저장된 기록을 불러왔어요', 2400); return; }
-  pay = C.finish(run, S); if (C.tl(S, 't_auto')) C.buyAll(S); save(); state = 'result'; flyUI(false);
+  const veiled = !starOpen(); pay = C.finish(run, S); const unveil = veiled && starOpen(); if (C.tl(S, 't_auto')) C.buyAll(S); save(); state = 'result'; flyUI(false);
   $('#rWhy').textContent = run.why; $('#rDist').innerHTML = fmtD(run.maxX);
-  const tags = []; for (const a of pay.ach) tags.push('업적: ' + a.name); if (pay.record) tags.push('신기록'); if (pay.newZone) tags.push(Z[pay.zone].name + ' 첫 도달'); if (run.dbl) tags.push('더블 퍼펙트'); else if (run.perfect) tags.push('퍼펙트 발사'); if (run.kick > 1) tags.push((run.kick > 1.05 ? '퍼펙트 킥 +' : '굿 킥 +') + Math.round((run.kick - 1) * 100) + '%'); if (run.golden) tags.push('황금 판 ×3');
+  const tags = []; if (unveil) tags.push('환생 해금'); for (const a of pay.ach) tags.push('업적: ' + a.name); if (pay.record) tags.push('신기록'); if (pay.newZone) tags.push(Z[pay.zone].name + ' 첫 도달'); if (run.dbl) tags.push('더블 퍼펙트'); else if (run.perfect) tags.push('퍼펙트 발사'); if (run.kick > 1) tags.push((run.kick > 1.05 ? '퍼펙트 킥 +' : '굿 킥 +') + Math.round((run.kick - 1) * 100) + '%'); if (run.golden) tags.push('황금 판 ×3');
   $('#rTags').innerHTML = tags.map(t => `<span class="tagx">${t}</span>`).join('');
   const rows = [['거리 수익', fmt(pay.dist)], [`코인 · 상자 (${run.coins}개)`, fmt(pay.coins)]]; if (pay.first) rows.push(['새 구역 개척', fmt(pay.first)]);
   if (pay.perfect) rows.push(['퍼펙트 발사', '+' + Math.round(pay.perfect * 100) + '%']); if (pay.kickB) rows.push([run.kick > 1.05 ? '퍼펙트 킥' : '굿 킥', '+' + Math.round(pay.kickB * 100) + '%']); if (pay.dbl) rows.push(['더블 퍼펙트', '+' + Math.round(pay.dbl * 100) + '%']); if (pay.style) rows.push([`묘기 (${run.bounces}회 튕김)`, '+' + (pay.style * 100).toFixed(1) + '%']); if (pay.alt) rows.push([`고도 수당 (${fmtD(run.maxAlt)})`, '+' + (pay.alt * 100).toFixed(1) + '%']); if (pay.trick) rows.push([`공중 묘기 (${Math.round(run.tricks * 10) / 10}바퀴)`, '+' + (pay.trick * 100).toFixed(0) + '%']);
@@ -462,7 +505,9 @@ function endRun() {
   if (pay.gold > 1) rows.push(['황금 판', '×3']);
   $('#rRows').innerHTML = rows.map(r => `<span>${r[0]}</span><b>${r[1]}</b>`).join('') + `<span class="tot">획득 골드</span><b class="tot">${fmt(pay.total)}</b>`;
   $('#result').hidden = false; if (pay.newZone) SFX.zone();
-  if (updated) { updated = false; setTimeout(() => toast('새 버전이 적용됐어요', 2000), 900); }
+  if (unveil) { SFX.zone(); SFX.perfect(); setTimeout(() => toast('베일이 걷혔어요 · 업그레이드에서 환생을 확인하세요', 3200), 500); }
+  else if (updated) setTimeout(() => toast('새 버전이 적용됐어요', 2000), 900);
+  updated = false;
 }
 
 /* ---------------- input ---------------- */
@@ -472,10 +517,10 @@ cv.addEventListener('pointerdown', e => { e.preventDefault(); snd(); try { cv.se
 const spinOff = () => { ptrSide = 0; if (state === 'charge') release(); }; cv.addEventListener('pointerup', spinOff); cv.addEventListener('pointercancel', spinOff);
 addEventListener('blur', () => { keys.clear(); ptrSide = 0; boostHeld = false; });
 // Scrolling by drag, in stage coordinates, so it also works while the stage is rotated for a portrait-locked phone.
-function dragScroll(el) { let id = null, y0 = 0, s0 = 0, moved = false, vy = 0, ly = 0, lt = 0, raf = 0;
-  el.addEventListener('pointerdown', e => { id = e.pointerId; y0 = ly = locY(e); s0 = el.scrollTop; moved = false; vy = 0; lt = e.timeStamp; cancelAnimationFrame(raf); });
-  el.addEventListener('pointermove', e => { if (e.pointerId !== id) return; const y = locY(e); if (Math.abs(y - y0) > 8) moved = true; if (moved) { el.scrollTop = s0 - (y - y0) / (el.id === 'result' ? 1 + (uiK - 1) * 0.45 : uiK); const d = Math.max(1, e.timeStamp - lt); vy = vy * 0.6 + (ly - y) / uiK / d * 0.4; ly = y; lt = e.timeStamp; } });
-  const up = e => { if (e.pointerId !== id) return; id = null; if (!moved) return; const glide = () => { if (Math.abs(vy) < 0.02) return; el.scrollTop += vy * 16; vy *= 0.95; raf = requestAnimationFrame(glide); }; glide(); };
+function dragScroll(el) { let id = null, x0 = 0, y0 = 0, sx = 0, sy = 0, moved = false, vx = 0, vy = 0, lx = 0, ly = 0, lt = 0, raf = 0; const k = () => el.id === 'result' ? 1 + (uiK - 1) * 0.45 : uiK;
+  el.addEventListener('pointerdown', e => { id = e.pointerId; x0 = lx = locX(e); y0 = ly = locY(e); sx = el.scrollLeft; sy = el.scrollTop; moved = false; vx = vy = 0; lt = e.timeStamp; cancelAnimationFrame(raf); });
+  el.addEventListener('pointermove', e => { if (e.pointerId !== id) return; const x = locX(e), y = locY(e); if (Math.hypot(x - x0, y - y0) > 8) moved = true; if (moved) { el.scrollLeft = sx - (x - x0) / k(); el.scrollTop = sy - (y - y0) / k(); const d = Math.max(1, e.timeStamp - lt); vx = vx * 0.6 + (lx - x) / k() / d * 0.4; vy = vy * 0.6 + (ly - y) / k() / d * 0.4; lx = x; ly = y; lt = e.timeStamp; } });
+  const up = e => { if (e.pointerId !== id) return; id = null; if (!moved) return; const glide = () => { if (Math.hypot(vx, vy) < 0.02) return; el.scrollLeft += vx * 16; el.scrollTop += vy * 16; vx *= 0.95; vy *= 0.95; raf = requestAnimationFrame(glide); }; glide(); };
   el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
   el.addEventListener('click', e => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true); }
 ['#sList', '#sDet', '#sTabs', '#result'].forEach(q => { $(q).style.touchAction = 'none'; dragScroll($(q)); });
@@ -548,17 +593,18 @@ const IC = {
   r_perf: p_('M12 2l3 6 6 1-4.5 4 1 6-5.5-3-5.5 3 1-6L3 9l6-1z') + c_(12, 12, 1.5), r_land: p_('M4 20h16M7 16l5-10 5 10M9 12h6'), r_time: c_(12, 13, 8) + p_('M12 13V8M12 13l3 2M9 2h6'),
   t_trans: p_('M12 2l8 5v10l-8 5-8-5V7zM12 2v20M4 7l16 10M20 7L4 17'),
   t_opt: c_(12, 12, 3.2) + c_(12, 12, 6.8) + p_('M12 2.5v2.7M12 18.8v2.7M2.5 12h2.7M18.8 12h2.7M5.3 5.3l1.9 1.9M16.8 16.8l1.9 1.9M18.7 5.3l-1.9 1.9M7.2 16.8l-1.9 1.9'),
-  t_lock: r_(5.5, 10.5, 13, 9.5, 2.2) + p_('M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3M12 14v2.5'), t_check: p_('M5 12.5l4.5 4.5L19 7.5'),
+  t_up: p_('M12 19V6M6.5 11.5L12 6l5.5 5.5'), t_lock: r_(5.5, 10.5, 13, 9.5, 2.2) + p_('M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3M12 14v2.5'), t_check: p_('M5 12.5l4.5 4.5L19 7.5'),
   t_skin: p_('M8 3l-5 4 3 4 2-1v11h8V10l2 1 3-4-5-4q-2 3-4 3t-4-3z'), t_info: p_('M7 4h10v5a5 5 0 0 1-10 0zM7 6H3q0 5 4 5M17 6h4q0 5-4 5M12 14v4M8 21h8') };
 const icon = id => `<svg class="ic" viewBox="0 0 24 24">${IC[id] || c_(12, 12, 7)}</svg>`;
 const BCOL = { launch: '#ff8a66', body: '#6cbcff', gear: '#3fe6c5', money: '#ffcf4a', star: '#c59bff', trans: '#7df3da', skin: '#ff9de0', info: '#9fb0ff', opt: '#c3cde0', might: '#ff8a66', flight: '#6cbcff', wealth: '#ffcf4a' };
 const transOpen = () => (S.trans || 0) > 0 || (S.shards || 0) > 0 || C.cycleBest(S) >= Z[C.LAST].at;
 const TABS = [['launch', '발사', 'ramp'], ['body', '차체', 'frame'], ['gear', '장치', 'rocket'], ['money', '수익', 'coin'], ['star', '환생', 'style'], ['trans', '초월', 't_trans'], ['skin', '스킨', 't_skin'], ['info', '기록', 't_info'], ['opt', '설정', 't_opt']];
 const NUM = /[+\-×]?\d[\d,.]*(?:만|억|조|경|해)?(?:%p|%|초|회|°|m\/s|개|번)?/g;
-const arrow = (a, b) => { const na = a.match(NUM) || [], nb = b.match(NUM) || [], ta = a.split(NUM), tb = b.split(NUM), same = na.length === nb.length && ta.join('|') === tb.join('|'), nx = same ? nb.filter((v, i) => v !== na[i]).join(' · ') : b; return `${a}<br><i>다음 Lv</i>${nx}`; };   // the current line in full, then only the numbers the next level changes
+const arrow = (a, b) => { const na = a.match(NUM) || [], nb = b.match(NUM) || [], ta = a.split(NUM), tb = b.split(NUM), same = na.length === nb.length && ta.join('|') === tb.join('|'), nx = same ? nb.filter((v, i) => v !== na[i]).join(' · ') : b; return `<p>${a}</p><p class="nx"><i>다음 Lv</i>${nx}</p>`; };   // the current line in full, then only the numbers the next level changes
 const sel = {}, perkCan = q => { const l = S.perks[q.id] || 0; return l < q.max && !C.perkLock(S, q.id) && S.stars >= C.perkCost(q, l); };
 function openShop() { state = 'shop'; $('#result').hidden = true; $('#shop').hidden = false; flyUI(false); confirmKey = ''; renderShop(); }
-// tree layout: a node sits one row below its deepest prerequisite and is centred over its children
+// ---- tree view ----
+// Layout: a node sits one row below its deepest prerequisite and is centred over its children.
 function layoutTree(items) {
   const by = Object.fromEntries(items.map(u => [u.id, u])), kids = {}, depth = {}, pos = {}; let col = 0;
   const dep = id => depth[id] != null ? depth[id] : (depth[id] = Math.max(0, ...by[id].req.filter(q => by[q[0]]).map(q => dep(q[0]) + 1)));
@@ -567,22 +613,42 @@ function layoutTree(items) {
   for (const u of items) if (!u._p) place(u.id);
   return { pos, cols: col, rows: Math.max(...items.map(u => pos[u.id][1])) + 1 };
 }
+// n: tile size · lbl: room for the name and price under a tile · gap: room for the connector bus · det: width of the detail panel
+const TREE = { n: 54, lbl: 58, gap: 30, det: 244 };
+// A connector leaves the bottom of the prerequisite, runs along a bus just under that row and comes down the child's own column,
+// so it never crosses another tile.  The first prerequisite is the solid line; any further ones are dotted.
+function orth(x1, y1, x2, y2, by) { if (Math.abs(x1 - x2) < 1) return `M${x1} ${y1}V${y2}`; const d = x2 > x1 ? 1 : -1, r = Math.min(9, Math.abs(x2 - x1) / 2, by - y1, y2 - by); return `M${x1} ${y1}V${by - r}Q${x1} ${by} ${x1 + d * r} ${by}H${x2 - d * r}Q${x2} ${by} ${x2} ${by + r}V${y2}`; }
 function treeHTML(items, perk) {
-  const aw = $('#sList').clientWidth || 700, T = layoutTree(items), cw = Math.max(56, Math.min(112, Math.floor((aw - 12) / T.cols))), n = Math.max(44, Math.min(68, cw - 24)), rh = n + 76, top = perk ? 30 : 14, px = (aw - cw * T.cols) / 2, X = c => px + c * cw + cw / 2, Y = r => top + r * rh; let svg = '', h = '', pop = '', ht = top + T.rows * rh;
-  for (const u of items) { const [c, r] = T.pos[u.id], col = BCOL[u.br], have = id => perk ? (S.perks[id] || 0) : C.lvl(S, id), l = have(u.id), lock = perk ? C.perkLock(S, u.id) : C.lockReason(S, u.id), mx = l >= u.max, can = perk ? perkCan(u) : C.canBuy(S, u.id);
-    u.req.forEach(([rid, need], k) => { if (!T.pos[rid]) return; const [pc, pr] = T.pos[rid], on = have(rid) >= need, x2 = X(c), y2 = Y(r); svg += `<path class="${on ? 'on' : ''}" style="--bc:${col}" d="M${X(pc)} ${Y(pr) + n + 58}V${y2 - 10}H${x2}V${y2}"/>` + (need > 1 ? `<text class="${on ? 'on' : ''}" x="${k ? x2 - 4 : x2 + 4}" y="${y2 - 2}" text-anchor="${k ? 'end' : 'start'}">Lv${need}</text>` : ''); });
-    if (perk && !u.req.length) h += `<span class="bl" style="left:${X(c)}px;top:6px;--bc:${col}">${C.PBRANCH.find(b => b[0] === u.br)[1]}</span>`;
-    const price = mx || lock ? '' : `<u class="${can ? '' : 'poor'}">${perk ? '★ ' + C.perkCost(u, l) : fmt(C.cost(S, u.id))}</u>`;
-    h += `<button type="button" class="nd${lock ? ' lock' : mx ? ' max' : can ? ' can' : ''}${sel[tab] === u.id ? ' sel' : ''}" data-id="${u.id}" style="left:${X(c) - n / 2}px;top:${Y(r)}px;width:${n}px;height:${n}px;--bc:${col}">${icon(u.id)}<b>${u.cap ? (l ? '완료' : '궁극') : l + '/' + u.max}</b><span><em>${u.name}</em>${price}</span></button>`;
-    if (sel[tab] === u.id) { const x = X(c) + n / 2 + 12 + 236 <= aw - 4 ? X(c) + n / 2 + 12 : Math.max(4, X(c) - n / 2 - 12 - 236), y = Math.max(4, Y(r) - 8); ht = Math.max(ht, y + 232); pop = `<div class="pop" style="left:${x}px;top:${y}px;--bc:${col}">${perk ? perkDetail(u) : upDetail(u)}</div>`; } }
-  return `<div class="tw" style="height:${ht}px;--cw:${cw - 4}px"><svg class="edges" width="100%" height="100%">${svg}</svg>${h}${pop}</div>`;
+  const aw = $('#sList').clientWidth || 700, T = layoutTree(items), n = TREE.n, cw = Math.max(66, Math.min(108, Math.floor((aw - 20) / T.cols))), rh = n + TREE.lbl + TREE.gap, top = perk ? 34 : 14;
+  const open = !!sel[tab] && items.some(u => u.id === sel[tab]), inner = Math.max(aw, T.cols * cw + 20), px = (inner - cw * T.cols) / 2, X = c => Math.round(px + c * cw + cw / 2), Y = r => top + r * rh;
+  const have = id => perk ? (S.perks[id] || 0) : C.lvl(S, id); let off = '', on = '', tags = '', h = '';
+  for (const u of items) { const [c, r] = T.pos[u.id], col = BCOL[u.br], l = have(u.id), lock = perk ? C.perkLock(S, u.id) : C.lockReason(S, u.id), mx = l >= u.max, can = perk ? perkCan(u) : C.canBuy(S, u.id);
+    const rq = u.req.filter(q => T.pos[q[0]]);
+    rq.forEach(([rid, need], k) => { const [pc, pr] = T.pos[rid], ok = have(rid) >= need, x2 = X(c) + (rq.length > 1 ? (k - (rq.length - 1) / 2) * 30 : 0), y2 = Y(r) - 3, d = `<path class="${k ? 'sec' : ''}${ok ? ' on' : ''}" style="--bc:${col}" d="${orth(X(pc), Y(pr) + n, x2, y2, Y(pr) + n + TREE.lbl + 6 + k * 5)}"/>`;
+      if (ok) on += d; else off += d;
+      if (need > 1) { const t = 'Lv' + need, w = t.length * 5.6 + 8; tags += `<rect class="${ok ? 'on' : ''}" style="--bc:${col}" x="${x2 - w / 2}" y="${y2 - 17}" width="${w}" height="13" rx="6.5"/><text class="${ok ? 'on' : ''}" x="${x2}" y="${y2 - 7.3}">${t}</text>`; } });
+    if (perk && !u.req.length) h += `<span class="bl" style="left:${X(c)}px;top:8px;--bc:${col}">${C.PBRANCH.find(b => b[0] === u.br)[1]}</span>`;
+    const price = mx || lock ? '' : `<u class="${can ? '' : 'poor'}">${perk ? '★ ' + fmt(C.perkCost(u, l)) : fmt(C.cost(S, u.id))}</u>`, pct = mx ? 100 : Math.round(100 * l / u.max), cls = lock ? 'lock' : mx ? 'max' : can ? 'can' : '', bd = lock ? 't_lock' : mx ? 't_check' : can ? 't_up' : '';
+    h += `<button type="button" class="nd ${cls}${sel[tab] === u.id ? ' sel' : ''}" data-id="${u.id}" style="left:${X(c) - n / 2}px;top:${Y(r)}px;--bc:${col}"><svg class="ring" viewBox="0 0 54 54"><rect class="rt" x="1.5" y="1.5" width="51" height="51" rx="14.5"/>${pct && !lock ? `<rect class="rf" x="1.5" y="1.5" width="51" height="51" rx="14.5" pathLength="100" stroke-dasharray="${pct} 100"/>` : ''}</svg>${icon(u.id)}${bd ? `<i class="bd">${icon(bd)}</i>` : ''}<b>${u.cap ? (l ? '완료' : '궁극') : mx ? 'MAX' : l + '/' + u.max}</b><span><em>${u.name}</em>${price}</span></button>`; }
+  const ht = top + T.rows * rh, wd = inner + (open ? TREE.det + 10 : 0);
+  return `<div class="tw" style="height:${ht}px;width:${wd}px;--cw:${cw - 6}px"><svg class="edges" width="${wd}" height="${ht}">${off}${on}${tags}</svg>${h}</div>`;
 }
+// ---- detail panel ----
+const reqLi = (ok, t) => `<li class="${ok ? 'ok' : ''}">${icon(ok ? 't_check' : 't_lock')}${t}</li>`;
+function detHead(u, l, sub) { return `<div class="dh"><div class="di">${icon(u.id)}</div><div><h3>${u.name}</h3><span>${sub}</span></div><button type="button" class="dx" data-x="1" aria-label="닫기">✕</button></div><div class="lvbar"><i style="width:${Math.round(100 * Math.min(1, l / u.max))}%"></i></div>`; }
 function upDetail(u) { const l = C.lvl(S, u.id), lock = C.lockReason(S, u.id), mx = l >= u.max, can = C.canBuy(S, u.id);
-  let eff = ''; if (EFF[u.id]) { const a = EFF[u.id](st); if (mx) eff = a; else { const s2 = JSON.parse(JSON.stringify(S)); s2.lv[u.id] = l + 1; const b = EFF[u.id](C.stats(s2)); eff = a === b ? a : arrow(a, b); } }
-  const reqs = u.req.map(([r, n]) => `<span class="${C.lvl(S, r) >= n ? 'ok' : ''}">${C.UP[r].name} Lv${n}</span>`).concat(u.zone ? [`<span class="${C.gateZone(S) >= u.zone ? 'ok' : ''}">${Z[u.zone].name} 도달</span>`] : []).concat(u.re ? [`<span class="${S.rebirths >= u.re ? 'ok' : ''}">환생 ${u.re}회</span>`] : []).join('');
-  return `<div class="dh" style="--bc:${BCOL[u.br]}"><div class="di">${icon(u.id)}</div><div><h3>${u.name}</h3><span>Lv ${l} / ${u.max}</span></div></div><p>${u.desc}</p>${eff ? `<p class="eff">${eff}</p>` : ''}${reqs ? `<div class="dr">${reqs}</div>` : ''}<div class="brow"><button class="buy" data-up="${u.id}" ${can ? '' : 'disabled'}>${mx ? '최대 레벨' : lock ? '잠김' : fmt(C.cost(S, u.id)) + '<small>골드</small>'}</button><button class="buy sm" data-max="${u.id}" ${can ? '' : 'disabled'}>최대로</button></div>`; }
-function perkDetail(q) { const l = S.perks[q.id] || 0, mx = l >= q.max, lock = C.perkLock(S, q.id), c = C.perkCost(q, l), reqs = q.req.map(([r, n]) => `<span class="${(S.perks[r] || 0) >= n ? 'ok' : ''}">${C.PK[r].name} Lv${n}</span>`).join('');
-  return `<div class="dh" style="--bc:${BCOL[q.br]}"><div class="di">${icon(q.id)}</div><div><h3>${q.name}</h3><span>${q.cap ? '궁극' : 'Lv ' + l + ' / ' + q.max}</span></div></div><p>${q.desc}</p>${PEFF[q.id] ? `<p class="eff">${mx ? PEFF[q.id](l) : arrow(PEFF[q.id](l), PEFF[q.id](l + 1))}</p>` : ''}${reqs ? `<div class="dr">${reqs}</div>` : ''}<button class="buy star" data-perk="${q.id}" ${perkCan(q) ? '' : 'disabled'}>${mx ? '완료' : lock ? '잠김' : '★ ' + c}</button>`; }
+  let eff = ''; if (EFF[u.id]) { const a = EFF[u.id](st); if (mx) eff = `<p>${a}</p>`; else { const s2 = JSON.parse(JSON.stringify(S)); s2.lv[u.id] = l + 1; const b = EFF[u.id](C.stats(s2)); eff = a === b ? `<p>${a}</p>` : arrow(a, b); } }
+  const reqs = u.req.map(([r, n]) => reqLi(C.lvl(S, r) >= n, `${C.UP[r].name} Lv${n}${C.lvl(S, r) >= n ? '' : ` · 지금 Lv${C.lvl(S, r)}`}`)).concat(u.zone ? [reqLi(C.gateZone(S) >= u.zone, `${Z[u.zone].name} 도달`)] : []).concat(u.re ? [reqLi(S.rebirths >= u.re, `환생 ${u.re}회${S.rebirths >= u.re ? '' : ` · 지금 ${S.rebirths}회`}`)] : []).join('');
+  return detHead(u, l, mx ? '최대 레벨' : `Lv ${l} / ${u.max}`) + `<p>${u.desc}</p>${eff ? `<div class="eff">${eff}</div>` : ''}${reqs ? `<ul class="dr">${reqs}</ul>` : ''}<div class="brow"><button class="buy" data-up="${u.id}" ${can ? '' : 'disabled'}>${mx ? '최대 레벨' : lock ? '잠김' : fmt(C.cost(S, u.id)) + '<small>골드</small>'}</button><button class="buy sm" data-max="${u.id}" ${can ? '' : 'disabled'}>최대로</button></div>`; }
+function perkDetail(q) { const l = S.perks[q.id] || 0, mx = l >= q.max, lock = C.perkLock(S, q.id), c = C.perkCost(q, l), reqs = q.req.map(([r, n]) => reqLi((S.perks[r] || 0) >= n, `${C.PK[r].name} Lv${n}${(S.perks[r] || 0) >= n ? '' : ` · 지금 Lv${S.perks[r] || 0}`}`)).join('');
+  return detHead(q, l, q.cap ? '궁극 능력' : mx ? '최대 레벨' : `Lv ${l} / ${q.max}`) + `<p>${q.desc}</p>${PEFF[q.id] ? `<div class="eff">${mx ? `<p>${PEFF[q.id](l)}</p>` : arrow(PEFF[q.id](l), PEFF[q.id](l + 1))}</div>` : ''}${reqs ? `<ul class="dr">${reqs}</ul>` : ''}<div class="brow" style="grid-template-columns:1fr"><button class="buy star" data-perk="${q.id}" ${perkCan(q) ? '' : 'disabled'}>${mx ? '완료' : lock ? '잠김' : '★ ' + fmt(c)}</button></div>`; }
+// the panel slides in beside the tree; the tree gets extra room on that side and scrolls so the chosen tile stays in view
+function showDetail() { const id = sel[tab], isUp = C.BRANCH.some(b => b[0] === tab), u = id && (isUp ? C.UP[id] : tab === 'star' && starOpen() ? C.PK[id] : null), det = $('#sDet'), body = $('.sbody');
+  body.classList.toggle('det', !!u); if (!u) return; det.style.setProperty('--bc', BCOL[u.br]); det.innerHTML = isUp ? upDetail(u) : perkDetail(u);
+  const el = $('#sList'), nd = el.querySelector('.nd.sel'); if (!nd) return; const vis = el.clientWidth - TREE.det - 14, l = nd.offsetLeft - 12, r = nd.offsetLeft + nd.offsetWidth + 12; if (r > el.scrollLeft + vis) el.scrollLeft = r - vis; else if (l < el.scrollLeft) el.scrollLeft = Math.max(0, l); }
+// rebirth stays behind a veil until the sea has been reached once
+const SEA_AT = Z[C.ZI('sea')].at, starOpen = () => (S.rebirths || 0) > 0 || (S.stars || 0) > 0 || C.starsEver(S) > 0 || (S.trans || 0) > 0 || S.best >= SEA_AT;
+const km = m => fmtD(m).replace(/\.0+(?=km|m)/, '').replace(/(\.\d*?)0+(?=km|m)/, '$1');
 // Settings: every row is a set of choices; the note under the title says what the current choice does.
 const VOL = [[0, '0'], [0.25, '25'], [0.5, '50'], [0.75, '75'], [1, '100']];
 const OPTS = [
@@ -598,34 +664,44 @@ function optHTML() { return `<div class="bh">설정 · 이 기기에만 저장</
 function setOpt(k, v) { OPT[k] = isNaN(+v) ? v : +v; saveOpt(); if (k === 'gfx') setQ(); if (k === 'sfx' || k === 'mus') { snd(); AUD.vol(); } SFX.ui(); }
 function renderShop() {
   st = C.stats(S); $('#sGold').textContent = fmt(S.gold);
-  $('#sZones').innerHTML = Z.slice(0, C.LAST + 1).map((z, i) => `<i class="${i <= S.zone ? 'on' : ''}" title="${z.name}"></i>`).join('') + (S.zone > C.LAST ? `<b>${Z[S.zone].name}</b>` : '');
-  const isUp = C.BRANCH.some(b => b[0] === tab), list = $('#sList'), det = $('#sDet');
-  $('#sTabs').innerHTML = TABS.filter(t => t[0] !== 'trans' || transOpen()).map(([id, name, ic]) => { const n = id === 'trans' ? C.TPERKS.filter(q => C.tl(S, q.id) < q.max && !C.tLock(S, q.id) && S.shards >= C.tCost(q, C.tl(S, q.id))).length : id === 'star' ? C.PERKS.filter(perkCan).length : C.UPS.filter(u => u.br === id && C.canBuy(S, u.id)).length; return `<button type="button" class="tab${tab === id ? ' on' : ''}" data-t="${id}" style="--bc:${BCOL[id]}">${icon(ic)}${name}${n ? `<i>${n}</i>` : ''}</button>`; }).join('');
+  $('#sZones').innerHTML = S.zone > C.LAST ? `<b>${Z[S.zone].name}</b>` : `<b>${S.zone + 1} / ${C.LAST + 1} · ${Z[S.zone].name}</b><div class="lvbar"><i style="width:${Math.round(100 * (S.zone + 1) / (C.LAST + 1))}%"></i></div>`;
+  const isUp = C.BRANCH.some(b => b[0] === tab), list = $('#sList'), det = $('#sDet'), keepScroll = renderShop.tab === tab, sc0 = [list.scrollLeft, list.scrollTop]; renderShop.tab = tab;
+  $('#sTabs').innerHTML = TABS.filter(t => t[0] !== 'trans' || transOpen()).map(([id, name, ic]) => { const n = id === 'trans' ? C.TPERKS.filter(q => C.tl(S, q.id) < q.max && !C.tLock(S, q.id) && S.shards >= C.tCost(q, C.tl(S, q.id))).length : id === 'star' ? (starOpen() ? C.PERKS.filter(perkCan).length : 0) : C.UPS.filter(u => u.br === id && C.canBuy(S, u.id)).length, veil = id === 'star' && !starOpen(); return `<button type="button" class="tab${tab === id ? ' on' : ''}${veil ? ' vl' : ''}" data-t="${id}" style="--bc:${BCOL[id]}">${icon(veil ? 't_lock' : ic)}${veil ? '???' : name}${n ? `<i>${n}</i>` : ''}</button>`; }).join('');
   list.className = isUp || tab === 'star' ? 'tree' : tab === 'opt' ? 'tree grid opt' : 'tree grid';
-  if (isUp) list.innerHTML = treeHTML(C.UPS.filter(u => u.br === tab), false);
-  else if (tab === 'star') { const gain = C.starGain(S), per = Math.round(C.STAR_GOLD * (S.perks.r_bless ? 1.5 : 1) * 100), keep = (S.perks.r_mem || 0) * 8;
-    list.innerHTML = `<div class="rbar"><div><h3>환생 · 보유 ★ ${S.stars} · 별 보너스 골드 +${S.starsTotal * per}%</h3><p>골드·업그레이드${keep ? `(${keep}% 유지)` : ''}를 비우고 ★을 받아요. ★ 하나당 골드 +${per}%. 별·트리·업적은 남습니다.</p><p>이번 생 ${fmtD(S.bestLife)} · 다음 ★ ${(d => isFinite(d) ? fmtD(d) : '더 없음')(C.nextStarAt(S.bestLife))}${S.rebirths >= 2 ? ' · 환생 3회부터 구역 조건은 유지' : ''}</p></div><button class="buy star" data-rebirth="1" ${gain > 0 ? '' : 'disabled'}>${confirmKey === 'rebirth' ? '정말요?<small>한 번 더 누르기</small>' : '환생하기<small>★ +' + gain + '</small>'}</button></div>` + treeHTML(C.PERKS, true); }
+  if (isUp) { const items = C.UPS.filter(u => u.br === tab), free = items.filter(u => !C.lockReason(S, u.id)).length, full = items.filter(u => C.lvl(S, u.id) >= u.max).length, pick = items.filter(u => C.canBuy(S, u.id)).sort((x, y) => C.cost(S, x.id) - C.cost(S, y.id))[0];
+    list.innerHTML = `<div class="tsum"><span>해금 ${free} / ${items.length}</span><span>최대 ${full}</span>${pick ? `<button type="button" data-pick="${pick.id}">구매 가능 · ${pick.name} ${fmt(C.cost(S, pick.id))}</button>` : ''}</div>` + treeHTML(items, false); }
+  else if (tab === 'star' && !starOpen()) { sel.star = null;
+    // behind the veil: the blurred shape of the tree, drifting fog, and the one thing the player needs to know
+    list.innerHTML = `<div class="veil"><div class="vt">${treeHTML(C.PERKS, true)}</div><div class="vf"></div><div class="vf b"></div><div class="vc">${icon('t_lock')}<h3>???</h3><b>${km(SEA_AT)} 해금</b><div class="lvbar"><i style="width:${Math.max(3, Math.round(100 * Math.min(1, S.best / SEA_AT)))}%"></i></div><span>지금 최고 ${km(S.best)}</span></div></div>`; }
+  else if (tab === 'star') { const gain = C.starGain(S), per = Math.round(C.STAR_GOLD * (S.perks.r_bless ? 1.5 : 1) * 100), keep = (S.perks.r_mem || 0) * 8, nx = C.nextStarAt(S.bestLife), ask = confirmKey === 'rebirth';
+    list.innerHTML = `<div class="rbar"><div class="chips"><span class="chip"><i>보유</i>★ ${fmt(S.stars)}</span><span class="chip"><i>별 보너스</i>골드 +${fmt(S.starsTotal * per)}%</span><span class="chip hi"><i>${C.starsFor(S.bestLife) ? '다음 ★' : '첫 ★'}</i>${isFinite(nx) ? km(nx) + ' 달성' : '더 없음'}</span></div><button class="buy star" data-rebirth="1" ${gain > 0 ? '' : 'disabled'}>${ask ? '정말요?<small>한 번 더 누르기</small>' : '환생하기<small>★ +' + fmt(gain) + '</small>'}</button>${ask ? `<p class="cap">골드·업그레이드 초기화${keep ? ` (${keep}% 유지)` : ''} · 별·트리·업적 유지 · ★ 하나당 골드 +${per}%</p>` : ''}</div>` + treeHTML(C.PERKS, true); }
   else if (tab === 'trans') { const g2 = C.shardsFor(S), TE = { t_speed: l => `발사 속도 ×${big(Math.pow(1.25, l))}`, t_gold: l => `모든 골드 ×${fmt(Math.pow(2, l))}`, t_star: l => `별 +${fmt(Math.round(C.TV.star(l) * 100))}%`, t_cap: l => `한도 ${C.TV.cap(l).toFixed(1)}배`, t_gauge: l => `게이지 속도 ×${(1 + 0.1 * l).toFixed(1)}${l >= 10 ? ' · 자동 발사' : ''}`, t_spin: l => `2초 뒤 회전 속도 +${Math.round(C.TV.spin(l) * 100)}%`, t_judge: l => { const d = x => Math.min(180, Math.round((x + 0.0606 * l) * 57.3)), gy = C.lvl(S, 'gyro'); return l >= 50 ? '모든 방향 완벽 착지' : `착지 ±${d(0.26 + 0.01 * gy)}° · 완벽 ±${d(0.11 + 0.004 * gy)}°`; }, t_time: l => `+${l * 10}%`, t_keep: l => `${50 + l * 10}% 유지`, t_auto: l => l ? '켜짐' : '꺼짐', t_land: l => `보너스 +${l * 50}%`, t_multi: l => `한 번에 ${1 + l}개`, t_beam: l => `주기 ${Math.round(Math.pow(0.92, l) * 100)}%`, t_starpow: l => `발사 속도 ×${big(1 + C.TV.starpow(l) * Math.log2(1 + C.starsEver(S)))} (별 ${fmt(C.starsEver(S))}개 기준)`, t_rekindle: l => `착지 +${(l * 0.5).toFixed(1)}% · 완벽 +${(l * 1.5).toFixed(1)}% (최대 +${l * 5}%)`, t_deep: l => `차원석 +${l * 10}%` };
-    list.innerHTML = `<div class="rbar" style="grid-column:1/-1;margin:0"><div><h3>초월 · 차원석 ◆ ${S.shards || 0} · 초월 ${S.trans || 0}회</h3><p>골드·업그레이드·별을 비우고 차원석을 받아요. 환생 트리는 ${50 + 10 * C.tl(S, 't_keep')}% 남고, 환생 횟수·업적·스킨·차원 능력은 그대로예요.</p><p>${g2 ? `지금 초월하면 ◆ +${g2} · 미지의 영역을 더 깊이 갈수록 많이 받아요` : `${Z[C.LAST].name}에 도달해야 초월할 수 있어요`}</p></div><button class="buy star" data-trans="1" ${g2 ? '' : 'disabled'}>${confirmKey === 'trans' ? '정말요?<small>한 번 더 누르기</small>' : '초월하기<small>◆ +' + g2 + '</small>'}</button></div>` +
-      `<div class="bh">차원 능력 · 초월해도 남음</div>` + C.TPERKS.map(q => { const l = C.tl(S, q.id), mx = l >= q.max, c = C.tCost(q, l), lk = C.tLock(S, q.id); if (lk) return `<div class="ac off"><h3>${q.name}</h3><p>${q.desc}</p><p>${lk}</p></div>`; return `<div class="ac${l ? ' done' : ''}"><h3>${q.name} <small style="color:#7df3da">Lv ${l}/${q.max}</small></h3><p>${q.desc}</p><p style="color:#fff;font-weight:700">${TE[q.id](l)}${mx ? '' : ' → ' + TE[q.id](l + 1)}</p><button class="buy sm" data-tp="${q.id}" ${!mx && S.shards >= c ? '' : 'disabled'}>${mx ? '완료' : '◆ ' + c}</button></div>`; }).join(''); }
+    const ask = confirmKey === 'trans';
+    list.innerHTML = `<div class="rbar" style="grid-column:1/-1;margin:0;--bc:#7df3da"><div class="chips"><span class="chip"><i>보유</i>◆ ${fmt(S.shards || 0)}</span><span class="chip"><i>초월</i>${fmt(S.trans || 0)}회</span><span class="chip hi"><i>${g2 ? '지금 초월하면' : '초월 조건'}</i>${g2 ? '◆ +' + fmt(g2) : Z[C.LAST].name + ' 도달'}</span></div><button class="buy star" data-trans="1" ${g2 ? '' : 'disabled'}>${ask ? '정말요?<small>한 번 더 누르기</small>' : '초월하기<small>◆ +' + fmt(g2) + '</small>'}</button>${ask ? `<p class="cap">골드·업그레이드·별 초기화 · 환생 트리 ${50 + 10 * C.tl(S, 't_keep')}% 유지 · 환생 횟수·업적·스킨·차원 능력 유지</p>` : ''}</div>` +
+      `<div class="bh">차원 능력 · 초월해도 남음</div>` + C.TPERKS.map(q => { const l = C.tl(S, q.id), mx = l >= q.max, c = C.tCost(q, l), lk = C.tLock(S, q.id); if (lk) return `<div class="ac off"><h3>${icon('t_lock')}${q.name}</h3><p>${lk}</p></div>`; return `<div class="ac tc${mx ? ' done' : ''}"><h3>${q.name}<small>${mx ? 'MAX' : 'Lv ' + l + ' / ' + q.max}</small></h3><div class="lvbar"><i style="width:${Math.round(100 * l / q.max)}%"></i></div><p>${q.desc}</p><p class="tv">${TE[q.id](l)}${mx ? '' : ' → ' + TE[q.id](l + 1)}</p><button class="buy sm" data-tp="${q.id}" ${!mx && S.shards >= c ? '' : 'disabled'}>${mx ? '완료' : '◆ ' + fmt(c)}</button></div>`; }).join(''); }
   else if (tab === 'skin') { const cur = skinNow().id;
     list.innerHTML = `<div class="bh">스킨</div>` + SKINS.map(k => `<button type="button" class="sk${k.id === cur ? ' on' : ''}${skinOpen(k) ? '' : ' lock'}" data-skin="${k.id}"><canvas width="220" height="140" data-skin="${k.id}"></canvas>${k.name}<small>${skinOpen(k) ? (k.id === cur ? '사용 중' : '눌러서 변경') : k.how || Z[k.z].name + ' 도달 시'}</small></button>`).join('');
-    for (const c2 of list.querySelectorAll('canvas')) { const g0 = g; g = c2.getContext('2d'); pvSkin = SKINS.find(k => k.id === c2.dataset.skin); g.setTransform(2, 0, 0, 2, 0, 0); drawCart(64, 54, 0, 1.25); pvSkin = null; g = g0; } }
+    for (const c2 of list.querySelectorAll('.sk canvas')) { const g0 = g; g = c2.getContext('2d'); pvSkin = SKINS.find(k => k.id === c2.dataset.skin); g.setTransform(2, 0, 0, 2, 0, 0); drawCart(64, 54, 0, 1.25); pvSkin = null; g = g0; } }
   else if (tab === 'opt') list.innerHTML = optHTML();
   else { const n = C.achCount(S);
     const slots = []; for (let k = 1; k <= SLOTS; k++) { const q = k === slot ? S : loadSlot(k); slots.push(`<div class="ac${k === slot ? ' done' : ''}"><h3>슬롯 ${k}${k === slot ? ' · 지금 플레이 중' : ''}</h3><p>${q && (q.runs || k === slot) ? `${Z[Math.min(q.zone, Z.length - 1)].name} · 환생 ${q.rebirths}회 · 초월 ${q.trans || 0}회 · ${fmt(q.runs)}판` : '빈 슬롯 · 새 게임'}</p>${k === slot ? '' : `<button class="buy sm" data-slot="${k}">이 슬롯으로</button>`}</div>`); }
     list.innerHTML = `<div class="bh">계정 · 저장 슬롯 3개</div><p class="note">${CLOUD.state === 'on' ? '로그인한 계정에 저장돼요. 다른 기기에서 같은 계정으로 열면 이어서 할 수 있어요.' : CLOUD.state === 'local' ? '이 계정은 이 페이지에 저장할 권한이 없어서 이 기기에만 저장돼요.' : '지금은 이 기기에만 저장돼요. claude.ai에 로그인한 상태로 열면 계정에 저장됩니다.'}</p>` + slots.join('') + `<div class="bh">기록</div><div class="ac done"><h3>최고 ${fmtD(S.best)}</h3><p>${S.runs}판 · 업그레이드 ${C.total(S)}Lv · 환생 ${S.rebirths}회</p><p>업적 ${n}개 → 골드 +${n * 3}%</p></div>` +
       `<div class="bh">구역</div>` + Z.filter((z, i) => i <= Math.max(C.LAST, S.zone + 1)).map((z, i) => `<div class="ac${i <= S.zone ? ' done' : ' off'}"><h3>${i + 1}. ${i <= S.zone + 1 ? z.name : '???'}</h3><p>${fmtD(z.at)}부터${i === S.zone + 1 ? ' · 다음 목표' : ''}</p></div>`).join('') +
       `<div class="bh">업적 · 하나당 골드 +3%</div>` + C.ACH.map(a => `<div class="ac${S.ach[a.id] ? ' done' : ' off'}"><h3>${a.name}</h3><p>${a.desc}</p></div>`).join('') +
-      `<div class="bh">기타</div><p class="note">코인은 공중에 2~3개씩 떠 있어요. 부스트·도약·대시·급강하로 높이를 맞춰 보세요.</p><div class="ac"><h3>골드만 비우기</h3><p>업그레이드·별은 그대로 두고 보유 골드만 0으로. 이 기기의 내 기록에만 적용됩니다.</p><button class="buy sm" data-zero="1">${confirmKey === 'zero' ? '정말요? 한 번 더' : '골드 0으로'}</button></div><div class="ac"><h3>처음부터 다시</h3><p>지금 슬롯의 별·업적까지 모두 지웁니다. 다른 슬롯은 그대로예요.</p><button class="buy sm" data-wipe="1">${confirmKey === 'wipe' ? '정말요? 한 번 더' : '초기화'}</button></div>`; }
+      `<div class="bh">기타</div><p class="note">코인은 공중에 2~3개씩 떠 있어요. 부스트·도약·대시·급강하로 높이를 맞춰 보세요.</p><div class="ac"><h3>골드만 비우기</h3><p>업그레이드·별은 그대로 두고 보유 골드만 0으로. 이 기기의 내 기록에만 적용됩니다.</p><button class="buy sm" data-zero="1">${confirmKey === 'zero' ? '정말요? 한 번 더' : '골드 0으로'}</button></div><div class="ac"><h3>처음부터 다시</h3><p>지금 슬롯의 별·업적까지 모두 지웁니다. 다른 슬롯은 그대로예요.</p><button class="buy sm" data-wipe="1">${confirmKey === 'wipe' ? '정말요? 한 번 더' : '초기화'}</button></div>` + `<p class="note">버전 ${VER}</p>`; }
+  if (keepScroll) { list.scrollLeft = sc0[0]; list.scrollTop = sc0[1]; } else { list.scrollLeft = 0; list.scrollTop = 0; }
+  showDetail();
 }
-$('#sTabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if (!b) return; tab = b.dataset.t; confirmKey = ''; $('#sList').scrollTop = 0; $('#sDet').scrollTop = 0; renderShop(); });
-const shopClick = e => { const nd = e.target.closest('.nd'), sk = e.target.closest('.sk'), b = e.target.closest('.buy'), ob = e.target.closest('[data-opt]'), k1 = $('#sList').scrollTop, k2 = 0;
-  if (ob) { setOpt(ob.dataset.opt, ob.dataset.v); renderShop(); $('#sList').scrollTop = k1; return; }
-  if (nd) { sel[tab] = sel[tab] === nd.dataset.id ? null : nd.dataset.id; confirmKey = ''; }
+$('#sTabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if (!b) return; tab = b.dataset.t; confirmKey = ''; $('#sDet').scrollTop = 0; SFX.ui(); renderShop(); });
+const shopClick = e => { const nd = e.target.closest('.nd'), sk = e.target.closest('.sk'), b = e.target.closest('.buy'), ob = e.target.closest('[data-opt]'), pk = e.target.closest('[data-pick]'), k1 = $('#sList').scrollTop, k2 = 0;
+  if (ob) { setOpt(ob.dataset.opt, ob.dataset.v); renderShop(); return; }
+  if (e.target.closest('.veil')) { SFX.lock(); return; }
+  if (e.target.closest('[data-x]')) { sel[tab] = null; SFX.ui(); renderShop(); return; }
+  if (pk) { sel[tab] = pk.dataset.pick; confirmKey = ''; SFX.ui(); }
+  else if (nd) { sel[tab] = sel[tab] === nd.dataset.id ? null : nd.dataset.id; confirmKey = ''; SFX.ui(); }
   else if (sk) { if (sk.classList.contains('lock')) return; S.skin = sk.dataset.skin; SFX.buy(); }
   else if (b && !b.disabled) {
-    if (b.dataset.up) { if (C.buy(S, b.dataset.up)) SFX.buy(); }
+    if (b.dataset.up) { if (C.buy(S, b.dataset.up)) { SFX.buy(); if (C.lvl(S, b.dataset.up) >= C.UP[b.dataset.up].max) SFX.level(); } }
     else if (b.dataset.max) { let n = 0; while (n < 300 && C.buy(S, b.dataset.max)) n++; if (n) SFX.buy(); }
     else if (b.dataset.perk) { if (C.buyPerk(S, b.dataset.perk)) SFX.buy(); }
     else if (b.dataset.rebirth) { if (confirmKey !== 'rebirth') confirmKey = 'rebirth'; else { const n = C.rebirth(S), au = C.tl(S, 't_auto') ? C.buyAll(S) : 0; confirmKey = ''; SFX.zone(); toast('환생! ★ +' + n + (au ? ` · ${au}레벨 자동 구매` : ''), 2400); } }
@@ -634,9 +710,9 @@ const shopClick = e => { const nd = e.target.closest('.nd'), sk = e.target.close
     else if (b.dataset.zero) { if (confirmKey !== 'zero') confirmKey = 'zero'; else { S.gold = 0; confirmKey = ''; toast('골드를 비웠어요', 1500); } }
     else if (b.dataset.wipe) { if (confirmKey !== 'wipe') confirmKey = 'wipe'; else { S = C.newSave(); LS.set('cart.force.' + slot, '1'); confirmKey = ''; } }
     else if (b.dataset.slot) { switchSlot(+b.dataset.slot); return; } }
-  else if (sel[tab] && !e.target.closest('.pop') && e.target.closest('.tw')) sel[tab] = null;   // tap on empty space closes the card
+  else if (sel[tab] && e.target.closest('#sList')) sel[tab] = null;   // tap on empty space closes the panel
   else return;
-  save(); renderShop(); $('#sList').scrollTop = k1; };
+  save(); renderShop(); };
 addEventListener('resize', () => { if (state === 'shop') renderShop(); });
 $('#sAll').addEventListener('click', () => { const n = tab === 'star' ? C.buyAllPerks(S) : C.buyAll(S); if (n) { SFX.buy(); toast(`${n}레벨 구매`, 1200); } else toast('살 수 있는 게 없어요', 1000); save(); renderShop(); });
 $('#sList').addEventListener('click', shopClick); $('#sDet').addEventListener('click', shopClick);
