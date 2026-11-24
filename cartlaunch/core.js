@@ -199,9 +199,10 @@ const CORE = (() => {
     TK('t_speed', '차원 엔진', 100, '발사 속도 ×1.25'), TK('t_gold', '차원 금고', 100, '모든 골드 ×2'), TK('t_star', '별의 기억', 30, '환생 때 받는 별 +50%'),
     TK('t_cap', '한계 돌파', 15, '최고 속도 한도 +0.2배'), TK('t_time', '지구력', 10, '최고 속도가 10% 더 천천히 줄어듦'), TK('t_keep', '전생 각인', 5, '초월 때 환생 트리 유지 +10% (기본 50%)'), TK('t_auto', '자동 구매', 1, '판이 끝날 때마다 살 수 있는 업그레이드 자동 구매'),
     TK('t_land', '완벽주의', 20, '착지·슬램 골드 보너스 +50%', 3), TK('t_combo', '콤보 지속', 10, '콤보 유지 시간 +0.3초', 5), TK('t_beam', '견인 강화', 10, '견인 광선 주기 -8%', 8),
-    TK('t_starpow', '별의 힘', 20, '누적 별이 많을수록 발사 속도 증가', 10), TK('t_fuel', '차원 연료', 10, '착지 연료 회복 +20%', 12), TK('t_deep', '심연 개척', 20, '미지의 영역에서 받는 차원석 +10%', 15),
+    TK('t_starpow', '별의 힘', 20, '지금까지 받은 별이 많을수록 발사 속도 증가 · 초월해도 유지', 10), TK('t_fuel', '차원 연료', 10, '착지 연료 회복 +20%', 12), TK('t_deep', '심연 개척', 20, '미지의 영역에서 받는 차원석 +10%', 15),
   ];
   const TP = Object.fromEntries(TPERKS.map(q => [q.id, q])), tCost = (q, l) => q.id === 't_auto' ? 3 : Math.ceil((l + 1) * Math.pow(1.05, l)), deepEver = s => Math.max(s.deepEver || 0, zoneAt(s.best || 0) - LAST, 0), tLock = (s, id) => deepEver(s) < TP[id].gate ? `미지의 영역 ${TP[id].gate} 도달 시 열림` : '', tl = (s, id) => (s.tperks || {})[id] || 0;
+  const starsEver = s => Math.max(s.starsEver || 0, s.starsTotal || 0);   // every star ever earned; transcending does not reset it
   const cycleBest = s => Math.max(s.bestT || 0, s.bestLife || 0);
   // shards for a transcendence: 5 for reaching the end of time, more for every uncharted zone beyond it
   const shardsFor = s => { const d = cycleBest(s); return d < ZONES[LAST].at ? 0 : Math.floor(5 + 3 * Math.pow(zoneProg(d) - LAST, 1.2) * (1 + 0.1 * tl(s, 't_deep'))); };
@@ -244,7 +245,7 @@ const CORE = (() => {
 
   function stats(s) {
     const L = id => lvl(s, id), P = id => s.perks[id] || 0, bless = P('r_bless') ? 1.5 : 1;
-    const power = 7 * Math.pow(1.05, L('push')) * (1 + 0.02 * L('runup')) * (1 + 0.03 * L('sling')) * (1 + 0.03 * L('cannon')) * (1 + 0.03 * L('rail')) * (1 + 0.04 * L('warp')) * (1 + 0.05 * L('anti')) * (1 + 0.06 * L('singu')) * (1 + 0.07 * L('bang')) * (1 + 0.08 * L('cosmos')) * (1 + 0.05 * P('p_power')) * Math.pow(1.25, tl(s, 't_speed')) * (1 + 0.03 * tl(s, 't_starpow') * Math.log2(1 + (s.starsTotal || 0)));
+    const power = 7 * Math.pow(1.05, L('push')) * (1 + 0.02 * L('runup')) * (1 + 0.03 * L('sling')) * (1 + 0.03 * L('cannon')) * (1 + 0.03 * L('rail')) * (1 + 0.04 * L('warp')) * (1 + 0.05 * L('anti')) * (1 + 0.06 * L('singu')) * (1 + 0.07 * L('bang')) * (1 + 0.08 * L('cosmos')) * (1 + 0.05 * P('p_power')) * Math.pow(1.25, tl(s, 't_speed')) * (1 + 0.03 * tl(s, 't_starpow') * Math.log2(1 + starsEver(s)));
     const eCap = 0.80 + 0.008 * L('hover'), thrust = L('rocket') ? (3 + 0.4 * L('rocket') + power * (0.05 + 0.004 * L('rocket'))) * (1 + 0.03 * L('jet')) * (1 + 0.04 * L('amp')) * (1 + 0.05 * L('burn')) : 0;
     return {
       power, angle: (14 + 2.8 * L('ramp')) * Math.PI / 180,
@@ -403,11 +404,11 @@ const CORE = (() => {
   function finish(r, s) { const p = payout(r, s); s.gold += p.total; s.runs++; if (p.total > (s.lifeGold || 0)) s.lifeGold = p.total; if (r.maxX > (s.bestT || 0)) s.bestT = r.maxX; if (r.perfect) s.perfects = (s.perfects || 0) + 1; if (r.slams) s.slams = (s.slams || 0) + r.slams;
     p.record = r.maxX > s.best; if (r.maxX > s.best) s.best = r.maxX; if (r.maxX > s.bestLife) s.bestLife = r.maxX; p.newZone = p.zone > s.zone; if (p.zone > s.zone) s.zone = p.zone; if (s.zone > (s.zoneEver || 0)) s.zoneEver = s.zone; if (s.zone - LAST > (s.deepEver || 0)) s.deepEver = s.zone - LAST; p.ach = checkAch(s, r); return p; }
   function rebirth(s) { const gain = starGain(s); if (gain <= 0) return 0; const seed = (s.perks.p_seed || 0) ? 100 * Math.pow(10, s.perks.p_seed) + s.perks.p_seed * (s.lifeGold || 0) : 0, keep = 0.08 * (s.perks.r_mem || 0);
-    s.stars += gain; s.starsTotal += gain; s.rebirths++; s.gold = seed; const lv = {}; if (keep) for (const k in s.lv) { const n = Math.floor(s.lv[k] * keep); if (n) lv[k] = n; } s.lv = lv; s.bestLife = 0; s.lifeGold = 0; s.zone = 0; checkAch(s, null); return gain; }
+    s.starsEver = starsEver(s) + gain; s.stars += gain; s.starsTotal += gain; s.rebirths++; s.gold = seed; const lv = {}; if (keep) for (const k in s.lv) { const n = Math.floor(s.lv[k] * keep); if (n) lv[k] = n; } s.lv = lv; s.bestLife = 0; s.lifeGold = 0; s.zone = 0; checkAch(s, null); return gain; }
   function buyAll(s) { let n = 0; for (; n < 20000;) { let best = null, bc = Infinity; for (const u of UPS) if (canBuy(s, u.id)) { const c = cost(s, u.id); if (c < bc) { bc = c; best = u.id; } } if (!best) break; buy(s, best); n++; } return n; }
   function buyAllPerks(s) { let n = 0; for (; n < 2000;) { let best = null, bc = Infinity; for (const q of PERKS) { const l = s.perks[q.id] || 0, c = perkCost(q, l); if (l < q.max && !perkLock(s, q.id) && c <= s.stars && c < bc) { bc = c; best = q.id; } } if (!best) break; buyPerk(s, best); n++; } return n; }
   function buyPerk(s, id) { const p = PK[id], l = s.perks[id] || 0; if (!p || l >= p.max || perkLock(s, id) || s.stars < perkCost(p, l)) return false; s.stars -= perkCost(p, l); s.perks[id] = l + 1; return true; }
   return { ZONES, ZI, zoneAt, zoneProg, lerpZ, ground, isWater, UPS, UP, BRANCH, PERKS, PK, PBRANCH, perkCost, perkLock, STAR_GOLD, starsFor, nextStarAt, ACH, checkAch, achCount,
-    setTire: v => { TIRE = v; }, vcap, newSave, migrate, lvl, total, cost, lockReason, canBuy, buy, stats, RAMP, scaleOf, newRun, river, cellObjs, step, payout, finish, rebirth, buyPerk, buyAll, buyAllPerks, gateZone, LAST, TPERKS, TP, tCost, tl, shardsFor, buyT, tLock, deepEver, transcend, starGain, cycleBest, gd, gref };
+    setTire: v => { TIRE = v; }, vcap, newSave, migrate, lvl, total, cost, lockReason, canBuy, buy, stats, RAMP, scaleOf, newRun, river, cellObjs, step, payout, finish, rebirth, buyPerk, buyAll, buyAllPerks, gateZone, LAST, TPERKS, TP, tCost, tl, shardsFor, buyT, tLock, deepEver, starsEver, transcend, starGain, cycleBest, gd, gref };
 })();
 if (typeof module !== 'undefined') module.exports = CORE;
