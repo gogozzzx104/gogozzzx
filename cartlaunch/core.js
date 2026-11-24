@@ -45,7 +45,7 @@ const CORE = (() => {
     { id: 'multi', fx: 'multi', name: '멀티버스', at: 5e15, g: 7, drag: 0.9, amp: 1.2, wl: 36, sk: 0.3, la: 3, mu: 0.6, e: 1.1, loss: 0.7, spec: ['tramp', 'geyser'], sky: ['#0a0220', '#103a4a'], ground: '#c9f0e8', deco: 'cloud' },
     { id: 'omega', fx: 'omega', name: '시간의 끝', at: 2e16, g: 8, drag: 1, amp: 1.6, wl: 42, sk: 0.3, la: 3.5, mu: 1, e: 1, loss: 1, rough: 1, spec: ['pool'], sky: ['#000010', '#1a3a6a'], ground: '#101830', deco: 'star' },
   ];
-  const LAST = ZONES.length - 1, DEEP = 60;
+  const LAST = ZONES.length - 1, DEEP = 70;
   { const look = ['crab', 'pleiades', 'multi', 'rift', 'nebula', 'andromeda', 'virgo', 'magellan', 'centauri', 'omega']; for (let n = 1; n <= DEEP; n++) { const t = ZONES.find(z => z.id === look[(n - 1) % look.length]); ZONES.push(Object.assign({}, t, { id: 'deep' + n, name: '미지의 영역 ' + n, at: ZONES[LAST].at * Math.pow(4, n), deep: n })); } }
   const ZI = id => ZONES.findIndex(z => z.id === id);
   const zoneAt = x => { let lo = 0, hi = ZONES.length - 1; while (lo < hi) { const m = (lo + hi + 1) >> 1; if (x >= ZONES[m].at) lo = m; else hi = m - 1; } return lo; };   // zones are sorted by distance
