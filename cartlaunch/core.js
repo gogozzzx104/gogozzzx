@@ -309,7 +309,7 @@ const CORE = (() => {
 
   // ---- one run ------------------------------------------------------------------------------------
   const hash = n => { let t = (n + 0x6D2B79F5) | 0; t = Math.imul(t ^ (t >>> 15), 1 | t); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-  const RAMP = 4, WEAR = 0.12, VCAP = 3; let TIRE = 30;
+  const RAMP = 4, WEAR = 0.12, VCAP = 3, PHX_T = 0.45; let TIRE = 30;
   // top speed allowed at a moment of the run: three times launch speed at first, tiring as the run goes on, so even a maxed cart's run winds down
   const vcap = r => r.st.vcap * r.v0 * Math.max(0.085, (1 + (r.rew || 0)) * Math.exp(-r.tr / r.st.tire));
   // scale of a launch at speed v: U (length unit), c (height of the coin stream), S (object size), cw (cell width), tw (time warp)
@@ -378,6 +378,9 @@ const CORE = (() => {
       else { r.spinD = 0; r.spinH = 0; r.spin *= Math.pow(0.02, dtReal); if (Math.abs(r.rotAcc) < 0.6 && r.tr - r.spinT > 1) { const want = Math.max(-0.9, Math.min(0.9, Math.atan2(r.vy, Math.max(1, r.vx)))); let d = want - r.ang; d = Math.atan2(Math.sin(d), Math.cos(d)); r.ang += d * Math.min(1, dtReal * 4); } }
       r.ang += r.spin * dtReal; r.rotAcc += r.spin * dtReal;
       if (st.double && !r.doubled && r.vy < 0 && r.tr > 0.3) { r.doubled = true; const add = 0.25 * r.v0; r.vx += add * 0.92; r.vy += add * 0.4 + Math.max(0, -r.vy) * 0.5; r.ev.push({ k: 'double', x: r.x, y: r.y }); } }
+    // phoenix: for a moment after rising the cart is thrown forward with what two seconds of holding the boost would give
+    // (a cart without a rocket gets 15% of its launch speed instead)
+    if (r.phx > 0) { const k = Math.min(dtReal, r.phx) / PHX_T, dv = (st.thrust ? 2 * 1.15 * st.thrust * (1 + st.nozzle) : 0.15 * r.v0) * k; r.phx -= dtReal; r.vx += dv; r.vy += dv * 0.16; }
     if (r.boosting) { r.usedBoost = true; r.fuel -= dtReal * st.burnK; const dv = st.thrust * dtReal * 1.15; r.vx += dv * (1 + st.nozzle); r.vy += dv * (grounded0 ? 0.45 : 0.16) + (r.vy < 0 ? Math.min(-r.vy, dv * 0.5) : 0); if (grounded0 && r.vy > 0) r.air = true; }
     const xPrev = r.x, dg = 0.1 * U;
     for (let i = 0; i < n; i++) {
@@ -437,7 +440,7 @@ const CORE = (() => {
       // the run ends when the cart has lost nearly all of its launch speed on the ground, or starts rolling back down a slope
       if (!r.air && sp < Math.max(0.35, 0.04 * r.v0)) r.rest += dtReal; else r.rest = 0;
       if (!r.air && r.vx < 0) r.back += dtReal; else r.back = 0;
-      if (r.rest > 0.5 || r.back > 0.7) { if (st.phoenix && !r.risen) { r.risen = true; r.rest = r.back = 0; const v = 0.4 * r.v0; r.vx = v * Math.cos(st.angle); r.vy = v * Math.sin(st.angle); r.y += 0.5; r.air = true; r.ev.push({ k: 'phoenix', x: r.x, y: r.y }); } else { r.over = true; r.why = r.back > 0.7 ? '언덕을 넘지 못했어요' : '멈췄어요'; } }
+      if (r.rest > 0.5 || r.back > 0.7) { if (st.phoenix && !r.risen) { r.risen = true; r.rest = r.back = 0; const v = 0.4 * r.v0; r.vx = v * Math.cos(st.angle); r.vy = v * Math.sin(st.angle); r.y += 0.5; r.air = true; r.phx = PHX_T; r.ev.push({ k: 'phoenix', x: r.x, y: r.y }); } else { r.over = true; r.why = r.back > 0.7 ? '언덕을 넘지 못했어요' : '멈췄어요'; } }
       if (r.tr > 100 + st.time + Math.min(100, 10 * Math.max(0, zoneAt(r.maxX) - 8))) { r.over = true; r.why = '시간 초과'; } }
   }
   function payout(r, s) {

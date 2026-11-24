@@ -1,0 +1,10 @@
+// The phoenix: a stopped cart rises once, is thrown forward, and the fire wings show.   node cartlaunch/tools/e2e/phoenix.js <out dir>
+const { chromium } = require('playwright'); const fs = require('fs');
+(async () => { const OUT = process.argv[2], b = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] }), pg = await b.newPage({ viewport: { width: 1000, height: 500 } }), errs = [], saves = JSON.parse(fs.readFileSync(__dirname + '/saves.json')); fs.mkdirSync(OUT, { recursive: true }); await pg.route(/fonts\./, r => r.abort()); pg.on('pageerror', e => errs.push(e.message));
+  const sv = Object.assign({}, saves.z10, { perks: { r_phoenix: 1 }, rebirths: 2 }); await pg.addInitScript(s => localStorage.setItem('cart.save', s), JSON.stringify(sv)); await pg.goto('http://localhost:8766/cartlaunch/index.html'); await pg.waitForTimeout(400);
+  await pg.keyboard.down('Space'); await pg.waitForFunction(() => window.__cart.charge > 0.93 || window.__cart.state !== 'charge'); await pg.keyboard.up('Space'); await pg.waitForTimeout(480); await pg.keyboard.press('Space'); await pg.waitForFunction(() => window.__cart.state === 'fly'); await pg.waitForTimeout(1500);
+  await pg.evaluate(() => { const c = window.__cart, r = c.run; r.vx = 0; r.vy = 0; r.y = c.C.ground(r.x, r.U); r.air = false; });
+  await pg.waitForFunction(() => window.__cart.run.risen, null, { timeout: 5000 }); const v0 = await pg.evaluate(() => window.__cart.run.vx / window.__cart.run.v0);
+  for (const [n, ms] of [['a', 140], ['b', 300], ['c', 450]]) { await pg.waitForTimeout(ms - (n === 'a' ? 0 : n === 'b' ? 140 : 300)); await pg.screenshot({ path: `${OUT}/phoenix_${n}.png` }); }
+  const q = await pg.evaluate(() => { const r = window.__cart.run; return { vx: +(r.vx / r.v0).toFixed(2), state: window.__cart.state, phx: +(r.phx || 0).toFixed(2) }; });
+  console.log('forward speed / launch speed: at rise', v0.toFixed(2), '-> after the burst', q.vx, '| state', q.state, '| errors', errs.length ? errs : 'none'); await b.close(); })();
