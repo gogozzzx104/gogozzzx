@@ -48,7 +48,7 @@ const CORE = (() => {
   const LAST = ZONES.length - 1, DEEP = 60;
   { const look = ['crab', 'pleiades', 'multi', 'rift', 'nebula', 'andromeda', 'virgo', 'magellan', 'centauri', 'omega']; for (let n = 1; n <= DEEP; n++) { const t = ZONES.find(z => z.id === look[(n - 1) % look.length]); ZONES.push(Object.assign({}, t, { id: 'deep' + n, name: '미지의 영역 ' + n, at: ZONES[LAST].at * Math.pow(4, n), deep: n })); } }
   const ZI = id => ZONES.findIndex(z => z.id === id);
-  const zoneAt = x => { let z = 0; for (let i = 1; i < ZONES.length; i++) if (x >= ZONES[i].at) z = i; return z; };
+  const zoneAt = x => { let lo = 0, hi = ZONES.length - 1; while (lo < hi) { const m = (lo + hi + 1) >> 1; if (x >= ZONES[m].at) lo = m; else hi = m - 1; } return lo; };   // zones are sorted by distance
   // continuous zone progress, e.g. 6.5 = half way (on a log scale) through zone 6
   function zoneProg(d) { const z = zoneAt(d); if (z === 0) return Math.max(0, d) / ZONES[1].at; const a = ZONES[z].at, b = z + 1 < ZONES.length ? ZONES[z + 1].at : a * 3; return z + Math.min(1.999, Math.log(d / a) / Math.log(b / a)); }
   function blend(x) { const z = zoneAt(x); if (z === 0) return [0, 0, 0]; const w = Math.max(40, ZONES[z].at * 0.06), f = (x - ZONES[z].at) / w; return f >= 1 ? [z, z, 0] : [z - 1, z, f * f * (3 - 2 * f)]; }
@@ -285,7 +285,7 @@ const CORE = (() => {
     if (gt === 'spec') gt = Z.spec ? Z.spec[Math.floor(h(2) * Z.spec.length)] : null;
     if (gt) { const x = xa + cw * (0.15 + 0.7 * h(3)); if (isWater(x, r.U)) gt = gt === 'boat' || h(7) < 0.4 ? 'boat' : null; else if (gt === 'boat') gt = null; if (gt) out.push({ id: i * 8, type: gt, x, y: ground(x, r.U), grounded: true, rad: S, z }); }
     // air: small groups of coins hung at heights across the whole flight envelope (not a line to follow) - worth chasing, easy to miss
-    const ha = h(4), lo = 1.8 * S, hi = Math.max(3.5 * S, 2 * r.c), at = (k, x) => ground(x, r.U) + lo + (hi - lo) * Math.pow(h(k), 1.6);
+    const far = Math.max(0, Math.min(1, (z - 10) / 12)), ha = h(4), lo = 1.8 * S * (1 + 1.2 * far), hi = Math.max(3.5 * S, 2 * r.c) * (1 + 0.6 * far), at = (k, x) => ground(x, r.U) + lo + (hi - lo) * Math.pow(h(k), 1.6 - 0.7 * far);
     if (ha < 0.30) { const n = h(8) < 0.5 ? 2 : 3, x0 = xa + cw * (0.25 + 0.3 * h(9)), y0 = at(10, x0) - ground(x0, r.U), tilt = (h(11) - 0.5) * 0.8; for (let k = 0; k < n; k++) { const x = x0 + k * 1.5 * S; out.push({ id: i * 8 + 1 + k, type: 'coin', x, y: ground(x, r.U) + Math.max(lo, y0 + k * tilt * S), rad: 0.6 * S, z }); } }
     else if (ha < 0.37) { const x = xm; out.push({ id: i * 8 + 4, type: 'ring', x, y: at(12, x), rad: 1.0 * S, z }); }
     if (h(5) < 0.03 * (1 + 0.3 * r.st.crate)) { const x = xa + cw * 0.8; out.push({ id: i * 8 + 5, type: 'crate', x, y: ground(x, r.U) + lo + (hi - lo) * (0.55 + 0.45 * h(6)), rad: 0.8 * S, z }); }
@@ -305,7 +305,7 @@ const CORE = (() => {
     else if (o.type === 'haz') { if (st.bumper >= 6) { r.coinGold += cv * 2; r.broke++; r.vx *= 0.99; r.ev.push({ k: 'smash', x: o.x, y: o.y, g: cv * 2 }); } else { const k = 0.72 + 0.045 * st.bumper; r.vx *= k; r.vy *= k; r.ev.push({ k: 'bonk', x: o.x, y: o.y }); } }
   }
   function objects(r, x0, x1) {
-    const i0 = Math.max(0, Math.floor(x0 / r.cw - 1.2)), i1 = Math.floor(x1 / r.cw - 1.2);
+    const i0 = Math.max(0, Math.floor(x0 / r.cw - 1.2)), i1 = Math.min(i0 + 12, Math.floor(x1 / r.cw - 1.2));
     for (let i = i0; i <= i1; i++) for (const o of cellObjs(r, i)) { if (r.used.has(o.id) || o.x <= x0 || o.x > x1) continue;
       if (o.grounded) { if (r.y - ground(o.x, r.U) < 0.6 * r.S) hit(r, o); }
       else if (Math.abs(r.y + 0.5 * r.S - o.y) < o.rad + 0.3 * r.S) hit(r, o); }
