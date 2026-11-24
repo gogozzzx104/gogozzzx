@@ -250,7 +250,7 @@ const CORE = (() => {
   function buy(s, id) { if (!canBuy(s, id)) return false; s.gold -= cost(s, id); s.lv[id] = lvl(s, id) + 1; return true; }
 
   // achievements: each is worth +3% gold forever
-  const A = (id, name, desc, test) => ({ id, name, desc, test });
+  const A = (id, name, desc, test) => ({ id, name, desc, test }), FIN_T = 60;   // seconds from reaching the Last Checkout to the ending
   const ACH = [
     A('a_100m', '첫 걸음', '100m 돌파', (s, r) => s.best >= 100), A('a_1km', '동네 한 바퀴', '1km 돌파', (s, r) => s.best >= 1000), A('a_10km', '시 경계 돌파', '10km 돌파', (s, r) => s.best >= 1e4),
     A('a_100km', '도 경계 돌파', '100km 돌파', (s, r) => s.best >= 1e5), A('a_1000km', '대륙 횡단', '1,000km 돌파', (s, r) => s.best >= 1e6), A('a_10000km', '지구 반 바퀴', '10,000km 돌파', (s, r) => s.best >= 1e7),
@@ -264,6 +264,12 @@ const CORE = (() => {
     A('a_star', '은하 여행자', '은하 고속도로 도달', (s, r) => s.zone >= ZI('star')), A('a_hole', '사건의 지평선', '블랙홀 가장자리 도달', (s, r) => s.zone >= ZI('hole')), A('a_end', '끝을 본 자', '우주의 끝 도달', (s, r) => s.zone >= ZI('end')), A('a_rift', '틈새 여행자', '차원의 틈 도달', (s, r) => s.zone >= ZI('rift')), A('a_sun', '태양에 닿다', '태양 표면 도달', (s, r) => s.zone >= ZI('sun')), A('a_omega', '시간의 끝', '시간의 끝 도달', (s, r) => s.zone >= ZI('omega')), A('a_andro', '이웃 은하', '안드로메다 은하 도달', (s, r) => s.zone >= ZI('andromeda')), A('a_multi', '우주 밖으로', '멀티버스 도달', (s, r) => s.zone >= ZI('multi')),
     A('a_lv100', '단골 손님', '업그레이드 100레벨', (s, r) => total(s) >= 100), A('a_lv300', 'VIP 고객', '업그레이드 300레벨', (s, r) => total(s) >= 300),
     A('a_tr1', '차원을 넘어', '첫 초월', (s, r) => (s.trans || 0) >= 1), A('a_deep5', '미지의 개척자', '미지의 영역 5 도달', (s, r) => s.zone >= LAST + 5), A('a_deep20', '끝없는 여정', '미지의 영역 20 도달', (s, r) => s.zone >= LAST + 20),
+    A('a_deep50', '미지의 끝', '미지의 영역 50 도달', (s, r) => s.zone >= LAST + 50), A('a_hall', '영원을 걷는 자', '영원의 회랑 10 도달', (s, r) => s.zone >= LAST + 60), A('a_garden', '창세의 목격자', '창세의 정원 10 도달', (s, r) => s.zone >= LAST + 70),
+    A('a_gate', '문을 연 자', '태초의 문 도달', (s, r) => s.zone >= LAST + 71), A('a_throne', '옥좌 앞에서', '무한의 옥좌 도달', (s, r) => s.zone >= LAST + 72), A('a_last', '마지막 손님', '최후의 계산대 도달', (s, r) => s.zone >= LAST + 73),
+    A('a_tr10', '차원 방랑자', '초월 10회', (s, r) => (s.trans || 0) >= 10), A('a_tr50', '윤회의 끝', '초월 50회', (s, r) => (s.trans || 0) >= 50), A('a_re50', '쉰 번의 생', '환생 50회', (s, r) => s.rebirths >= 50),
+    A('a_push', '한계 없는 근력', '근력 훈련 최대 레벨', (s, r) => lvl(s, 'push') >= UP.push.max), A('a_engine', '엔진 완성', '차원 엔진 최대 레벨', (s, r) => tl(s, 't_speed') >= TP.t_speed.max), A('a_vault', '금고 완성', '차원 금고 최대 레벨', (s, r) => tl(s, 't_gold') >= TP.t_gold.max),
+    A('a_stars', '별의 바다', '지금까지 받은 별 1억 개', (s, r) => starsEver(s) >= 1e8), A('a_combo1k', '천 번의 박자', '한 판에 1,000콤보', (s, r) => r && r.maxCombo >= 1000), A('a_perf50', '빈틈없는 착지', '한 판에 완벽 착지 50회', (s, r) => r && r.perfLands >= 50),
+    A('a_fin', '계산 완료', '최후의 계산대에서 빛에 닿아 엔딩을 보기', (s, r) => (s.ended || 0) >= 1), A('a_fin5', '단골의 귀환', '엔딩 5번 보기', (s, r) => (s.ended || 0) >= 5),
     A('a_re1', '새 출발', '첫 환생', (s, r) => s.rebirths >= 1), A('a_re5', '윤회', '환생 5회', (s, r) => s.rebirths >= 5),
   ];
   function checkAch(s, r) { const got = []; for (const a of ACH) if (!s.ach[a.id] && a.test(s, r)) { s.ach[a.id] = 1; got.push(a); } return got; }
@@ -412,11 +418,13 @@ const CORE = (() => {
       // one crate as before; the extra beams take more crates first, then coins
       for (let n = 0; n < st.beamN && c.length + g.length; n++) { const a = c.length ? c : g, o = a.splice(Math.floor(hash(r.seed + Math.floor(r.tr * 20) + n * 7.3) * a.length), 1)[0]; r.used.add(o.id); r.mag.push({ o, t0: r.tr, d: 0.6, beam: 1 }); r.tracT = r.tr + st.tractor; if (!n) r.ev.push({ k: 'tractor', x: o.x, y: o.y }); } }
     for (let k = r.mag.length - 1; k >= 0; k--) if (r.over || r.tr - r.mag[k].t0 >= (r.mag[k].d || 0.3)) { hit(r, Object.assign({}, r.mag[k].o, { x: r.x, y: r.y + 0.5 * r.S })); r.mag.splice(k, 1); }
+    if (r.fin == null && !r.over && r.x >= ZONES[LAST + DEEP].at) { r.fin = r.tr; r.ev.push({ k: 'finale', x: r.x, y: r.y }); }
+    if (r.fin != null && !r.over) { const m = 0.3 * r.v0; if (r.vx < m) r.vx = m; if (r.tr - r.fin >= FIN_T) { r.finDone = true; r.over = true; r.why = '계산 완료'; r.ev.push({ k: 'ending', x: r.x, y: r.y }); } }
     for (let z = zoneAt(r.x); r.zc < z;) { const Z = ZONES[++r.zc], lv = Math.max(Z.water ? st.float : 0, Z.spec && Z.spec.includes('pool') ? st.heat : 0, Z.rough ? st.wide : 0); if (lv) { const add = 0.012 * lv * r.v0 * Math.pow(0.94, r.tops++); r.vx += add; r.ev.push({ k: 'zboost', x: r.x, y: r.y, z: r.zc, pct: Math.round(1.2 * lv) }); } }
     { const s2 = Math.hypot(r.vx, r.vy), cap = vcap(r); if (s2 > cap) { r.vx *= cap / s2; r.vy *= cap / s2; r.capT = r.tr; } }   // pads, rings and zone boosts obey the ceiling too
     r.t += dt; r.tr += dtReal; if (r.x > r.maxX) r.maxX = r.x;
     const sp = Math.hypot(r.vx, r.vy); if (sp > r.maxV) r.maxV = sp;
-    if (!r.over) {
+    if (!r.over && r.fin == null) {
       // the run ends when the cart has lost nearly all of its launch speed on the ground, or starts rolling back down a slope
       if (!r.air && sp < Math.max(0.35, 0.04 * r.v0)) r.rest += dtReal; else r.rest = 0;
       if (!r.air && r.vx < 0) r.back += dtReal; else r.back = 0;
@@ -430,14 +438,14 @@ const CORE = (() => {
     const mult = 1 + (style + alt + perfect + kickB + dbl + land + slam + trick + combo) * st.encore;
     return { dist, coins, style, alt, perfect, kickB, dbl, land, slam, trick, combo, gold, first, mult, total: Math.floor((dist + coins + first) * mult * gold), zone: z };
   }
-  function finish(r, s) { const p = payout(r, s); s.gold += p.total; s.runs++; if (p.total > (s.lifeGold || 0)) s.lifeGold = p.total; if (r.maxX > (s.bestT || 0)) s.bestT = r.maxX; if (r.perfect) s.perfects = (s.perfects || 0) + 1; if (r.slams) s.slams = (s.slams || 0) + r.slams;
+  function finish(r, s) { const p = payout(r, s); s.gold += p.total; s.runs++; if (r.finDone) s.ended = (s.ended || 0) + 1; if (p.total > (s.lifeGold || 0)) s.lifeGold = p.total; if (r.maxX > (s.bestT || 0)) s.bestT = r.maxX; if (r.perfect) s.perfects = (s.perfects || 0) + 1; if (r.slams) s.slams = (s.slams || 0) + r.slams;
     p.record = r.maxX > s.best; if (r.maxX > s.best) s.best = r.maxX; if (r.maxX > s.bestLife) s.bestLife = r.maxX; p.newZone = p.zone > s.zone; if (p.zone > s.zone) s.zone = p.zone; if (s.zone > (s.zoneEver || 0)) s.zoneEver = s.zone; if (s.zone - LAST > (s.deepEver || 0)) s.deepEver = s.zone - LAST; p.ach = checkAch(s, r); return p; }
   function rebirth(s) { const gain = starGain(s); if (gain <= 0) return 0; const seed = (s.perks.p_seed || 0) ? 100 * Math.pow(10, s.perks.p_seed) + s.perks.p_seed * (s.lifeGold || 0) : 0, keep = 0.08 * (s.perks.r_mem || 0);
     s.starsEver = starsEver(s) + gain; s.stars += gain; s.starsTotal += gain; s.rebirths++; s.gold = seed; const lv = {}; if (keep) for (const k in s.lv) { const n = Math.floor(s.lv[k] * keep); if (n) lv[k] = n; } s.lv = lv; s.bestLife = 0; s.lifeGold = 0; s.zone = 0; checkAch(s, null); return gain; }
   function buyAll(s) { let n = 0; for (; n < 20000;) { let best = null, bc = Infinity; for (const u of UPS) if (canBuy(s, u.id)) { const c = cost(s, u.id); if (c < bc) { bc = c; best = u.id; } } if (!best) break; buy(s, best); n++; } return n; }
   function buyAllPerks(s) { let n = 0; for (; n < 2000;) { let best = null, bc = Infinity; for (const q of PERKS) { const l = s.perks[q.id] || 0, c = perkCost(q, l); if (l < q.max && !perkLock(s, q.id) && c <= s.stars && c < bc) { bc = c; best = q.id; } } if (!best) break; buyPerk(s, best); n++; } return n; }
   function buyPerk(s, id) { const p = PK[id], l = s.perks[id] || 0; if (!p || l >= p.max || perkLock(s, id) || s.stars < perkCost(p, l)) return false; s.stars -= perkCost(p, l); s.perks[id] = l + 1; return true; }
-  return { ZONES, ZI, zoneAt, zoneProg, lerpZ, ground, isWater, UPS, UP, BRANCH, PERKS, PK, PBRANCH, perkCost, perkLock, STAR_GOLD, starsFor, nextStarAt, ACH, checkAch, achCount,
+  return { ZONES, ZI, zoneAt, zoneProg, lerpZ, ground, isWater, UPS, UP, BRANCH, PERKS, PK, PBRANCH, perkCost, perkLock, STAR_GOLD, starsFor, nextStarAt, ACH, checkAch, achCount, FIN_T,
     setTire: v => { TIRE = v; }, vcap, newSave, migrate, lvl, total, cost, lockReason, canBuy, buy, stats, RAMP, scaleOf, newRun, river, cellObjs, step, payout, finish, rebirth, buyPerk, buyAll, buyAllPerks, gateZone, LAST, TPERKS, TP, tCost, tl, TV, shardsFor, buyT, tLock, deepEver, starsEver, transcend, starGain, cycleBest, gd, gref };
 })();
 if (typeof module !== 'undefined') module.exports = CORE;

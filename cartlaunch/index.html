@@ -326,6 +326,37 @@ function launch() {
   flyUI(true); sonicLv = 0; trail = []; if (run.perfect && !run.dbl) confetti(W * 0.3, H * 0.6, 14); ringFx(W * 0.28, H * 0.7, '#ffffff', 90, 0.5, 6); if (run.golden) { toast('황금 판! 골드 3배', 1600); SFX.crate(); }
   for (let i = 0; i < 16; i++) parts.push({ x: 0, y: run.y, vx: -2 - Math.random() * 7, vy: (Math.random() - 0.3) * 6, t: 0, life: 0.6, c: '#fff', s: 1 });
 }
+// Ending: the light swallows the screen, the cart rolls up to the last checkout, is scanned, and a receipt of the whole journey prints.
+function endSkip() { if (state === 'ending' && performance.now() - endT > 4000) endRun(); }
+function drawEnding(a) {
+  const D = getComputedStyle(root).getPropertyValue('--disp'), cl = v => Math.max(0, Math.min(1, v)), ez = v => { v = cl(v); return 1 - (1 - v) * (1 - v) * (1 - v); }, once = (k, fn) => { if (!endS[k]) { endS[k] = 1; fn(); } };
+  const sx = W * 0.63, sy = H * 0.3; g.save(); g.textAlign = 'center';
+  // 0-1.5 s: the light takes the whole screen
+  g.fillStyle = `rgba(255,255,255,${0.75 + 0.25 * cl(a / 1.2)})`; g.fillRect(0, 0, W, H); once('boom', () => { noise(1.8, 0.5, 2400); tone(220, 1760, 1.4, 0.2, 'sine'); tone(110, 55, 1.6, 0.3, 'sine'); });
+  const s1 = cl((a - 1.5) / 1.5); if (s1 > 0) { g.globalAlpha = s1; const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#fffdf2'); bg.addColorStop(1, '#ffe3a0'); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+    g.save(); g.translate(W * 0.5, H * 0.34); g.rotate(a * 0.05); for (let k = 0; k < 20; k++) { g.rotate(0.31416); g.fillStyle = `rgba(255,255,255,${k % 2 ? 0.5 : 0.25})`; g.beginPath(); g.moveTo(0, 0); g.lineTo(W, -W * 0.07); g.lineTo(W, W * 0.07); g.fill(); } g.restore();
+    const fy = H * 0.76, sc = Math.min(2.2, H / 330); g.fillStyle = '#f0c36a'; g.fillRect(0, fy, W, H - fy); g.fillStyle = 'rgba(255,255,255,.5)'; g.fillRect(0, fy, W, 3);
+    // the checkout: belt, till and scanner arch
+    const kx = W * 0.5, kw = Math.min(W * 0.34, 330), kh = 46 * sc; g.fillStyle = '#7a4a12'; g.beginPath(); g.roundRect(kx, fy - kh, kw, kh, 8); g.fill(); g.fillStyle = '#2b2233'; g.fillRect(kx + 8, fy - kh + 6, kw - 16, 9 * sc); g.fillStyle = '#fff'; for (let k = 0; k < 9; k++) g.fillRect(kx + 12 + ((k * 40 + a * 30) % (kw - 30)), fy - kh + 8, 10, 5 * sc);
+    g.strokeStyle = '#2b2233'; g.lineWidth = 6; g.beginPath(); g.moveTo(kx + kw * 0.3, fy - kh); g.lineTo(kx + kw * 0.3, fy - kh - 70 * sc); g.lineTo(kx + kw * 0.3 + 60 * sc, fy - kh - 70 * sc); g.stroke(); g.fillStyle = '#2b2233'; g.beginPath(); g.roundRect(kx + kw * 0.72, fy - kh - 44 * sc, 54 * sc, 40 * sc, 6); g.fill(); g.fillStyle = a > 5.2 ? '#7be08a' : '#12a594'; g.fillRect(kx + kw * 0.72 + 6, fy - kh - 38 * sc, 54 * sc - 12, 22 * sc);
+    // the cart rolls in and stops under the scanner
+    const cx2 = -90 + (kx - 40 * sc + 90) * ez((a - 2) / 3), pins = dollStep(0.016, 0, a < 5 ? -300 : 0, 0, 0, 0); drawDoll(cx2, fy - 2, sc, pins, false); drawCart(cx2, fy - 2, 0, sc); drawDoll(cx2, fy - 2, sc, pins, true);
+    if (a > 5.2 && a < 6) { const k = 1 - (a - 5.2) / 0.8; g.shadowColor = '#ff2a2a'; g.shadowBlur = 20; g.fillStyle = `rgba(255,50,50,${k})`; g.fillRect(cx2 - 60 * sc, fy - 34 * sc, 150 * sc, 3); g.shadowBlur = 0; g.font = `${30 * sc}px ${D}`; g.fillStyle = `rgba(240,69,47,${k})`; g.fillText('삑!', cx2 + 20 * sc, fy - 80 * sc - (1 - k) * 20); }
+    if (a > 5.2) once('beep', () => { tone(1900, 1900, 0.13, 0.2, 'square'); buzz(40); });
+    // the receipt of the whole journey
+    if (a > 6) { const L = ['카트 대발사 마트', '- - - - - - - - - - -', `발사  ${fmt(S.runs + 1)}회`, `환생  ${fmt(S.rebirths)}회`, `초월  ${fmt(S.trans || 0)}회`, `최고 거리  ${fmtD(Math.max(S.best, run.maxX))}`, `업적  ${Object.keys(S.ach).length} / ${C.ACH.length}`, '- - - - - - - - - - -', '합계  모험 1개', `결제 완료 · ${(S.ended || 0) + 1}번째`, '이용해 주셔서 감사합니다'], n = Math.min(L.length, Math.floor((a - 6) / 0.42) + 1), lh = 19 * sc * 0.8, rw = 190 * sc * 0.8, rx = W * 0.2 - rw / 2 + Math.max(0, W * 0.02), ry = H * 0.08;
+      if (n !== endS.ln) { endS.ln = n; tone(900 + n * 40, 700, 0.05, 0.08, 'square'); }
+      g.fillStyle = 'rgba(43,34,51,.18)'; g.fillRect(rx + 5, ry + 5, rw, n * lh + 22); g.fillStyle = '#fff'; g.fillRect(rx, ry, rw, n * lh + 22); g.fillStyle = '#2b2233'; for (let k = 0; k < n; k++) { g.font = `${(k === 0 || k === 8 ? 15 : 12.5) * sc * 0.8}px ${D}`; g.fillText(L[k], rx + rw / 2, ry + 20 + k * lh); }
+      g.beginPath(); for (let q = 0; q <= 12; q++) g.lineTo(rx + rw * q / 12, ry + n * lh + 22 + (q % 2 ? 6 : 0)); g.lineTo(rx + rw, ry + n * lh + 20); g.lineTo(rx, ry + n * lh + 20); g.fillStyle = '#fff'; g.fill(); }
+    // the last words
+    if (a > 11.5) { const k = cl((a - 11.5) / 1.2); once('chord', () => { [523, 659, 784, 1047, 1319].forEach((f, q) => setTimeout(() => tone(f, f, 1.6, 0.11, 'triangle'), q * 130)); SFX.perfect(); });
+      for (let q = 0; q < 26; q++) { const tw = Math.abs(Math.sin(a * 2.2 + q * 1.7)), px = hsh(q * 3 + 1) * W, py = ((hsh(q * 7 + 2) * H + a * (20 + 30 * hsh(q))) % H), r2 = 4 + 5 * hsh(q * 5); g.fillStyle = '#f5b014'; g.strokeStyle = '#8a5a08'; g.lineWidth = 1.5; g.globalAlpha = s1 * k * 0.9; g.beginPath(); g.ellipse(px, py, r2 * tw + 1, r2, 0, 0, 7); g.fill(); g.stroke(); }
+      g.globalAlpha = s1 * k; g.lineJoin = 'round'; g.font = `${Math.min(78, W * 0.085)}px ${D}`; g.lineWidth = 10; g.strokeStyle = '#2b2233'; g.strokeText('계산 완료', W * 0.62, H * 0.3 + (1 - k) * 16); g.fillStyle = '#ffd24a'; g.fillText('계산 완료', W * 0.62, H * 0.3 + (1 - k) * 16);
+      g.font = `${Math.min(22, W * 0.026)}px ${D}`; g.lineWidth = 5; g.strokeText('주차장에서 여기까지, 끝까지 와 주셔서 고마워요', W * 0.62, H * 0.3 + 40); g.fillStyle = '#fff'; g.fillText('주차장에서 여기까지, 끝까지 와 주셔서 고마워요', W * 0.62, H * 0.3 + 40); }
+    g.globalAlpha = 1; }
+  if (a > 4) { g.globalAlpha = 0.45 + 0.4 * Math.sin(a * 3); g.font = `14px ${D}`; g.fillStyle = '#2b2233'; g.fillText('화면을 누르면 계속', W / 2, H - 16); g.globalAlpha = 1; }
+  g.restore(); if (a > 40) endRun();
+}
 function endRun() {
   pay = C.finish(run, S); if (C.tl(S, 't_auto')) C.buyAll(S); save(); state = 'result'; flyUI(false);
   $('#rWhy').textContent = run.why; $('#rDist').innerHTML = fmtD(run.maxX);
@@ -344,7 +375,7 @@ function endRun() {
 /* ---------------- input ---------------- */
 const locX = e => portrait ? e.clientY : e.clientX, locY = e => portrait ? H - e.clientX : e.clientY;
 const keys = new Set(); let ptrSide = 0;
-cv.addEventListener('pointerdown', e => { e.preventDefault(); snd(); try { cv.setPointerCapture(e.pointerId); } catch (er) {} if (state === 'aim') { startCharge(); return; } ptrSide = locX(e) < W / 2 ? 1 : -1; if (state === 'push') tryKick(); });
+cv.addEventListener('pointerdown', e => { e.preventDefault(); snd(); try { cv.setPointerCapture(e.pointerId); } catch (er) {} if (state === 'ending') { endSkip(); return; } if (state === 'aim') { startCharge(); return; } ptrSide = locX(e) < W / 2 ? 1 : -1; if (state === 'push') tryKick(); });
 const spinOff = () => { ptrSide = 0; if (state === 'charge') release(); }; cv.addEventListener('pointerup', spinOff); cv.addEventListener('pointercancel', spinOff);
 addEventListener('blur', () => { keys.clear(); ptrSide = 0; boostHeld = false; });
 // Scrolling by drag, in stage coordinates, so it also works while the stage is rotated for a portrait-locked phone.
@@ -359,7 +390,7 @@ const hold = (el, on, off) => { el.addEventListener('pointerdown', e => { e.prev
 hold(boostBtn, () => boostHeld = true, () => boostHeld = false); hold(skillBtn, () => skillTap = true); hold(dashBtn, () => dashTap = true); hold(diveBtn, () => diveTap = true);
 endBtn.addEventListener('click', () => { if (state === 'fly' && run && !run.over) { run.over = true; run.why = '여기까지!'; endRun(); } });
 const KB = matchMedia('(pointer: fine)').matches; if (KB) root.classList.add('kb');
-addEventListener('keydown', e => { if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); keys.add(e.code); if (e.repeat) return; snd(); root.classList.add('kb'); if (state === 'shop' && e.code === 'Escape') toAim(); if (state === 'result' && e.code === 'KeyU') openShop(); if (e.code === 'Space') { if (state === 'aim') startCharge(); else if (state === 'push') tryKick(); else if (state === 'fly') boostHeld = true; else if (state === 'result') toAim(); } if (e.code === 'KeyW' || e.code === 'ArrowUp' || e.code === 'ShiftLeft') skillTap = true; if (e.code === 'KeyE') dashTap = true; if (e.code === 'KeyS' || e.code === 'ArrowDown' || e.code === 'KeyQ') diveTap = true; });
+addEventListener('keydown', e => { if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); keys.add(e.code); if (e.repeat) return; snd(); root.classList.add('kb'); if (state === 'ending') { if (e.code === 'Space' || e.code === 'Enter') endSkip(); return; } if (state === 'shop' && e.code === 'Escape') toAim(); if (state === 'result' && e.code === 'KeyU') openShop(); if (e.code === 'Space') { if (state === 'aim') startCharge(); else if (state === 'push') tryKick(); else if (state === 'fly') boostHeld = true; else if (state === 'result') toAim(); } if (e.code === 'KeyW' || e.code === 'ArrowUp' || e.code === 'ShiftLeft') skillTap = true; if (e.code === 'KeyE') dashTap = true; if (e.code === 'KeyS' || e.code === 'ArrowDown' || e.code === 'KeyQ') diveTap = true; });
 addEventListener('keyup', e => { keys.delete(e.code); if (e.code === 'Space') { boostHeld = false; if (state === 'charge') release(); } });
 document.addEventListener('contextmenu', e => e.preventDefault());
 $('#rAgain').addEventListener('click', toAim); $('#rShop').addEventListener('click', openShop); $('#shopBtn').addEventListener('click', openShop); $('#sClose').addEventListener('click', toAim);
@@ -522,6 +553,7 @@ function drawFx(dt) {
   fxs = fxs.filter(f => f.t < f.life); if (fxs.length > 420) fxs.splice(0, fxs.length - 420);
 }
 const SX = x => (x - cam.x) * ppm + ox, SY = y => oy - (y - cam.y) * ppm;
+let finP = 0, endT = 0, endS = {};   // finale progress 0-1, when the ending began, one-shot sounds already played
 let peekZ = null;   // test hook: draw this zone's sky wherever the cart is
 function drawWorld(cx, cy, dt) {
   // sky
@@ -631,7 +663,7 @@ const DM = {
     const sw = H * 0.085, sh = (base - top - H * 0.22) / 9; for (let k = 0; k < 9; k++) { const w = sw * (1.2 + (8 - k) * 0.42), y = base - (k + 1) * sh; g.fillStyle = k % 2 ? '#2a0f22' : '#1c0a16'; g.fillRect(x - w, y, w * 2, sh + 1); g.fillStyle = `rgba(${c},.7)`; g.fillRect(x - w, y, w * 2, 2); }
     const ty = base - 9 * sh; g.fillStyle = '#12060e'; g.beginPath(); g.moveTo(x - sw * 0.8, ty); g.lineTo(x - sw * 0.8, ty - H * 0.2); g.lineTo(x - sw * 0.55, ty - H * 0.27); g.lineTo(x, ty - H * 0.22); g.lineTo(x + sw * 0.55, ty - H * 0.27); g.lineTo(x + sw * 0.8, ty - H * 0.2); g.lineTo(x + sw * 0.8, ty); g.fill(); g.strokeStyle = `rgba(${c},.95)`; g.lineWidth = 2; g.stroke(); g.fillStyle = `rgba(${c},.35)`; g.fillRect(x - sw * 0.55, ty - H * 0.07, sw * 1.1, H * 0.07); },
   // the Last Checkout: where the run that began in a car park ends - a scanner beam, bar-code pillars of light and a cart among the stars
-  checkout(c, n, tm, base, PX) { const x = W * 0.63, y = H * 0.3, R = H * 0.13; g.save(); g.translate(x, y); g.rotate(tm * 0.06); for (let k = 0; k < 16; k++) { g.rotate(0.3927); g.fillStyle = `rgba(255,255,255,${k % 2 ? 0.16 : 0.32})`; g.beginPath(); g.moveTo(0, 0); g.lineTo(H * 1.6, -H * 0.1); g.lineTo(H * 1.6, H * 0.1); g.fill(); } g.restore();
+  checkout(c, n, tm, base, PX) { const x = W * 0.63, y = H * 0.3, R = H * (0.13 + 0.6 * finP);   // the light grows through the final minute g.save(); g.translate(x, y); g.rotate(tm * 0.06); for (let k = 0; k < 16; k++) { g.rotate(0.3927); g.fillStyle = `rgba(255,255,255,${k % 2 ? 0.16 : 0.32})`; g.beginPath(); g.moveTo(0, 0); g.lineTo(H * 1.6, -H * 0.1); g.lineTo(H * 1.6, H * 0.1); g.fill(); } g.restore();
     for (let i = 0; i < 34; i++) { const bx = PX(i, 34, 0.05), w = 2 + 9 * hsh(i * 3 + 1) * (hsh(i * 7) > 0.5 ? 1 : 0.3); g.fillStyle = `rgba(255,255,255,${0.2 + 0.2 * hsh(i * 5)})`; g.fillRect(bx, H * 0.04, w, base - H * 0.04); }
     const gr = g.createRadialGradient(x, y, 0, x, y, R * 3.2); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.3, 'rgba(255,250,220,.85)'); gr.addColorStop(1, 'rgba(255,240,190,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, H); g.fillStyle = '#fff'; g.beginPath(); g.arc(x, y, R * (1 + 0.04 * Math.sin(tm * 2)), 0, 7); g.fill();
     const ly = H * 0.08 + (base - H * 0.12) * (0.5 + 0.5 * Math.sin(tm * 0.9)); g.shadowColor = '#ff2a2a'; g.shadowBlur = 18; g.fillStyle = 'rgba(255,60,60,.85)'; g.fillRect(0, ly, W, 2.5); g.shadowBlur = 0;
@@ -890,6 +922,9 @@ function hud(r) {
     // zone progress
     const nz = Z[z + 1], bw = Math.min(260, W * 0.3), bx = W / 2 - bw / 2; g.textAlign = 'center'; txt(Z[z].name, W / 2, 24, 16);
     if (nz) { const f = Math.min(1, (r.maxX - Z[z].at) / (nz.at - Z[z].at)); g.fillStyle = '#2b2233'; g.fillRect(bx - 2, 30, bw + 4, 10); g.fillStyle = '#fff6e6'; g.fillRect(bx, 32, bw, 6); g.fillStyle = '#12a594'; g.fillRect(bx, 32, bw * f, 6); g.font = `11px ${D}`; g.fillStyle = '#fff'; g.strokeStyle = '#2b2233'; g.lineWidth = 3; g.strokeText('다음: ' + nz.name + ' ' + fmtD(nz.at), W / 2, 54); g.fillText('다음: ' + nz.name + ' ' + fmtD(nz.at), W / 2, 54); }
+    else if (r.fin != null) { const gx = bx + bw * finP, tm2 = performance.now() / 1000; g.fillStyle = '#2b2233'; g.fillRect(bx - 2, 30, bw + 4, 10); g.fillStyle = '#5a4a2a'; g.fillRect(bx, 32, bw, 6); const gr = g.createLinearGradient(bx, 0, bx + bw, 0); gr.addColorStop(0, '#f5b014'); gr.addColorStop(1, '#fffbe0'); g.fillStyle = gr; g.fillRect(bx, 32, bw * finP, 6);
+      const hl = g.createRadialGradient(bx + bw, 35, 0, bx + bw, 35, 22 + 4 * Math.sin(tm2 * 4)); hl.addColorStop(0, 'rgba(255,255,255,1)'); hl.addColorStop(0.35, 'rgba(255,240,170,.8)'); hl.addColorStop(1, 'rgba(255,240,170,0)'); g.fillStyle = hl; g.beginPath(); g.arc(bx + bw, 35, 26, 0, 7); g.fill();
+      g.fillStyle = '#fff'; g.strokeStyle = '#2b2233'; g.lineWidth = 2.5; g.beginPath(); g.arc(gx, 35, 6, 0, 7); g.fill(); g.stroke(); g.font = `11px ${D}`; g.lineWidth = 3; const lb = '빛까지 ' + Math.max(0, Math.ceil(C.FIN_T * (1 - finP))) + '초'; g.strokeText(lb, W / 2, 56); g.fillStyle = '#fff'; g.fillText(lb, W / 2, 56); }
     boostBtn.querySelector('small').textContent = r.fuel > 0 ? '' : '연료 없음'; boostBtn.disabled = r.fuel <= 0;
     if (st.fuel) { const nowT = performance.now(), f = Math.max(0, Math.min(1, r.fuel / st.fuel)), bw = Math.min(300, W * 0.34), bh = 14, bx = W / 2 - bw / 2, by = H - 26; if (r.tr < 0.1) fuelShown = f; if (f > fuelShown + 0.004) fuelUpT = nowT; fuelShown += (f - fuelShown) * 0.16;
       const up = Math.max(0, 1 - (nowT - fuelUpT) / 600), fw = Math.max(0, (bw - 6) * fuelShown);
@@ -957,6 +992,7 @@ function frame(now) {
       else if (e.k === 'badland') { pops.push({ a: 1, t: 0, col: '#ff9d9d', txt: '삐끗! 속도 -12%' }); shake = Math.max(shake, 5); }
       else if (e.k === 'pull') tone(1100, 1500, 0.05, 0.05);
       else if (e.k === 'rekindle') { tone(700, 1100, 0.12, 0.05, 'triangle'); pops.push({ a: 1, t: 0, col: '#ff9a4a', txt: '재점화!' }); }
+      else if (e.k === 'finale') { toast('최후의 계산대 — 빛을 향해 1분', 2800); SFX.zone(); SFX.perfect(); flash = 0.5; flashCol = '#fff8d0'; shake = 14; for (let k = 0; k < 4; k++) ringFx(cartX, cartY, k % 2 ? '#ffffff' : '#ffd24a', 120 + k * 80, 0.8 + k * 0.15, 8 - k, k * 0.1); confetti(cartX, cartY, 40); }
       else if (e.k === 'tractor') { tone(500, 1400, 0.3, 0.1, 'sine'); pops.push({ a: 1, t: 0, col: '#ffe27a', txt: '견인 광선!' }); }
       else if (e.k === 'recharge') { pops.push({ a: 1, t: 0, col: '#8fe8ff', txt: '대시 충전!' }); tone(600, 1200, 0.15, 0.12); }
       else if (e.k === 'zboost') { const nz = run.ev.filter(q => q.k === 'zboost').length; if (nz > 2) { if (e === run.ev.find(q => q.k === 'zboost')) { pops.push({ a: 1, t: 0, col: '#8fe8ff', txt: `구역 ${nz}곳 통과 가속` }); ringFx(cartX, cartY, '#8fe8ff', 70, 0.4, 5); } } else { if (pops.length < 4) pops.push({ a: 1, t: 0, col: '#8fe8ff', txt: `${Z[e.z].name} 통과 가속 +${e.pct}%` }); ringFx(cartX, cartY, '#8fe8ff', 60, 0.35, 4); } }
@@ -974,7 +1010,8 @@ function frame(now) {
     { const spN = Math.hypot(run.vx, run.vy), lv = spN > 34000 ? 3 : spN > 3400 ? 2 : spN > 340 ? 1 : 0; if (lv > sonicLv && run.tr > 1.8) { sonicLv = lv; toast(['', '음속 돌파!', '마하 10!', '마하 100!'][lv], 1000); SFX.dash(); noise(0.4, 0.5, 300); shake = 6; ringFx(cartX, cartY, '#ffffff', 150, 0.55, 6); } }
     dashT = Math.max(0, dashT - dt);
     trail.push({ x: run.x, y: run.y, c: run.boosting ? '#ffb057' : dashT > 0 ? '#5af0ff' : run.slam ? '#b68cff' : run.golden ? '#ffd24a' : '#ffffff' }); if (trail.length > 18) trail.shift();
-    if (run.over) { BST.set(false); endRun(); }
+    finP = run.fin != null ? Math.min(1, (run.tr - run.fin) / C.FIN_T) : 0;
+    if (run.over) { BST.set(false); if (run.finDone) { state = 'ending'; endT = performance.now(); endS = {}; for (const b2 of [boostBtn, skillBtn, dashBtn, diveBtn, endBtn]) b2.hidden = true; flash = 1; flashCol = '#fff'; shake = 20; } else endRun(); }
   }
   // camera
   const r = run, px = r ? r.x : 0, py = r ? r.y : 0.6, sp = r ? Math.hypot(r.vx, r.vy) : 0, alt = r ? py - G(px) : 0;
@@ -1052,7 +1089,8 @@ function frame(now) {
           const reach = Math.min(1, a * 2.5) * W * 0.85, amp = 26 * K * fd + 4; for (let h = 0; h < 2; h++) { g.strokeStyle = h ? `rgba(90,240,255,${0.9 * fd})` : `rgba(255,90,208,${0.9 * fd})`; g.lineWidth = 5 * fd + 1.5; g.shadowColor = h ? '#5af0ff' : '#ff5ad0'; g.shadowBlur = 14; g.beginPath(); for (let px = 0; px <= reach; px += 12) { const py = y - px * 0.28 + Math.sin(px * 0.035 - a * 16 + h * Math.PI) * amp; px ? g.lineTo(x + px, py) : g.moveTo(x + px, py); } g.stroke(); } g.shadowBlur = 0;
           g.strokeStyle = `rgba(255,255,255,${0.5 * fd})`; g.lineWidth = 1.5; g.beginPath(); for (let px = 20; px <= reach; px += 44) { const o = Math.sin(px * 0.035 - a * 16) * amp; g.moveTo(x + px, y - px * 0.28 + o); g.lineTo(x + px, y - px * 0.28 - o); } g.stroke(); } }
       g.restore(); } }
-  if (state !== 'shop') { const W0 = W, H0 = H; g.save(); g.scale(hudK, hudK); W = W0 / hudK; H = H0 / hudK; hud(state === 'fly' || state === 'result' ? r : null); W = W0; H = H0; g.restore(); }
+  if (state === 'ending') drawEnding((now - endT) / 1000);
+  else if (state !== 'shop') { const W0 = W, H0 = H; g.save(); g.scale(hudK, hudK); W = W0 / hudK; H = H0 / hudK; hud(state === 'fly' || state === 'result' ? r : null); W = W0; H = H0; g.restore(); }
   if (banner) { const a = (now - banner.t) / 1000, life = 1.3; if (a > life) banner = null; else { const D = getComputedStyle(root).getPropertyValue('--disp'), al = Math.min(1, a * 6) * Math.min(1, (life - a) * 3), k = hudK, t = banner.txt + ' 진입!';   // a small see-through tag under the top HUD, so it never hides the cart
       g.font = `${20 * k}px ${D}`; const w = g.measureText(t).width + 36 * k, y = 112 * k; g.globalAlpha = al * 0.72; g.fillStyle = '#f0452f'; g.beginPath(); g.roundRect(W / 2 - w / 2, y, w, 30 * k, 15 * k); g.fill(); g.globalAlpha = al; g.fillStyle = '#fff'; g.textAlign = 'center'; g.fillText(t, W / 2, y + 22 * k); g.globalAlpha = 1; } }
 }
