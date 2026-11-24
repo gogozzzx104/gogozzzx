@@ -49,7 +49,7 @@ const CORE = (() => {
   // Beyond the named universe: five uncharted realms of ten zones (three skies each: zones 1-3, 4-7, 8-10), two named layers of ten zones
   // (two skies each) and three last places.  Terrain rules still cycle through ten earlier zones; sky, ground, edge colour and music are new.
   // FAR: log10 of the distance of the last three, set so a fully maxed cart only reaches the very last by holding its top speed.
-  const FAR = [61.3, 62.2, 62.85];
+  const FAR = [61.3, 62.2, 62.7];
   { const look = ['crab', 'pleiades', 'multi', 'rift', 'nebula', 'andromeda', 'virgo', 'magellan', 'centauri', 'omega'],
       V = { u00: [['#01131c', '#064a5a'], '#082a36', '#5af0e0'], u01: [['#021a2a', '#0a6a6a'], '#0a3a40', '#8affd0'], u02: [['#000c14', '#0b3a5c'], '#06202e', '#6ac8ff'],
         u10: [['#0c0420', '#3a1a7a'], '#241046', '#c9a0ff'], u11: [['#100630', '#5a2aa0'], '#2e1660', '#f0b0ff'], u12: [['#080218', '#7a3ac0'], '#1c0c3a', '#a0e0ff'],
