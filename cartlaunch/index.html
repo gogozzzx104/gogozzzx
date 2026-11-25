@@ -282,7 +282,8 @@ button{font-family:var(--disp);touch-action:manipulation}
 #toast{position:absolute;left:50%;top:43%;transform:translateX(-50%);font:30px var(--disp);color:#fff;text-shadow:0 3px 0 var(--ink),0 0 12px rgba(0,0,0,.4);pointer-events:none;opacity:0;transition:opacity .3s;white-space:nowrap;text-align:center}
 #toast.show{opacity:1}
 .kb .hbtn::after{content:attr(data-key);position:absolute;top:-6px;right:-2px;background:#2b2233;color:#fff;font:700 11px sans-serif;padding:2px 7px;border-radius:9px;pointer-events:none}
-.hbtn,#topbar,#endBtn,#toast{zoom:var(--hk,1)}
+.hbtn,#topbar,#endBtn,#toast,#endExit{zoom:var(--hk,1)}
+#endExit{position:absolute;right:18px;bottom:16px;padding:0 30px;z-index:3}
 </style>
 
 <div id="root">
@@ -294,6 +295,7 @@ button{font-family:var(--disp);touch-action:manipulation}
   <button class="hbtn" id="diveBtn" type="button" data-key="S" hidden>급강하<small></small></button>
   <button class="hbtn" id="sphxBtn" type="button" data-key="Q" hidden>🔥변신</button>
   <button class="pill" id="endBtn" type="button" hidden>결과 보기</button>
+  <button class="go" id="endExit" type="button" hidden>나가기</button>
   <button class="hbtn" id="boostBtn" type="button" data-key="Space" hidden>부스트<small></small></button>
 
   <section class="card" id="result" hidden>
@@ -317,7 +319,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 115, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 116, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -535,7 +537,7 @@ const flyUI = on => { boostBtn.hidden = !(on && st.thrust); skillBtn.hidden = !(
 // the tune of a zone: its own if it has one, else the one of its sky, else the one of its scenery
 const tuneOf = zn => [zn.mus, zn.id, zn.fx, zn.deco].find(k => k && MUS.T[k]) || 'lot';
 function toast(t, ms = 1600) { const el = $('#toast'); el.innerHTML = t; el.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(() => el.classList.remove('show'), ms); }
-function toAim() { spinPrev = null; spinAcc = 0; LS.del('cart.live'); MUS.want('lot'); st = C.stats(S); aim = C.scaleOf(st, st.power * st.perfect); run = null; state = 'aim'; meterT = 0; parts = []; pops = []; spinDir = 0; bgScroll = 0; resetDoll(); humStop(); charge = 0; rampU = 0.5; cam.x = 0; cam.y = 0; cam.vw = 34; rot = -st.angle; $('#result').hidden = true; $('#shop').hidden = true; flyUI(false); fxs = []; trail = []; }
+function toAim() { phxFxs = []; spinPrev = null; spinAcc = 0; LS.del('cart.live'); MUS.want('lot'); st = C.stats(S); aim = C.scaleOf(st, st.power * st.perfect); run = null; state = 'aim'; meterT = 0; parts = []; pops = []; spinDir = 0; bgScroll = 0; resetDoll(); humStop(); charge = 0; rampU = 0.5; cam.x = 0; cam.y = 0; cam.vw = 34; rot = -st.angle; $('#result').hidden = true; $('#shop').hidden = true; flyUI(false); fxs = []; trail = []; }
 // Launch = hold to stretch the band (the gauge slows as tension builds and slips if you over-pull), let go inside the
 // white band for a perfect, then tap once more as the cart reaches the ramp edge for a kick.
 let charge = 0, slipT = 0, pushT = 0, pushFrom = 0.5, pushM = 0, kick = 1, kicked = false, kickMsg = '', rampU = 0.5, hum = null, lastTick = 0;
@@ -576,7 +578,8 @@ function launch() {
 }
 // Ending: the light swallows the screen, the cart rolls up to the last checkout, souvenirs of the whole trip ride the belt and are
 // scanned one by one, the receipt prints and is stamped, and the shop celebrates.
-function endSkip() { if (state === 'ending' && performance.now() - endT > 4000) endRun(); }
+// the ending stays until the player presses '나가기' (shown after 4 s); a tap or a key does not leave it
+const endExit = $('#endExit'); endExit.addEventListener('click', e => { e.stopPropagation(); if (state === 'ending') { endExit.hidden = true; endRun(); } });
 // one keepsake per stretch of the journey: coin, mushroom, cactus, ice, flame, moon, ringed planet, star, galaxy, shard
 function souvenir(i, x, y, z) { g.lineWidth = Math.max(1.2, z * 0.14); g.strokeStyle = '#2b2233'; g.lineJoin = 'round'; g.beginPath();
   if (i === 0) { g.fillStyle = '#f5b014'; g.arc(x, y, z, 0, 7); g.fill(); g.stroke(); g.fillStyle = '#ffe27a'; g.beginPath(); g.arc(x - z * 0.15, y - z * 0.15, z * 0.55, 0, 7); g.fill(); }
@@ -600,22 +603,28 @@ function drawEnding(a) {
     // the shop: warm light, rays from the door, shelves at the back, a tiled floor
     const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#fffdf2'); bg.addColorStop(1, '#ffe3a0'); g.fillStyle = bg; g.fillRect(0, 0, W, H);
     g.save(); g.translate(W * 0.5, H * 0.34); g.rotate(a * 0.05); for (let k = 0; k < 20; k++) { g.rotate(0.31416); g.fillStyle = `rgba(255,255,255,${k % 2 ? 0.5 : 0.25})`; g.beginPath(); g.moveTo(0, 0); g.lineTo(W, -W * 0.07); g.lineTo(W, W * 0.07); g.fill(); } g.restore();
-    for (let k = 0; k < 6; k++) { const x = W * (0.02 + k * 0.17), w = W * 0.13, top = fy - H * 0.36; g.fillStyle = 'rgba(170,115,40,.2)'; g.fillRect(x, top, w, fy - top); for (let rw = 0; rw < 4; rw++) { const y = top + 8 + rw * (fy - top - 8) / 4; g.fillStyle = 'rgba(120,75,20,.22)'; g.fillRect(x, y + (fy - top) / 4 - 12, w, 4); for (let q = 0; q < 7; q++) { const hh = 8 + 12 * hsh(k * 31 + rw * 7 + q); g.fillStyle = `hsla(${Math.floor(360 * hsh(k * 13 + rw * 5 + q * 3))},70%,62%,.3)`; g.fillRect(x + 5 + q * (w - 10) / 7, y + (fy - top) / 4 - 12 - hh, (w - 10) / 7 - 3, hh); } } }
-    g.fillStyle = '#f0c36a'; g.fillRect(0, fy, W, H - fy); g.fillStyle = 'rgba(255,255,255,.5)'; g.fillRect(0, fy, W, 3);
-    g.strokeStyle = 'rgba(160,105,30,.28)'; g.lineWidth = 1.5; g.beginPath(); for (let k = -8; k <= 8; k++) { g.moveTo(W * 0.5 + k * W * 0.06, fy); g.lineTo(W * 0.5 + k * W * 0.2, H); } for (let k = 1; k < 5; k++) { const y = fy + (H - fy) * k * k / 16; g.moveTo(0, y); g.lineTo(W, y); } g.stroke();
+    endShop(a, fy, sc);
     // the lane sign
     { const sx = kx + kw * 0.5, sw = 92 * sc * 0.8, sh = 24 * sc * 0.8, sy = H * 0.04 + Math.sin(a * 1.3) * 1.5; g.strokeStyle = '#2b2233'; g.lineWidth = 2; g.beginPath(); g.moveTo(sx - sw * 0.35, 0); g.lineTo(sx - sw * 0.35, sy); g.moveTo(sx + sw * 0.35, 0); g.lineTo(sx + sw * 0.35, sy); g.stroke(); g.fillStyle = '#f0452f'; g.beginPath(); g.roundRect(sx - sw / 2, sy, sw, sh, 5); g.fill(); g.stroke(); g.fillStyle = '#fff'; g.font = `${15 * sc * 0.8}px ${D}`; g.fillText('계산대 73', sx, sy + sh * 0.72); }
-    // the checkout: counter, belt, scanner arch, till
-    g.fillStyle = '#7a4a12'; g.strokeStyle = '#2b2233'; g.lineWidth = 2.5; g.beginPath(); g.roundRect(kx, fy - kh, kw, kh, 8); g.fill(); g.stroke(); g.fillStyle = 'rgba(0,0,0,.14)'; g.fillRect(kx + 4, fy - kh * 0.45, kw - 8, kh * 0.45 - 4);
-    g.fillStyle = '#2b2233'; g.fillRect(kx + 8, beltY, kw - 16, 9 * sc); g.fillStyle = 'rgba(255,255,255,.75)'; for (let k = 0; k < 9; k++) g.fillRect(kx + 12 + ((k * 40 + a * 30) % (kw - 30)), beltY + 2, 10, 5 * sc);
-    const ax = kx + kw * 0.3; g.strokeStyle = '#2b2233'; g.lineWidth = 6; g.beginPath(); g.moveTo(ax, fy - kh); g.lineTo(ax, fy - kh - 70 * sc); g.lineTo(ax + 60 * sc, fy - kh - 70 * sc); g.stroke();
-    g.fillStyle = '#2b2233'; g.beginPath(); g.roundRect(kx + kw * 0.72, fy - kh - 44 * sc, 54 * sc, 40 * sc, 6); g.fill(); g.fillStyle = a > 5.2 ? '#7be08a' : '#12a594'; g.fillRect(kx + kw * 0.72 + 6, fy - kh - 38 * sc, 54 * sc - 12, 22 * sc);
-    // the cashier behind the counter: waves as the cart arrives, scans, and cheers at the end
-    { const px = kx + kw * 0.62, py = fy - kh - 34 * sc, wv = fin ? -2.2 + Math.sin(a * 9) * 0.35 : a < 5.2 ? -2 + Math.sin(a * 7) * 0.5 : -0.5 + Math.sin(a * 11) * 0.25; g.strokeStyle = '#2b2233'; g.lineCap = 'round'; g.lineWidth = 3.4 * sc; g.beginPath(); g.moveTo(px, py + 9 * sc); g.lineTo(px, fy - kh); g.stroke();
-      g.fillStyle = '#12a594'; g.beginPath(); g.roundRect(px - 7 * sc, py + 14 * sc, 14 * sc, 20 * sc, 3); g.fill(); g.lineWidth = 2; g.stroke(); g.lineWidth = 3.2 * sc;
-      for (const [sd, an] of [[-1, fin ? -Math.PI - wv : 2.2], [1, wv]]) { g.beginPath(); g.moveTo(px, py + 14 * sc); g.lineTo(px + sd * 7 * sc, py + 20 * sc); g.lineTo(px + sd * 7 * sc + Math.cos(an) * 10 * sc, py + 20 * sc + Math.sin(an) * 10 * sc); g.stroke(); }
-      g.fillStyle = '#fff6e6'; g.lineWidth = 2.6 * sc; g.beginPath(); g.arc(px, py, 7 * sc, 0, 7); g.fill(); g.stroke(); g.fillStyle = '#f0452f'; g.beginPath(); g.ellipse(px, py - 5 * sc, 7.6 * sc, 3.4 * sc, 0, Math.PI, 0); g.fill(); g.fillRect(px - 10 * sc, py - 5.4 * sc, 9 * sc, 1.8 * sc);
-      g.fillStyle = '#2b2233'; g.beginPath(); g.arc(px - 3.4 * sc, py + 0.5 * sc, 0.9 * sc, 0, 7); g.arc(px - 0.4 * sc, py + 0.5 * sc, 0.9 * sc, 0, 7); g.fill(); g.lineWidth = 1.2 * sc; g.beginPath(); g.arc(px - 1.9 * sc, py + 2.6 * sc, 2 * sc, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke(); g.lineCap = 'butt'; }
+    // the checkout: the cashier stands behind a wooden counter with a belt, a scanner arch with a glass panel and a register
+    const ax = kx + kw * 0.3, ct = fy - kh;
+    drawClerk(kx + kw * 0.6, ct, sc, a, fin);
+    g.fillStyle = '#8a5418'; g.strokeStyle = '#2b2233'; g.lineWidth = 2.5; g.beginPath(); g.roundRect(kx, ct, kw, kh, 8); g.fill(); g.stroke();
+    g.fillStyle = '#c98b3c'; g.beginPath(); g.roundRect(kx + 3, ct + 2, kw - 6, 5 * sc, 3); g.fill();
+    g.strokeStyle = 'rgba(43,34,51,.22)'; g.lineWidth = 1.5; g.beginPath(); for (let q = 1; q < 7; q++) { const x = kx + kw * q / 7; g.moveTo(x, beltY + 14 * sc); g.lineTo(x, fy - 7 * sc); } g.stroke();
+    g.fillStyle = 'rgba(255,220,150,.18)'; for (let q = 0; q < 7; q += 2) g.fillRect(kx + kw * q / 7 + 2, beltY + 14 * sc, kw / 7 - 4, fy - 7 * sc - beltY - 14 * sc);
+    g.fillStyle = '#5a360c'; g.fillRect(kx + 5, fy - 6 * sc, kw - 10, 4 * sc);
+    { const lx = kx + kw * 0.5, ly = ct + kh * 0.62, lr = 9 * sc; g.fillStyle = '#fff6e6'; g.strokeStyle = '#2b2233'; g.lineWidth = 2; g.beginPath(); g.arc(lx, ly, lr, 0, 7); g.fill(); g.stroke(); g.fillStyle = '#f0452f'; g.font = `${8 * sc}px ${D}`; g.fillText('73', lx, ly + 3 * sc); }
+    g.fillStyle = '#2b2233'; g.beginPath(); g.roundRect(kx + 8, beltY, kw - 16, 9 * sc, 4.5 * sc); g.fill(); g.fillStyle = 'rgba(255,255,255,.75)'; for (let k = 0; k < 9; k++) g.fillRect(kx + 12 + ((k * 40 + a * 30) % (kw - 30)), beltY + 2, 10, 5 * sc);
+    g.fillStyle = '#7a6f80'; for (const ex of [kx + 12, kx + kw - 12]) { g.beginPath(); g.arc(ex, beltY + 4.5 * sc, 4.5 * sc, 0, 7); g.fill(); }
+    g.strokeStyle = '#2b2233'; g.lineWidth = 6; g.lineCap = 'round'; g.beginPath(); g.moveTo(ax, ct); g.lineTo(ax, ct - 70 * sc); g.lineTo(ax + 60 * sc, ct - 70 * sc); g.stroke(); g.lineCap = 'butt';
+    { const gp = g.createLinearGradient(ax, 0, ax + 22 * sc, 0); gp.addColorStop(0, 'rgba(160,220,255,.55)'); gp.addColorStop(1, 'rgba(160,220,255,.08)'); g.fillStyle = gp; g.fillRect(ax + 3, ct - 66 * sc, 20 * sc, 60 * sc); g.fillStyle = a % 1 < 0.5 ? '#ff3a3a' : '#ffb0a0'; g.beginPath(); g.arc(ax + 58 * sc, ct - 70 * sc, 3.5 * sc, 0, 7); g.fill(); }
+    // the register: a body with keys, a tilted screen with the total, and the receipt printing from its slot
+    { const rx0 = kx + kw * 0.74, rw0 = 56 * sc, rh0 = 26 * sc, ry0 = ct - rh0; g.fillStyle = '#3a3245'; g.strokeStyle = '#2b2233'; g.lineWidth = 2.5; g.beginPath(); g.roundRect(rx0, ry0, rw0, rh0, 5); g.fill(); g.stroke();
+      g.fillStyle = '#e8dcc0'; for (let q = 0; q < 8; q++) g.fillRect(rx0 + 6 * sc + (q % 4) * 7 * sc, ry0 + 6 * sc + Math.floor(q / 4) * 6 * sc, 5 * sc, 4 * sc); g.fillStyle = '#f0452f'; g.fillRect(rx0 + 36 * sc, ry0 + 6 * sc, 13 * sc, 10 * sc);
+      g.fillStyle = '#2b2233'; g.fillRect(rx0 + rw0 * 0.42, ry0 - 9 * sc, 6 * sc, 9 * sc); g.save(); g.translate(rx0 + rw0 * 0.5, ry0 - 9 * sc); g.rotate(-0.12); g.beginPath(); g.roundRect(-30 * sc, -26 * sc, 60 * sc, 26 * sc, 5); g.fill();
+      g.fillStyle = a > 5.2 ? '#7be08a' : '#12a594'; g.fillRect(-26 * sc, -22 * sc, 52 * sc, 18 * sc); g.fillStyle = '#123b2a'; g.font = `${9 * sc}px ${D}`; g.fillText(a > 11.1 ? '결제 완료' : a > 5.2 ? '모험 1개' : '어서 오세요', 0, -9.5 * sc); g.restore();
+      if (a > 6) { const pl = Math.min(18, (a - 6) * 4) * sc; g.fillStyle = '#fff'; g.strokeStyle = 'rgba(43,34,51,.5)'; g.lineWidth = 1; g.fillRect(rx0 + rw0 - 14 * sc, ry0 - pl, 10 * sc, pl); g.strokeRect(rx0 + rw0 - 14 * sc, ry0 - pl, 10 * sc, pl); } }
     // the cart rolls in and stops under the scanner
     doll.wx = doll.wy = 0; doll.mood = fin ? 3 : a < 5 ? 1 : 0;
     const cx2 = -90 + (kx - 40 * sc + 90) * ez((a - 2) / 3), pins = dollStep(0.016, 0, a < 5 ? -300 : 0, 0, 0, fin ? 1.2 : 0); g.fillStyle = 'rgba(60,35,5,.22)'; g.beginPath(); g.ellipse(cx2, fy + 3, 30 * sc, 5 * sc, 0, 0, 7); g.fill();
@@ -645,18 +654,74 @@ function drawEnding(a) {
         const fx = W * (0.12 + 0.76 * hsh(q * 5 + 1)), fyy = H * (0.1 + 0.3 * hsh(q * 9 + 2)), R = (40 + 50 * hsh(q * 3)) * sc * ez(t / 0.9), col = ['#f0452f', '#12a594', '#3f8cff', '#ff8ab3', '#f5b014'][q % 5]; g.globalAlpha = s1 * cl(1.5 - t) * 0.9; g.fillStyle = col;
         g.strokeStyle = col; g.lineCap = 'round'; g.lineWidth = 2.6 * sc * (1 - t / 1.6); for (let j = 0; j < 16; j++) { const an = j * 0.3927 + q, dy = t * t * 14; g.beginPath(); g.moveTo(fx + Math.cos(an) * R * 0.72, fyy + Math.sin(an) * R * 0.72 + dy); g.lineTo(fx + Math.cos(an) * R, fyy + Math.sin(an) * R + dy); g.stroke(); g.beginPath(); g.arc(fx + Math.cos(an) * R, fyy + Math.sin(an) * R + dy, 3.4 * sc * (1 - t / 1.6), 0, 7); g.fill(); if (j % 2) { g.beginPath(); g.arc(fx + Math.cos(an + 0.2) * R * 0.5, fyy + Math.sin(an + 0.2) * R * 0.5 + dy, 2 * sc * (1 - t / 1.6), 0, 7); g.fill(); } } g.lineCap = 'butt'; }
       for (let q = 0; q < 26; q++) { const tw = Math.abs(Math.sin(a * 2.2 + q * 1.7)), px = hsh(q * 3 + 1) * W, py = ((hsh(q * 7 + 2) * H + a * (20 + 30 * hsh(q))) % H), r2 = 4 + 5 * hsh(q * 5); g.fillStyle = '#f5b014'; g.strokeStyle = '#8a5a08'; g.lineWidth = 1.5; g.globalAlpha = s1 * k * 0.9; g.beginPath(); g.ellipse(px, py, r2 * tw + 1, r2, 0, 0, 7); g.fill(); g.stroke(); }
-      g.globalAlpha = s1 * k; g.lineJoin = 'round'; const tz = 1 + 0.25 * (1 - ez((a - 11.8) / 0.5)); g.font = `${Math.min(78, W * 0.085) * tz}px ${D}`; g.lineWidth = 10; g.strokeStyle = '#2b2233'; g.strokeText('계산 완료', W * 0.64, H * 0.3); g.fillStyle = '#ffd24a'; g.fillText('계산 완료', W * 0.64, H * 0.3);
-      g.font = `${Math.min(22, W * 0.026)}px ${D}`; g.lineWidth = 5; g.strokeText('주차장에서 여기까지, 끝까지 와 주셔서 고마워요', W * 0.64, H * 0.3 + 40); g.fillStyle = '#fff'; g.fillText('주차장에서 여기까지, 끝까지 와 주셔서 고마워요', W * 0.64, H * 0.3 + 40);
+      g.globalAlpha = s1 * k; g.lineJoin = 'round'; const tz = 1 + 0.25 * (1 - ez((a - 11.8) / 0.5)); g.font = `${Math.min(78, W * 0.085) * tz}px ${D}`; g.lineWidth = 10; g.strokeStyle = '#2b2233'; g.strokeText('계산 완료', W * 0.64, H * 0.2); g.fillStyle = '#ffd24a'; g.fillText('계산 완료', W * 0.64, H * 0.2);
+      g.font = `${Math.min(22, W * 0.026)}px ${D}`; g.lineWidth = 5; g.strokeText('주차장에서 여기까지, 끝까지 와 주셔서 고마워요', W * 0.64, H * 0.2 + 40); g.fillStyle = '#fff'; g.fillText('주차장에서 여기까지, 끝까지 와 주셔서 고마워요', W * 0.64, H * 0.2 + 40);
       // first time only: the reward
-      if (!(S.ended > 0) && a > 13.6) { const k2 = ez((a - 13.6) / 0.5), t = '빛의 카트 해금!', fs = Math.min(20, W * 0.024); g.font = `${fs}px ${D}`; const w = g.measureText(t).width + 30; g.globalAlpha = s1 * k2; g.fillStyle = '#2b2233'; g.beginPath(); g.roundRect(W * 0.64 - w / 2, H * 0.3 + 54 + (1 - k2) * 10, w, fs * 1.7, fs * 0.85); g.fill(); g.fillStyle = '#fff3b0'; g.fillText(t, W * 0.64, H * 0.3 + 54 + fs * 1.18 + (1 - k2) * 10); once('gift', () => SFX.level()); } }
+      if (!(S.ended > 0) && a > 13.6) { const k2 = ez((a - 13.6) / 0.5), t = '빛의 카트 해금!', fs = Math.min(20, W * 0.024); g.font = `${fs}px ${D}`; const w = g.measureText(t).width + 30; g.globalAlpha = s1 * k2; g.fillStyle = '#2b2233'; g.beginPath(); g.roundRect(W * 0.64 - w / 2, H * 0.2 + 54 + (1 - k2) * 10, w, fs * 1.7, fs * 0.85); g.fill(); g.fillStyle = '#fff3b0'; g.fillText(t, W * 0.64, H * 0.2 + 54 + fs * 1.18 + (1 - k2) * 10); once('gift', () => SFX.level()); } }
     g.globalAlpha = 1; }
-  if (a > 4) { g.globalAlpha = 0.45 + 0.4 * Math.sin(a * 3); g.font = `14px ${D}`; g.fillStyle = '#2b2233'; g.fillText('화면을 누르면 계속', W / 2, H - 16); g.globalAlpha = 1; }
-  g.restore(); if (a > 40) endRun();
+  endExit.hidden = a < 4;
+  g.restore();
 }
+// the shop behind the checkout: shelves stocked with boxes, bottles and cans under a soft haze, hanging lamps, a tiled floor
+function endShop(a, fy, sc) {
+  for (let k = 0; k < 6; k++) { const x = W * (0.02 + k * 0.17), w = W * 0.13, top = fy - H * 0.38, h = fy - top; g.fillStyle = 'rgba(201,139,60,.6)'; g.strokeStyle = 'rgba(43,34,51,.35)'; g.lineWidth = 2; g.beginPath(); g.roundRect(x, top, w, h, 4); g.fill(); g.stroke(); g.fillStyle = 'rgba(255,248,230,.6)'; g.fillRect(x + 4, top + 4, w - 8, h - 8);
+    for (let rw = 0; rw < 4; rw++) { const sy = top + (rw + 1) * h / 4 - 3, pw = (w - 12) / 6;
+      for (let q = 0; q < 6; q++) { const hh = (h / 4 - 10) * (0.55 + 0.4 * hsh(k * 31 + rw * 7 + q)), px = x + 6 + q * pw, hue = Math.floor(360 * hsh(k * 13 + rw * 5 + q * 3)), kind = Math.floor(3 * hsh(k * 7 + rw * 11 + q)); g.fillStyle = `hsla(${hue},62%,62%,.8)`; g.strokeStyle = 'rgba(43,34,51,.4)'; g.lineWidth = 1;
+        if (kind === 0) { g.beginPath(); g.roundRect(px + 1, sy - hh, pw - 3, hh, 2); g.fill(); g.stroke(); g.fillStyle = 'rgba(255,255,255,.55)'; g.fillRect(px + 3, sy - hh * 0.7, pw - 7, hh * 0.25); }
+        else if (kind === 1) { const bw2 = (pw - 3) * 0.62; g.beginPath(); g.roundRect(px + 1 + (pw - 3 - bw2) / 2, sy - hh, bw2, hh, bw2 * 0.4); g.fill(); g.stroke(); g.fillRect(px + 1 + (pw - 3) / 2 - bw2 * 0.18, sy - hh - 3, bw2 * 0.36, 3); }
+        else { g.beginPath(); g.roundRect(px + 1, sy - hh * 0.62, pw - 3, hh * 0.62, 3); g.fill(); g.stroke(); g.fillStyle = 'rgba(255,255,255,.45)'; g.fillRect(px + 1, sy - hh * 0.46, pw - 3, 2); } }
+      g.fillStyle = 'rgba(150,95,35,.75)'; g.fillRect(x + 3, sy, w - 6, 4); } }
+  g.fillStyle = 'rgba(255,253,242,.3)'; g.fillRect(0, 0, W, fy);
+  for (let k = 0; k < 4; k++) { const lx = W * (0.14 + k * 0.24), ly = H * 0.09; g.strokeStyle = 'rgba(43,34,51,.5)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(lx, 0); g.lineTo(lx, ly - 7 * sc); g.stroke();
+    const lg = g.createLinearGradient(0, ly, 0, fy); lg.addColorStop(0, `rgba(255,250,215,${0.42 + 0.06 * Math.sin(a * 2 + k)})`); lg.addColorStop(1, 'rgba(255,240,180,0)'); g.fillStyle = lg; g.beginPath(); g.moveTo(lx - 9 * sc, ly); g.lineTo(lx - W * 0.09, fy); g.lineTo(lx + W * 0.09, fy); g.lineTo(lx + 9 * sc, ly); g.fill();
+    g.fillStyle = '#2b2233'; g.beginPath(); g.moveTo(lx - 13 * sc, ly + 2 * sc); g.quadraticCurveTo(lx, ly - 13 * sc, lx + 13 * sc, ly + 2 * sc); g.closePath(); g.fill(); g.fillStyle = '#fff6c8'; g.beginPath(); g.ellipse(lx, ly + 2 * sc, 9 * sc, 2.6 * sc, 0, 0, 7); g.fill(); }
+  g.fillStyle = '#f0c36a'; g.fillRect(0, fy, W, H - fy); const colX = (k, y) => W * 0.5 + k * W * (0.06 + 0.14 * (y - fy) / (H - fy)), rowY = k => fy + (H - fy) * k * k / 16;
+  g.fillStyle = 'rgba(255,246,220,.5)'; for (let i = -9; i < 9; i++) for (let j = 0; j < 4; j++) { if ((i + j) & 1) continue; const y0 = rowY(j), y1 = rowY(j + 1); g.beginPath(); g.moveTo(colX(i, y0), y0); g.lineTo(colX(i + 1, y0), y0); g.lineTo(colX(i + 1, y1), y1); g.lineTo(colX(i, y1), y1); g.fill(); }
+  g.fillStyle = 'rgba(255,255,255,.55)'; g.fillRect(0, fy, W, 3);
+  g.strokeStyle = 'rgba(160,105,30,.25)'; g.lineWidth = 1.5; g.beginPath(); for (let k = -8; k <= 8; k++) { g.moveTo(colX(k, fy), fy); g.lineTo(colX(k, H), H); } for (let k = 1; k < 5; k++) { const y = rowY(k); g.moveTo(0, y); g.lineTo(W, y); } g.stroke(); }
+// the cashier: a cartoon clerk in a red cap and teal apron, drawn from the waist up (the counter hides the rest).
+// Waves while the cart rolls in, scans with a hand scanner while the keepsakes pass, and cheers with both arms once it is paid.
+function drawClerk(px, ct, u, a, fin) {
+  const ink = '#2b2233', skin = '#ffd9b8', shirt = '#fff6e6', bob = fin ? -Math.abs(Math.sin(a * 6)) * 5 * u : Math.sin(a * 2.4) * 0.8 * u, shY = ct - 28 * u + bob, hy = shY - 16 * u, look = fin ? 0 : -1.4 * u, scan = a >= 5.2 && !fin;
+  g.save(); g.lineJoin = 'round'; g.lineCap = 'round'; g.textAlign = 'center';
+  g.fillStyle = skin; g.strokeStyle = ink; g.lineWidth = 2.2; g.beginPath(); g.rect(px - 3.5 * u, hy + 8 * u, 7 * u, 9 * u); g.fill(); g.stroke();
+  g.fillStyle = shirt; g.lineWidth = 2.4; g.beginPath(); g.moveTo(px - 16 * u, ct + 8 * u); g.lineTo(px - 15 * u, shY + 5 * u); g.quadraticCurveTo(px - 14 * u, shY - 1 * u, px - 6 * u, shY - 2 * u); g.lineTo(px + 6 * u, shY - 2 * u); g.quadraticCurveTo(px + 14 * u, shY - 1 * u, px + 15 * u, shY + 5 * u); g.lineTo(px + 16 * u, ct + 8 * u); g.closePath(); g.fill(); g.stroke();
+  g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(px - 5 * u, shY - 2 * u); g.lineTo(px, shY + 4 * u); g.lineTo(px + 5 * u, shY - 2 * u); g.closePath(); g.fill(); g.stroke();
+  g.fillStyle = '#12a594'; g.beginPath(); g.moveTo(px - 10 * u, shY + 5 * u); g.lineTo(px + 10 * u, shY + 5 * u); g.lineTo(px + 13 * u, ct + 8 * u); g.lineTo(px - 13 * u, ct + 8 * u); g.closePath(); g.fill(); g.stroke();
+  g.beginPath(); g.moveTo(px - 10 * u, shY + 5 * u); g.lineTo(px - 7 * u, shY - 1.5 * u); g.moveTo(px + 10 * u, shY + 5 * u); g.lineTo(px + 7 * u, shY - 1.5 * u); g.stroke();
+  g.fillStyle = '#fff'; g.lineWidth = 1.4; g.beginPath(); g.roundRect(px + 2 * u, shY + 8 * u, 8 * u, 5 * u, 1.2 * u); g.fill(); g.stroke(); g.fillStyle = '#f0452f'; g.font = `${4 * u}px ${FONT}`; g.fillText('73', px + 6 * u, shY + 12 * u);
+  g.strokeStyle = 'rgba(43,34,51,.55)'; g.beginPath(); g.moveTo(px - 8 * u, shY + 16 * u); g.lineTo(px - 1 * u, shY + 16 * u); g.stroke();
+  // head: ears, face, hair under a red cap whose brim points at the cart
+  g.strokeStyle = ink; g.lineWidth = 2.2; g.fillStyle = skin; for (const sd of [-1, 1]) { g.beginPath(); g.arc(px + sd * 11.5 * u, hy + 1.5 * u, 2.8 * u, 0, 7); g.fill(); g.stroke(); }
+  g.beginPath(); g.ellipse(px, hy, 11.5 * u, 12.5 * u, 0, 0, 7); g.fill(); g.stroke();
+  g.fillStyle = '#5a3a22'; g.beginPath(); g.moveTo(px + 11.4 * u, hy - 1 * u); g.quadraticCurveTo(px + 12 * u, hy - 9 * u, px + 4 * u, hy - 8 * u); g.lineTo(px + 9 * u, hy - 3 * u); g.closePath(); g.fill(); g.beginPath(); g.moveTo(px - 11.4 * u, hy - 2 * u); g.quadraticCurveTo(px - 11 * u, hy - 8 * u, px - 6 * u, hy - 7.5 * u); g.lineTo(px - 9.5 * u, hy - 3 * u); g.closePath(); g.fill();
+  g.fillStyle = '#f0452f'; g.beginPath(); g.ellipse(px + 0.5 * u, hy - 6.5 * u, 12.6 * u, 8.5 * u, 0, Math.PI, 0); g.closePath(); g.fill(); g.stroke();
+  g.beginPath(); g.moveTo(px - 8 * u, hy - 7.2 * u); g.quadraticCurveTo(px - 18 * u, hy - 7.6 * u, px - 20 * u, hy - 3.6 * u); g.lineTo(px - 8 * u, hy - 4.6 * u); g.closePath(); g.fill(); g.stroke();
+  g.fillStyle = '#fff'; g.beginPath(); g.arc(px + 1.5 * u, hy - 10.5 * u, 3 * u, 0, 7); g.fill(); g.fillStyle = '#f0452f'; g.font = `${3.4 * u}px ${FONT}`; g.fillText('73', px + 1.5 * u, hy - 9.3 * u);
+  // face: eyes that blink (happy arcs at the end), brows, cheeks, nose and a mouth that opens to greet and to cheer
+  const blink = (a % 3.3) < 0.12 ? 0.12 : 1; g.lineWidth = 1.4;
+  for (const ex0 of [-5 * u, 2.6 * u]) { const ex = px + ex0 + look, ey = hy + 1.2 * u;
+    if (fin) { g.lineWidth = 2; g.beginPath(); g.arc(ex, ey + 1 * u, 2.4 * u, Math.PI * 1.1, Math.PI * 1.9); g.stroke(); }
+    else { g.fillStyle = '#fff'; g.beginPath(); g.ellipse(ex, ey, 2.5 * u, 3.1 * u * blink, 0, 0, 7); g.fill(); g.lineWidth = 1.3; g.stroke(); if (blink > 0.5) { g.fillStyle = ink; g.beginPath(); g.arc(ex + look * 0.5, ey + 0.4 * u, 1.45 * u, 0, 7); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(ex + look * 0.5 + 0.5 * u, ey - 0.3 * u, 0.5 * u, 0, 7); g.fill(); } }
+    g.lineWidth = 1.6; g.beginPath(); g.moveTo(ex - 2.2 * u, ey - 4.6 * u - (fin ? 1 * u : 0)); g.lineTo(ex + 2 * u, ey - 5 * u - (fin ? 1 * u : 0)); g.stroke(); }
+  g.fillStyle = 'rgba(255,110,130,.45)'; g.beginPath(); g.arc(px - 7.8 * u + look, hy + 5.5 * u, 2.4 * u, 0, 7); g.arc(px + 6 * u + look, hy + 5.5 * u, 2.4 * u, 0, 7); g.fill();
+  g.lineWidth = 1.4; g.beginPath(); g.arc(px - 1.2 * u + look, hy + 4 * u, 1.3 * u, 0.2, Math.PI - 0.2); g.stroke();
+  if (fin || a < 5.2) { g.fillStyle = '#7a2230'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(px - 4.6 * u + look, hy + 6.6 * u); g.quadraticCurveTo(px - 1 * u + look, hy + 13 * u, px + 2.8 * u + look, hy + 6.6 * u); g.closePath(); g.fill(); g.stroke(); g.fillStyle = '#ff8aa0'; g.beginPath(); g.ellipse(px - 1 * u + look, hy + 9.6 * u, 2 * u, 1.1 * u, 0, 0, 7); g.fill(); }
+  else { g.lineWidth = 1.6; g.beginPath(); g.arc(px - 1 * u + look, hy + 5.6 * u, 3.4 * u, 0.25, Math.PI - 0.25); g.stroke(); }
+  // arms: a short sleeve and a bare forearm with a hand, posed for the moment
+  const arm = (sx, sy, ex, ey, hx, hy2) => { g.strokeStyle = ink; g.lineWidth = 7.5 * u; g.beginPath(); g.moveTo(sx, sy); g.lineTo(ex, ey); g.stroke(); g.strokeStyle = shirt; g.lineWidth = 7.5 * u - 4.4; g.stroke();
+    g.strokeStyle = ink; g.lineWidth = 5.6 * u; g.beginPath(); g.moveTo(ex, ey); g.lineTo(hx, hy2); g.stroke(); g.strokeStyle = skin; g.lineWidth = 5.6 * u - 4.4; g.stroke(); g.fillStyle = skin; g.strokeStyle = ink; g.lineWidth = 2; g.beginPath(); g.arc(hx, hy2, 3.3 * u, 0, 7); g.fill(); g.stroke(); };
+  const L = [px - 14 * u, shY + 4 * u], R = [px + 14 * u, shY + 4 * u];
+  if (fin) { arm(...L, px - 21 * u, shY - 6 * u, px - 23 * u + Math.sin(a * 9) * 2 * u, shY - 21 * u); arm(...R, px + 21 * u, shY - 6 * u, px + 23 * u - Math.sin(a * 9) * 2 * u, shY - 21 * u); }
+  else if (scan) { const hx = px - 27 * u, hy2 = ct - 4 * u; arm(...L, px - 20 * u, shY + 12 * u, hx, hy2); arm(...R, px + 19 * u, shY + 13 * u, px + 25 * u + Math.sin(a * 14) * 1.5 * u, ct - 4 * u);
+    g.save(); g.translate(hx, hy2); g.rotate(0.5); g.fillStyle = '#3a3245'; g.strokeStyle = ink; g.lineWidth = 2; g.beginPath(); g.roundRect(-11 * u, -4 * u, 12 * u, 6 * u, 2 * u); g.fill(); g.stroke(); g.beginPath(); g.roundRect(-2 * u, 0, 4 * u, 7 * u, 1.5 * u); g.fill(); g.stroke();
+      if (endS.zap && a - endS.zap < 0.18) { g.strokeStyle = `rgba(255,50,50,${1 - (a - endS.zap) / 0.18})`; g.lineWidth = 2; g.beginPath(); g.moveTo(-11 * u, -1 * u); g.lineTo(-30 * u, 6 * u); g.stroke(); } g.restore(); }
+  else { const w = -1.9 + Math.sin(a * 8) * 0.45; arm(...L, px - 21 * u, shY - 7 * u, px - 21 * u + Math.cos(w) * 11 * u, shY - 7 * u + Math.sin(w) * 11 * u); arm(...R, px + 18 * u, shY + 14 * u, px + 13 * u, ct - 1 * u); }
+  g.restore(); }
 // the total on the result card counts up, with a few rising ticks
 function countUp(el, v) { const t0 = performance.now(), d = 650; if (RM || v < 10) { el.textContent = fmt(v); return; } let n = 0; const tick = () => { if (!el.isConnected) return; const f = Math.min(1, (performance.now() - t0 - 250) / d); if (f <= 0) { el.textContent = '0'; requestAnimationFrame(tick); return; } el.textContent = fmt(v * (1 - Math.pow(1 - f, 3))); if (f < 1) { if (++n % 5 === 0) tone(700 + 500 * f, 900 + 500 * f, 0.04, 0.04); requestAnimationFrame(tick); } else { el.textContent = fmt(v); tone(1320, 1760, 0.12, 0.09, 'triangle', 0, { rev: 0.4 }); } }; tick(); }
 function endRun() {
-  LS.del('cart.live');
+  LS.del('cart.live'); endExit.hidden = true;
   if (adoptLater) { adoptLater = false; S = loadSlot(slot) || S; toAim(); toast('계정에 저장된 기록을 불러왔어요', 2400); return; }
   const veiled = !starOpen(); pay = C.finish(run, S); const unveil = veiled && starOpen(); if (C.tl(S, 't_auto')) C.buyAll(S);
   let autoN = 0; if (S.autoReb && S.autoRebOn && autoRebOpen() && C.starGain(S) > 0) { autoN = C.rebirth(S); C.buyAll(S); } save(); cloudNow(); state = 'result'; flyUI(false);
@@ -685,7 +750,7 @@ function endRun() {
 /* ---------------- input ---------------- */
 const locX = e => portrait ? e.clientY : e.clientX, locY = e => portrait ? H - e.clientX : e.clientY;
 const keys = new Set(); let ptrSide = 0;
-cv.addEventListener('pointerdown', e => { e.preventDefault(); snd(); try { cv.setPointerCapture(e.pointerId); } catch (er) {} if (state === 'ending') { endSkip(); return; } if (state === 'aim') { startCharge(); return; } ptrSide = locX(e) < W / 2 ? 1 : -1; if (state === 'push') tryKick(); });
+cv.addEventListener('pointerdown', e => { e.preventDefault(); snd(); try { cv.setPointerCapture(e.pointerId); } catch (er) {} if (state === 'ending') return; if (state === 'aim') { startCharge(); return; } ptrSide = locX(e) < W / 2 ? 1 : -1; if (state === 'push') tryKick(); });
 const spinOff = () => { ptrSide = 0; if (state === 'charge') release(); }; cv.addEventListener('pointerup', spinOff); cv.addEventListener('pointercancel', spinOff);
 addEventListener('blur', () => { keys.clear(); ptrSide = 0; boostHeld = false; mapHold(0); });
 // Scrolling by drag, in stage coordinates, so it also works while the stage is rotated for a portrait-locked phone.
@@ -700,7 +765,7 @@ const hold = (el, on, off) => { el.addEventListener('pointerdown', e => { e.prev
 hold(boostBtn, () => boostHeld = true, () => boostHeld = false); hold(skillBtn, () => skillTap = true); hold(dashBtn, () => dashTap = true); hold(diveBtn, () => diveTap = true); hold(sphxBtn, () => sphxTap = true);
 endBtn.addEventListener('click', () => { if (state === 'fly' && run && !run.over) { run.over = true; run.why = '여기까지!'; endRun(); } });
 const KB = matchMedia('(pointer: fine)').matches; if (KB) root.classList.add('kb');
-addEventListener('keydown', e => { if (e.target && e.target.closest && e.target.closest('textarea, input')) return; if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); keys.add(e.code); if (e.repeat) return; snd(); root.classList.add('kb'); if (state === 'ending') { if (e.code === 'Space' || e.code === 'Enter') endSkip(); return; } if (state === 'shop' && e.code === 'Escape') toAim(); if (state === 'shop' && tab === 'map' && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) mapHold(e.code === 'ArrowLeft' ? -1 : 1); if (state === 'result' && e.code === 'KeyU') openShop(); if (e.code === 'Space') { if (state === 'aim') startCharge(); else if (state === 'push') tryKick(); else if (state === 'fly') boostHeld = true; else if (state === 'result') toAim(); } if (e.code === 'KeyW' || e.code === 'ArrowUp' || e.code === 'ShiftLeft') skillTap = true; if (e.code === 'KeyE') dashTap = true; if (e.code === 'KeyS' || e.code === 'ArrowDown') diveTap = true; if (e.code === 'KeyQ') sphxTap = true; });
+addEventListener('keydown', e => { if (e.target && e.target.closest && e.target.closest('textarea, input')) return; if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); keys.add(e.code); if (e.repeat) return; snd(); root.classList.add('kb'); if (state === 'ending') return; if (state === 'shop' && e.code === 'Escape') toAim(); if (state === 'shop' && tab === 'map' && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) mapHold(e.code === 'ArrowLeft' ? -1 : 1); if (state === 'result' && e.code === 'KeyU') openShop(); if (e.code === 'Space') { if (state === 'aim') startCharge(); else if (state === 'push') tryKick(); else if (state === 'fly') boostHeld = true; else if (state === 'result') toAim(); } if (e.code === 'KeyW' || e.code === 'ArrowUp' || e.code === 'ShiftLeft') skillTap = true; if (e.code === 'KeyE') dashTap = true; if (e.code === 'KeyS' || e.code === 'ArrowDown') diveTap = true; if (e.code === 'KeyQ') sphxTap = true; });
 addEventListener('keyup', e => { keys.delete(e.code); if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') mapHold(0); if (e.code === 'Space') { boostHeld = false; if (state === 'charge') release(); } });
 document.addEventListener('contextmenu', e => e.preventDefault());
 $('#rAgain').addEventListener('click', toAim); $('#rShop').addEventListener('click', openShop); // Full screen: the browser bar and the site's own header sit outside this page, so the only way past them is to ask for the whole
@@ -1135,6 +1200,24 @@ function phoenixOnCart(r, cx, cy, csc) { const t = performance.now(), wy = cy - 
   const fa = (t - fireFlashT) / 1000; if (fa >= 0 && fa < 0.45) fireWings(cx, wy, sz * 0.75, 1, 0, (1 - fa / 0.45) * 0.9, false);
   if (r.sphxT > 0) { const pu = 0.7 + 0.3 * Math.sin(t / 70), gr = g.createRadialGradient(cx, wy, 0, cx, wy, sz * 2); gr.addColorStop(0, `rgba(255,220,120,${0.45 * pu})`); gr.addColorStop(0.5, `rgba(255,120,30,${0.25 * pu})`); gr.addColorStop(1, 'rgba(255,80,20,0)');
     g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = gr; g.beginPath(); g.arc(cx, wy, sz * 2, 0, 7); g.fill(); g.restore(); if (Math.random() < 0.9 * K) burst(cx + (Math.random() - 0.5) * sz, wy + (Math.random() - 0.5) * sz * 0.6, 2, ['#ff6a2a', '#ffd24a', '#fff3b0'], 260, 0.5, { a0: Math.atan2(r.vy, -r.vx), spread: 0.6, g: -120, z: 4 }); } }
+// phoenix dash: a winged afterimage left where the dash began, a flame streak from there to the cart and a flat shock ring;
+// phoenix spring: a column of fire under the take-off point, wings raised over the cart and a ring on the take-off spot
+let phxFxs = [];
+function phxSkillFx(r, cx, cy, csc) { if (!phxFxs.length) return; const t = performance.now(), wy = cy - 16 * csc, sz = Math.max(30, 52 * csc), K = Math.max(0.5, FXK());
+  phxFxs = phxFxs.filter(e => t - e.t0 < e.life * 1000); g.save(); g.globalCompositeOperation = 'lighter'; g.lineCap = 'round';
+  for (const e of phxFxs) { const f = (t - e.t0) / 1000 / e.life, fd = 1 - f, ex = SX(e.x), ey = SY(e.y) - 16 * csc;
+    if (e.k === 'dash') {
+      const gl = g.createLinearGradient(ex, ey, cx, wy); gl.addColorStop(0, 'rgba(255,80,20,0)'); gl.addColorStop(0.55, `rgba(255,120,30,${0.55 * fd})`); gl.addColorStop(1, `rgba(255,236,150,${0.9 * fd})`);
+      g.strokeStyle = gl; g.lineWidth = sz * 0.95 * fd * K; g.beginPath(); g.moveTo(ex, ey); g.lineTo(cx, wy); g.stroke();
+      g.strokeStyle = `rgba(255,250,220,${0.7 * fd})`; g.lineWidth = sz * 0.18 * fd; g.beginPath(); g.moveTo(ex + (cx - ex) * 0.35, ey + (wy - ey) * 0.35); g.lineTo(cx, wy); g.stroke();
+      fireWings(ex, ey, sz * (1.15 + 0.35 * f), 1, -0.18 * f, fd * fd * 0.95, false);
+      g.strokeStyle = `rgba(255,170,60,${0.85 * fd})`; g.lineWidth = 6 * fd + 1; g.beginPath(); g.ellipse(ex, ey, sz * (0.8 + 3.2 * f), sz * (0.35 + 1.1 * f), 0, 0, 7); g.stroke(); }
+    else {
+      const top = ey + sz * 0.4, len = sz * (2.6 + 2.4 * f), w2 = sz * 0.75 * fd * K, gp = g.createLinearGradient(0, top, 0, top + len); gp.addColorStop(0, `rgba(255,240,170,${0.9 * fd})`); gp.addColorStop(0.4, `rgba(255,130,30,${0.6 * fd})`); gp.addColorStop(1, 'rgba(200,40,20,0)');
+      g.fillStyle = gp; g.beginPath(); g.moveTo(ex - w2 * 0.5, top); g.quadraticCurveTo(ex - w2 * 0.9, top + len * 0.5, ex, top + len); g.quadraticCurveTo(ex + w2 * 0.9, top + len * 0.5, ex + w2 * 0.5, top); g.closePath(); g.fill();
+      g.strokeStyle = `rgba(255,190,80,${0.8 * fd})`; g.lineWidth = 5 * fd + 1; g.beginPath(); g.ellipse(ex, top, sz * (0.5 + 2.6 * f), sz * (0.14 + 0.6 * f), 0, 0, 7); g.stroke();
+      fireWings(cx, wy, sz * 1.05, 0.7 + 0.3 * Math.min(1, f * 4), 0.12 * fd, fd * 0.9, false); } }
+  g.restore(); }
 // ground hint: once the ground is below the screen, a band in the ground's colour along the bottom edge, a faint dotted drop line
 // from the cart and the distance down, so the player always knows where the floor is
 function groundHint() { if (state !== 'fly' || !run || !run.air) return; const gy = SY(G(run.x)); if (gy < H + 6) return;
@@ -1762,6 +1845,7 @@ function draw(now) {
     if (hitT > 0) { hitT -= dt; run.ev.length = 0; } else { C.step(run, dt, { boost: boostHeld, spring: skillTap, dash: dashTap, dive: diveTap, sphx: sphxTap, spin: spinDir }); skillTap = dashTap = diveTap = sphxTap = false; }
     { let da = spinPrev == null ? 0 : run.ang - spinPrev; da = Math.abs(Math.atan2(Math.sin(da), Math.cos(da))); spinPrev = run.ang; const w = dt > 0 ? da / dt : 0;
       if (run.air && w > 2.5) { spinAcc += da; if (spinAcc >= Math.PI) { spinAcc = Math.min(Math.PI, spinAcc - Math.PI); if (now - whooshT > 85) { whooshT = now; whoosh(w); } } } else spinAcc = 0; }
+    if (fdiveOn && !run.fdive && !run.slam) fdiveOn = false;
     for (const e of run.ev) {
       const ex = Math.max(-40, Math.min(W + 40, SX(e.x))), ey = Math.max(-40, Math.min(H + 40, SY(e.y)));
       if (e.k === 'bounce') { const hard = Math.min(1, e.imp / (0.5 * run.v0 + 1)); shake = Math.max(shake, 2 + 6 * hard); SFX.bounce(0.1 + 0.3 * hard); burst(cartX, cartY + 8, 4 + Math.round(6 * hard), ['#ffffff', '#e8dcc0'], 200, 0.45, { a0: -1.57, spread: 2.6, g: 600, z: 4 }); if (hard > 0.5) ringFx(cartX, cartY + 8, '#ffffff', 40 + 40 * hard, 0.35, 3); }
@@ -1773,15 +1857,15 @@ function draw(now) {
       else if (e.k === 'ring') { SFX.ring(); ringFx(cartX, cartY, '#12e0c4', 90, 0.5, 7); burst(cartX, cartY, 9, ['#12e0c4', '#d3fff7'], 340, 0.5, { g: 0, z: 4 }); }
       else if (e.k === 'geyser') { SFX.tramp(); burst(cartX, cartY + 10, 22, ['#ff6a2a', '#ffd24a'], 520, 0.7, { a0: -1.57, spread: 0.9, z: 6 }); shake = 8; }
       else if (e.k === 'spring' || e.k === 'airspring') { SFX.spring(); ringFx(cartX, cartY + 12, '#12e0c4', 70, 0.4, 6); burst(cartX, cartY + 12, 12, ['#12e0c4', '#fff'], 420, 0.45, { a0: 1.57, spread: 1.2, g: 0, z: 4 }); if (e.k === 'airspring') toast('공중 도약!', 700); }
-      else if (e.k === 'dash' || e.k === 'fdash') { if (e.k === 'fdash') { fireFlashT = now; tone(300, 1400, 0.35, 0.12, 'sawtooth', 0, { rev: 0.5 }); ringFx(cartX, cartY, '#ff9a2a', 120, 0.5, 7); burst(cartX - 14, cartY, 16, ['#ff6a2a', '#ffd24a', '#fff3b0'], 900, 0.5, { a0: Math.PI, spread: 0.8, g: -100, z: 6 }); } SFX.dash(); dashT = 0.35; ringFx(cartX, cartY, '#5af0ff', 90, 0.4, 6); burst(cartX - 14, cartY, 14, ['#5af0ff', '#ffffff', '#2aa7d8'], 800, 0.4, { a0: Math.PI, spread: 0.7, g: 0, z: 5 }); shake = Math.max(shake, 4); dollJolt = 9; }
+      else if (e.k === 'dash' || e.k === 'fdash') { if (e.k === 'fdash') { fireFlashT = now; phxFxs.push({ k: 'dash', x: e.x, y: e.y, t0: now, life: 0.75 }); punch(0.05); noise(0.45, 0.28, 900, { rev: 0.5 }); tone(150, 55, 0.4, 0.16, 'sine'); burst(cartX, cartY, 22, ['#ff6a2a', '#ffd24a', '#fff3b0'], 520, 0.7, { spread: 6.283, g: -80, z: 5 }); tone(300, 1400, 0.35, 0.12, 'sawtooth', 0, { rev: 0.5 }); ringFx(cartX, cartY, '#ff9a2a', 120, 0.5, 7); burst(cartX - 14, cartY, 16, ['#ff6a2a', '#ffd24a', '#fff3b0'], 900, 0.5, { a0: Math.PI, spread: 0.8, g: -100, z: 6 }); } SFX.dash(); dashT = 0.35; ringFx(cartX, cartY, '#5af0ff', 90, 0.4, 6); burst(cartX - 14, cartY, 14, ['#5af0ff', '#ffffff', '#2aa7d8'], 800, 0.4, { a0: Math.PI, spread: 0.7, g: 0, z: 5 }); shake = Math.max(shake, 4); dollJolt = 9; }
       else if (e.k === 'dive') { SFX.dash(); tone(900, 120, 0.4, 0.14, 'sawtooth'); ringFx(cartX, cartY, '#b68cff', 80, 0.4, 7); burst(cartX, cartY, 14, ['#b68cff', '#fff'], 500, 0.4, { a0: -1.57, spread: 0.8, g: 0, z: 4 }); toast('급강하!', 600); }
-      else if (e.k === 'fspring') { fireFlashT = now; tone(220, 1100, 0.4, 0.12, 'sawtooth', 0, { rev: 0.5 }); ringFx(cartX, cartY + 8, '#ff9a2a', 110, 0.5, 6); burst(cartX, cartY + 10, 16, ['#ff6a2a', '#ffd24a', '#fff3b0'], 600, 0.5, { a0: 1.57, spread: 1.4, g: 300, z: 5 }); toast('불사조 도약!', 700); }
+      else if (e.k === 'fspring') { fireFlashT = now; phxFxs.push({ k: 'leap', x: e.x, y: e.y, t0: now, life: 0.85 }); punch(0.04); shake = Math.max(shake, 6); noise(0.5, 0.26, 1100, { rev: 0.5 }); tone(110, 330, 0.45, 0.14, 'sine'); burst(cartX, cartY + 16, 26, ['#ff6a2a', '#ffd24a', '#fff3b0'], 380, 0.9, { a0: 1.57, spread: 0.8, g: -260, z: 5 }); tone(220, 1100, 0.4, 0.12, 'sawtooth', 0, { rev: 0.5 }); ringFx(cartX, cartY + 8, '#ff9a2a', 110, 0.5, 6); burst(cartX, cartY + 10, 16, ['#ff6a2a', '#ffd24a', '#fff3b0'], 600, 0.5, { a0: 1.57, spread: 1.4, g: 300, z: 5 }); toast('불사조 도약!', 700); }
       else if (e.k === 'fdivecharge') { tone(330, 990, 0.38, 0.16, 'sawtooth', 0, { rev: 0.7 }); tone(660, 1980, 0.3, 0.08, 'triangle', 0.05, { rev: 0.7 }); noise(0.38, 0.25, 1200, { rev: 0.5 }); toast('불사조 급강하!', 700); }
       else if (e.k === 'fdive') { SFX.dash(); tone(1400, 90, 0.5, 0.2, 'sawtooth', 0, { rev: 0.5 }); noise(0.5, 0.45, 900); ringFx(cartX, cartY, '#ff9a2a', 120, 0.45, 8); burst(cartX, cartY, 22, ['#ff6a2a', '#ffd24a', '#fff3b0'], 700, 0.5, { a0: -1.57, spread: 1.0, g: 0, z: 6 }); shake = Math.max(shake, 8); fdiveOn = true; }
       else if (e.k === 'sphxon') { toast('슈퍼 불사조 변신!', 1600); sphxOnT = now; phxT = now; phxTail = []; fireFlashT = now; flyUI(true); flash = 0.55; flashCol = '#ffd08a'; shake = Math.max(shake, 14); buzz(100); SFX.zone();
         tone(220, 2600, 1.1, 0.2, 'sawtooth', 0.05, { rev: 0.8 }); tone(160, 1800, 0.9, 0.2, 'sawtooth', 0, { rev: 0.6 }); noise(1.0, 0.45, 1800, { rev: 0.6 }); [659, 880, 1319, 1760].forEach((f, k) => tone(f, f * 1.5, 0.6, 0.1, 'triangle', 0.12 + k * 0.1, { rev: 0.7 }));
         for (let k = 0; k < 5; k++) ringFx(cartX, cartY, k % 2 ? '#fff3b0' : '#ff8a1f', 110 + k * 80, 0.7 + k * 0.1, 9 - k, k * 0.07); burst(cartX, cartY, 60, ['#ff6a2a', '#ffd24a', '#fff3b0', '#fff'], 900, 1.1, { a0: -1.57, spread: 3.0, g: -260, z: 8 }); }
-      else if (e.k === 'sphxend') { toast('질주 끝 · 최고 속도 한도 100%', 1100); ringFx(cartX, cartY, '#ffd24a', 140, 0.6, 5); }
+      else if (e.k === 'sphxend') { toast('질주 끝 · 10초에 걸쳐 원래 속도로', 1300); ringFx(cartX, cartY, '#ffd24a', 140, 0.6, 5); }
       else if (e.k === 'slam') { if (fdiveOn) { fdiveOn = false; ringFx(cartX, cartY + 10, '#ff7a1a', 180, 0.6, 9); burst(cartX, cartY + 10, 30, ['#ff6a2a', '#ffd24a', '#fff3b0'], 900, 0.7, { a0: -1.57, spread: 3.0, g: 600, z: 7 }); flash = 0.25; flashCol = '#ffb04a'; } SFX.bounce(0.4); SFX.slam(); shake = 10; flash = 0.14; flashCol = '#fff'; dollJolt = 14; ringFx(cartX, cartY + 10, '#b68cff', 90, 0.45, 7); ringFx(cartX, cartY + 10, '#ffffff', 140, 0.55, 4, 0.06); burst(cartX, cartY + 10, 18, ['#ffffff', '#e8dcc0', '#b68cff'], 560, 0.6, { a0: -1.57, spread: 3.0, g: 800, z: 6 }); pop({ a: 1, im: 1, t: 0, col: '#d9c2ff', txt: `슬램! 콤보 ${e.combo} · 골드 +${Math.round(st.slamB * 100)}%` }); goldPopT = performance.now(); }
       else if (e.k === 'skip' || e.k === 'sink') { SFX.splash(); for (let i = 0; i < 12; i++) parts.push({ x: e.x, y: e.y, vx: (Math.random() - 0.3) * 10, vy: 3 + Math.random() * 9, t: 0, life: 0.7, c: '#bfe9ff', s: 1 }); }
       else if (e.k === 'bonk' || e.k === 'burn') { shake = 9; SFX.bonk(); dollJolt = 10; }
@@ -1918,7 +2002,7 @@ function draw(now) {
           const hg = g.createRadialGradient(wx, wy, 0, wx, wy, sz * 1.7); hg.addColorStop(0, `rgba(255,240,170,${0.85 * fd})`); hg.addColorStop(0.5, `rgba(255,150,40,${0.45 * fd})`); hg.addColorStop(1, 'rgba(255,100,30,0)'); g.fillStyle = hg; g.beginPath(); g.arc(wx, wy, sz * 1.7, 0, 7); g.fill();
           if (pa < 1.4 && Math.random() < 0.9) burst(wx + (Math.random() - 0.5) * sz, wy + sz * 0.4, 3, ['#ff6a2a', '#ffd24a', '#fff3b0'], 340, 0.8, { a0: -1.57, spread: 0.9, g: -320, z: 4 }); }
         g.restore(); } }
-    if (state === 'fly' && r) { const sp3 = Math.hypot(r.vx, r.vy); airFx(r, cxp, cyp, csc, sp3); diveTrail(r, cxp, cyp, csc, sp3); phoenixOnCart(r, cxp, cyp, csc); }
+    if (state === 'fly' && r) { const sp3 = Math.hypot(r.vx, r.vy); airFx(r, cxp, cyp, csc, sp3); diveTrail(r, cxp, cyp, csc, sp3); phxSkillFx(r, cxp, cyp, csc); phoenixOnCart(r, cxp, cyp, csc); }
     drawDoll(cxp, cyp, csc, pins, false); drawCart(cxp, cyp, rot, csc, sqz); drawDoll(cxp, cyp, csc, pins, true); }
   g.textAlign = 'center'; g.font = `15px ${FONT}`;
   { let ai = 0; for (const p of pops) { p.t += dt; const life = p.a ? 1.3 : 0.9, x2 = p.a ? Math.max(120, cartX + 20) : SX(p.x), y2 = p.a ? Math.max(150, cartY - 44) - 20 * ai++ - p.t * 26 : SY(p.y) - p.t * 50; g.font = `${p.a ? 17 : 15}px ${FONT}`; g.globalAlpha = Math.max(0, Math.min(1, (life - p.t) * 3)); g.lineWidth = 3.5; g.strokeStyle = '#2b2233'; g.strokeText(p.txt, x2, y2); g.fillStyle = p.col || '#ffd24a'; g.fillText(p.txt, x2, y2); } } g.globalAlpha = 1; pops = pops.filter(p => p.t < (p.a ? 1.3 : 0.9));

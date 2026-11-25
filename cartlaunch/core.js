@@ -318,7 +318,9 @@ const CORE = (() => {
   // (with the endurance perk maxed, +0.1% of the cap a second), the phoenix booster by PBOOST_REST (+2.11%).  A dash wins back DASH_REST
   // of the fatigue built up so far, a phoenix dash PDASH_REST, a phoenix spring PSPRING_REST
   const BOOST_REST = 0.06, PBOOST_REST = 1.25, DASH_REST = 0.02, PDASH_REST = 0.05;
-  const vcap = r => { const c = r.st.vcap * r.v0 * Math.max(0.085, (1 + (r.rew || 0)) * Math.exp(-(r.tr - (r.fresh || 0)) / r.st.tire)); return r.sphxT > 0 ? Math.max(c, sphxSpeed(r) * 1.02) : c; };
+  // after the super phoenix sprint the raised ceiling eases back to the normal one over SPHX_FADE seconds instead of dropping at once
+  const SPHX_FADE = 10;
+  const vcap = r => { const c = r.st.vcap * r.v0 * Math.max(0.085, (1 + (r.rew || 0)) * Math.exp(-(r.tr - (r.fresh || 0)) / r.st.tire)); return r.sphxT > 0 ? Math.max(c, sphxSpeed(r) * 1.02) : r.sphxF > 0 ? c * (1 + (r.sphxM - 1) * r.sphxF / SPHX_FADE) : c; };
   // super phoenix: the sprint speed is a multiple of the cap right after launch
   const sphxSpeed = r => r.sphxM * r.st.vcap * r.v0 * (1 + (r.rew || 0));
   // super phoenix, used once a run: either at any moment of the flight (the player transforms; the cart then no longer rises when it stops)
@@ -326,7 +328,7 @@ const CORE = (() => {
   // and every normal skill held turned into phoenix skills (3 springs / 2 dives / 2 dashes make one, a short last group still makes one: 11 -> 4, 9 -> 5)
   const CONV = { spring: 3, dive: 2, dash: 2 }, convOf = r => ({ spring: Math.ceil(r.spring / CONV.spring), dive: Math.ceil(r.dive / CONV.dive), dash: Math.ceil(r.dash / CONV.dash) });
   const canSphx = r => !!(r && !r.over && !r.risen && r.st.sphx);
-  const sphxGo = r => { const st = r.st, L = SPHX[Math.min(3, st.sphx)], o = convOf(r); r.sphxM = L.m; r.sphxT = L.t; r.fresh = r.tr;
+  const sphxGo = r => { const st = r.st, L = SPHX[Math.min(3, st.sphx)], o = convOf(r); r.sphxOn = true; r.sphxM = L.m; r.sphxT = L.t; r.fresh = r.tr;
     r.pspring += o.spring + L.n; r.pdive += o.dive + L.n; r.pdash += o.dash + L.n; r.spring = r.dive = r.dash = 0; if (st.fuel) r.pfuel += L.f * st.fuel; };
   // super phoenix by level: sprint multiple, sprint seconds, and phoenix dashes, springs, booster share and dives granted on rising
   const SPHX = [null, { m: 1.1, t: 2, n: 2, f: 0.5 }, { m: 1.3, t: 3, n: 3, f: 0.7 }, { m: 1.5, t: 4, n: 5, f: 1 }];
@@ -385,9 +387,12 @@ const CORE = (() => {
     r.boosting = !!(inp.boost && r.fuel + r.pfuel > 0);
     const gk = Math.sqrt(gZ * (1 - st.glide) / 9.8), alt0 = r.y - ground(r.x, U), grounded0 = alt0 < Math.max(1.2, 0.5 * r.S), vRef = Math.min(1.2 * r.v0, Math.max(sp0, 0.5 * r.v0));
     const dashAdd = () => (6 + st.dash + Math.min(1.2 * r.v0, Math.max(sp0, 0.8 * r.v0)) * (0.08 + 0.006 * st.dash)) * (st.dashpow || 1);
-    const doSpring = k => { const pf = k === 1 && r.tr - r.lastBounce < 0.22 + 0.008 * st.jspring ? 1.35 : 1; if (pf > 1 && st.jspring) r.vx += 0.008 * st.jspring * r.v0 * Math.pow(0.94, r.tops++); const fire = r.pspring > 0; if (fire) r.pspring--; else r.spring--; let up = (5 + 0.5 * st.spring + Math.min(1.2 * r.v0, Math.max(sp0, 0.8 * r.v0)) * (0.26 + 0.012 * st.spring)) * pf * k; if (k === 1) up = Math.max(up, Math.sqrt(2.3 * gZ * river(r, r.x + 0.5 * r.cw)) * pf); r.vy = Math.min(0.85 * r.v0 * gk + 8, Math.max(r.vy, 0) + up); r.vx *= 1.03; if (k < 1) r.vx += st.leap * r.v0; if (fire) { r.vx += 0.8 * dashAdd(); r.fresh = (r.fresh || 0) + (r.tr - (r.fresh || 0)) * PSPRING_REST; } r.air = true; if (k === 1) r.rotAcc = 0; r.ev.push({ k: k < 1 ? 'airspring' : pf > 1 ? 'pspring' : 'spring', x: r.x, y: r.y }); if (fire) r.ev.push({ k: 'fspring', x: r.x, y: r.y }); };
-    const doDash = () => { const fire = r.pdash > 0; if (fire) r.pdash--; else r.dash--; r.fresh = (r.fresh || 0) + (r.tr - (r.fresh || 0)) * (fire ? PDASH_REST : DASH_REST); const add = dashAdd(); r.vx += add; r.vy = grounded0 ? Math.max(r.vy, 0.18 * r.v0 + 3) : Math.max(r.vy, -0.12 * sp0); if (grounded0) r.air = true; r.ev.push({ k: fire ? 'fdash' : 'dash', x: r.x, y: r.y }); };
+    // a leap in the air ends a dive in progress (otherwise the dive state lingered until touchdown and blocked the next phoenix dive)
+    const doSpring = k => { if (!grounded0 && r.slam) { r.slam = false; r.fdive = false; } const pf = k === 1 && r.tr - r.lastBounce < 0.22 + 0.008 * st.jspring ? 1.35 : 1; if (pf > 1 && st.jspring) r.vx += 0.008 * st.jspring * r.v0 * Math.pow(0.94, r.tops++); const fire = r.pspring > 0; if (fire) r.pspring--; else r.spring--; let up = (5 + 0.5 * st.spring + Math.min(1.2 * r.v0, Math.max(sp0, 0.8 * r.v0)) * (0.26 + 0.012 * st.spring)) * pf * k; if (k === 1) up = Math.max(up, Math.sqrt(2.3 * gZ * river(r, r.x + 0.5 * r.cw)) * pf); r.vy = Math.min(0.85 * r.v0 * gk + 8, Math.max(r.vy, 0) + up); r.vx *= 1.03; if (k < 1) r.vx += st.leap * r.v0; if (fire) { r.vx += 0.8 * dashAdd(); r.fresh = (r.fresh || 0) + (r.tr - (r.fresh || 0)) * PSPRING_REST; } r.air = true; if (k === 1) r.rotAcc = 0; r.ev.push({ k: k < 1 ? 'airspring' : pf > 1 ? 'pspring' : 'spring', x: r.x, y: r.y }); if (fire) r.ev.push({ k: 'fspring', x: r.x, y: r.y }); };
+    const doDash = () => { if (r.sphxF > 0) r.sphxF = Math.min(SPHX_FADE, r.sphxF + 1); const fire = r.pdash > 0; if (fire) r.pdash--; else r.dash--; r.fresh = (r.fresh || 0) + (r.tr - (r.fresh || 0)) * (fire ? PDASH_REST : DASH_REST); const add = dashAdd(); r.vx += add; r.vy = grounded0 ? Math.max(r.vy, 0.18 * r.v0 + 3) : Math.max(r.vy, -0.12 * sp0); if (grounded0) r.air = true; r.ev.push({ k: fire ? 'fdash' : 'dash', x: r.x, y: r.y }); };
     if (inp.sphx && canSphx(r)) { r.risen = true; sphxGo(r); r.ev.push({ k: 'sphxon', x: r.x, y: r.y, sup: st.sphx }); }
+    // once the super phoenix is on, any normal skill gained later (pit-stop refills) joins the phoenix ones one for one
+    if (r.sphxOn && r.spring + r.dash + r.dive > 0) { r.pspring += r.spring; r.pdash += r.dash; r.pdive += r.dive; r.spring = r.dash = r.dive = 0; }
     const nSpring = r.spring + r.pspring, nDash = r.dash + r.pdash;
     if (inp.skill) { if (grounded0 && nSpring > 0) doSpring(1); else if (nDash > 0 && !grounded0) doDash(); else if (!grounded0 && st.airjump && nSpring > 0) doSpring(st.airjump); }
     if (inp.spring && nSpring > 0) { if (grounded0) doSpring(1); else if (st.airjump) doSpring(st.airjump); }
@@ -409,7 +414,9 @@ const CORE = (() => {
     // phoenix: for a moment after rising the cart is thrown forward with what three seconds of holding the boost would give
     // (a cart without a rocket gets 25% of its launch speed instead)
     if (r.sphxT > 0) { r.sphxT -= dtReal; const sp = Math.hypot(r.vx, r.vy), T = sphxSpeed(r), k = Math.min(1, dtReal * 10), ns = sp + (T - sp) * k; if (sp > 1e-9) { r.vx *= ns / sp; r.vy *= ns / sp; } else r.vx = ns;
-      if (r.sphxT <= 0) { r.sphxT = 0; r.fresh = r.tr; r.ev.push({ k: 'sphxend', x: r.x, y: r.y }); } }
+      if (r.sphxT <= 0) { r.sphxT = 0; r.fresh = r.tr; r.sphxF = SPHX_FADE; r.ev.push({ k: 'sphxend', x: r.x, y: r.y }); } }
+    // during the ease-back the boost holds the raised ceiling where it is, and each dash wins back a second of it
+    else if (r.sphxF > 0 && !r.boosting) r.sphxF = Math.max(0, r.sphxF - dtReal);
     if (r.phx > 0) { const k = Math.min(dtReal, r.phx) / PHX_T, dv = (st.thrust ? 3 * 1.15 * st.thrust * (1 + st.nozzle) : 0.25 * r.v0) * k; r.phx -= dtReal; r.vx += dv; r.vy += dv * 0.16; }
     if (r.boosting) { r.usedBoost = true; const fireB = r.pfuel > 0; r.fresh = Math.min(r.tr, (r.fresh || 0) + dtReal * (1 + (fireB ? PBOOST_REST : BOOST_REST))); let burn = dtReal * st.burnK; if (fireB) { const u = Math.min(r.pfuel, burn); r.pfuel -= u; burn -= u; } r.fuel = Math.max(0, r.fuel - burn); const dv = st.thrust * dtReal * 1.15; r.vx += dv * (1 + st.nozzle); r.vy += dv * (grounded0 ? 0.45 : 0.16) + (r.vy < 0 ? Math.min(-r.vy, dv * 0.5) : 0); if (grounded0 && r.vy > 0) r.air = true; }
     const xPrev = r.x, dg = 0.1 * U;
