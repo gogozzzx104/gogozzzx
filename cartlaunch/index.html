@@ -319,7 +319,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 125, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 127, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -819,6 +819,7 @@ const p_ = d => `<path d="${d}"/>`, c_ = (x, y, r) => `<circle cx="${x}" cy="${y
 const LOOP = 'M20 12a8 8 0 1 1-3-6.2M20 3v5h-5', STAR = 'M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8 6.6 19.7l1.1-6.1L3.2 9.4l6.1-.8z', FLAME = 'M12 3q5 5 5 10a5 5 0 0 1-10 0q0-3 2-5 0 3 2 3 1-4 1-8z', CAN = r_(6, 7, 11, 14, 2) + p_('M9 7V4h5v3M9 12h5');
 // one small line icon per upgrade and perk (24x24)
 const IC = {
+  autoreb: p_('M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4v4.5H15') + p_('M12 8.2l1.2 2.4 2.6.4-1.9 1.8.5 2.6-2.4-1.3-2.4 1.3.5-2.6-1.9-1.8 2.6-.4z'),
   push: p_('M4 9v6M7 7v10M17 7v10M20 9v6M7 12h10'), ramp: p_('M3 19h18V8zM7 11l6-4m0 0h-3m3 0v3'), runup: p_('M4 7l5 5-5 5M10 7l5 5-5 5M16 7l5 5-5 5'), timing: c_(12, 13, 7) + p_('M12 13V9M10 3h4M12 3v3'),
   rail2: p_('M3 18h18M3 14h18M6 14v4M11 14v4M16 14v4M8 8h9m0 0l-3-3m3 3l-3 3'), sling: p_('M12 21v-8M12 13L7 4M12 13l5-9M7 4q5 6 10 0'), cannon: p_('M4 17l12-9 3 4-11 8z') + c_(7, 18, 3), rail: p_('M13 2L5 13h6l-1 9 9-12h-6z'),
   wheel: c_(12, 12, 8) + c_(12, 12, 2) + p_('M12 4v6M12 14v6M4 12h6M14 12h6'), tire: c_(12, 12, 8) + c_(12, 12, 4) + p_('M12 2v2M12 20v2M2 12h2M20 12h2'), frame: p_('M3 5h3l3 10h9l2-7H8') + c_(10, 19, 1.5) + c_(17, 19, 1.5), aero: p_('M3 8h11q3 0 3-2.5T14 3M3 12h16q3 0 3 2.5T19 17M3 16h8q3 0 3 2.5T11 21'),
@@ -926,9 +927,9 @@ function showDetail() { $('.sbody').classList.remove('det'); const el = $('#sLis
 // ---- transcendence: the sixteen abilities as four paths of tiles (speed · currency · control · convenience), each tile opening the
 // same docked detail panel as the other trees ----
 const TGROUP = [['speed', '속도의 길', '#ff8a66', ['t_speed', 't_cap', 't_time', 't_starpow', 't_rekindle', 't_sphx']], ['wealth', '재화의 길', '#ffcf4a', ['t_gold', 't_star', 't_deep', 't_land', 't_multi', 't_beam']],
-  ['skill', '조작의 길', '#6cbcff', ['t_gauge', 't_spin', 't_judge']], ['ease', '편의', '#7df3da', ['t_auto', 't_keep']]];
+  ['skill', '조작의 길', '#6cbcff', ['t_gauge', 't_spin', 't_judge']], ['ease', '편의', '#7df3da', ['t_auto', 't_keep', 'autoreb']]];
 const tGroupOf = id => TGROUP.find(g => g[3].includes(id)) || TGROUP[3];
-const TIC = { t_sphx: 'r_phoenix', t_speed: 'rail', t_cap: 'over', t_time: 'r_time', t_starpow: 'r_bless', t_rekindle: 'heat', t_gold: 'coin', t_star: 'style', t_deep: 'warp', t_land: 'r_land', t_multi: 'tractor', t_beam: 'amp', t_gauge: 'timing', t_spin: 'gyro', t_judge: 'bumper', t_auto: 'encore', t_keep: 'r_mem' };
+const TIC = { autoreb: 'autoreb', t_sphx: 'r_phoenix', t_speed: 'rail', t_cap: 'over', t_time: 'r_time', t_starpow: 'r_bless', t_rekindle: 'heat', t_gold: 'coin', t_star: 'style', t_deep: 'warp', t_land: 'r_land', t_multi: 'tractor', t_beam: 'amp', t_gauge: 'timing', t_spin: 'gyro', t_judge: 'bumper', t_auto: 'encore', t_keep: 'r_mem' };
 // 전생 각인 shows the free 50% as five levels already taken
 const tBase = id => id === 't_keep' ? 5 : 0;
 const TEFX = { t_sphx: l => l ? `한도 ×${[0, 1.1, 1.3, 1.5][l]} ${[0, 2, 3, 4][l]}초 질주 · 불사조 스킬 ${[0, 2, 3, 5][l]}회씩 · 불사조 부스터 +${[0, 50, 70, 100][l]}%` : '없음 (불사조 부활만)', t_speed: l => `발사 속도 ×${big(Math.pow(1.25, l))}`, t_gold: l => `모든 골드 ×${fmt(Math.pow(2, l))}`, t_star: l => `별 +${fmt(Math.round(C.TV.star(l) * 100))}%`, t_cap: l => `한도 ${C.TV.cap(l).toFixed(1)}배`, t_gauge: l => `게이지 속도 ×${(1 + 0.1 * l).toFixed(1)}${l >= 10 ? ' · 자동 발사' : ''}`, t_spin: l => `2초 뒤 회전 속도 +${Math.round(C.TV.spin(l) * 100)}%`, t_judge: l => { const d = x => Math.min(180, Math.round((x + 0.0606 * l) * 57.3)), gy = C.lvl(S, 'gyro'); return l >= 50 ? '모든 방향 완벽 착지' : `착지 ±${d(0.26 + 0.01 * gy)}° · 완벽 ±${d(0.11 + 0.004 * gy)}°`; }, t_time: l => `+${l * 10}%`, t_keep: l => `${50 + l * 10}% 유지`, t_auto: l => l ? '켜짐' : '꺼짐', t_land: l => `보너스 +${l * 50}%`, t_multi: l => `한 번에 ${1 + l}개`, t_beam: l => `주기 ${Math.round(Math.pow(0.92, l) * 100)}%`, t_starpow: l => `발사 속도 ×${big(1 + C.TV.starpow(l) * Math.log2(1 + C.starsEver(S)))} (별 ${fmt(C.starsEver(S))}개 기준)`, t_rekindle: l => `착지 +${(l * 0.5).toFixed(1)}% · 완벽 +${(l * 1.5).toFixed(1)}% (최대 +${l * 5}%)`, t_deep: l => `차원석 +${l * 10}%` };
@@ -939,15 +940,18 @@ function transGridHTML() {
   const used = tc * cw + gut * (TGROUP.length - 1), inner = Math.max(aw, used + 24); let x0 = (inner - used) / 2, h = '', rmax = 0, pop = '', popY = 0;
   TGROUP.forEach(([, name, col, ids], gi) => { const c = cols[gi], rows = Math.ceil(ids.length / c), bw = c * cw; rmax = Math.max(rmax, rows);
     h += `<div class="tgrp" style="left:${x0 - 6}px;top:${top - 34}px;width:${bw + 12}px;height:${rows * rh + 30}px;--bc:${col}"></div><span class="bl" style="left:${x0 + bw / 2}px;top:10px;--bc:${col}">${name}</span>`;
-    ids.forEach((id, k) => { const q = C.TP[id], l = C.tl(S, id), b = tBase(id), mx = l >= q.max, lk = C.tLock(S, id), cost = C.tCost(q, l), can = !mx && !lk && (S.shards || 0) >= cost;
+    ids.forEach((id, k) => { const T = tInfo(id), q = T.q, l = T.l, b = T.b, mx = T.mx, lk = T.lk, cost = T.cost, can = T.can;
       const pct = mx ? 100 : Math.round(100 * (l + b) / (q.max + b)), cls = lk ? 'lock' : mx ? 'max' : can ? 'can' : '', bd = lk ? 't_lock' : mx ? 't_check' : can ? 't_up' : '', cx = x0 + (k % c) * cw + cw / 2, y = top + Math.floor(k / c) * rh;
-      const price = mx ? '' : lk ? `<u class="poor">미지 ${C.tGate(id, l)}</u>` : `<u class="${can ? '' : 'poor'}">◆ ${fmt(cost)}</u>`;
+      const price = mx ? '' : lk ? `<u class="poor">${T.gate}</u>` : `<u class="${can ? '' : 'poor'}">◆ ${fmt(cost)}</u>`;
       if (sel.trans === id) { const P = popAt(cx - n / 2, cx + n / 2, y, col, transDetail(q), inner); pop = P.html; popY = P.y; }
       h += `<button type="button" class="nd ${cls}${sel.trans === id ? ' sel' : ''}" data-id="${id}" style="left:${cx - n / 2}px;top:${y}px;--bc:${col}"><svg class="ring" viewBox="0 0 54 54"><rect class="rt" x="1.5" y="1.5" width="51" height="51" rx="14.5"/>${pct && (!lk || l > 0) ? `<rect class="rf" x="1.5" y="1.5" width="51" height="51" rx="14.5" pathLength="100" stroke-dasharray="${pct} 100"/>` : ''}</svg>${icon(TIC[id])}${bd ? `<i class="bd">${icon(bd)}</i>` : ''}<b>${mx ? 'MAX' : (l + b) + '/' + (q.max + b)}</b><span><em>${q.name}</em>${price}</span></button>`; });
     x0 += bw + gut; });
   const ht = top + rmax * rh, wd = inner;
   return `<div class="tw" style="height:${ht}px;width:${wd}px;--cw:${cw - 6}px;--n:${n}px">${h}${pop}</div>`; }
-function transDetail(q) { const l = C.tl(S, q.id), b = tBase(q.id), mx = l >= q.max, lk = C.tLock(S, q.id), c = C.tCost(q, l), can = !mx && !lk && (S.shards || 0) >= c, fx = TEFX[q.id];
+function transDetail(q) { if (q.id === 'autoreb') { const T = tInfo('autoreb');
+    return detHead({ id: TIC.autoreb, name: q.name, max: 1 }, T.l, `편의 · ${T.mx ? '구매함' : 'Lv 0 / 1'}`) + `<p>${q.desc}</p><p class="tv" style="margin:0">초월해도 남음</p>` + (T.lk ? `<ul class="dr">${reqLi(false, T.lk)}</ul>` : '')
+      + `<div class="brow" style="grid-template-columns:1fr"><button class="buy" data-autoreb="buy" ${T.can ? '' : 'disabled'}>${T.mx ? '완료' : T.lk ? '잠김' : '◆ ' + fmt(T.cost) + '<small>차원석</small>'}</button></div>`; }
+  const l = C.tl(S, q.id), b = tBase(q.id), mx = l >= q.max, lk = C.tLock(S, q.id), c = C.tCost(q, l), can = !mx && !lk && (S.shards || 0) >= c, fx = TEFX[q.id];
   return detHead({ id: TIC[q.id], name: q.name, max: q.max + b }, l + b, `${tGroupOf(q.id)[1]} · ${mx ? '최대 레벨' : `Lv ${l + b} / ${q.max + b}`}`) + `<p>${b ? '초월 때 환생 트리를 레벨당 10% 유지 · Lv5(50%)까지는 처음부터 찍혀 있음' : q.desc}</p><p class="tv" style="margin:0">초월해도 남음</p>`
     + (fx ? `<div class="eff">${mx ? `<p>${fx(l)}</p>` : arrow(fx(l), fx(l + 1))}</div>` : '') + (lk ? `<ul class="dr">${reqLi(false, lk)}</ul>` : '')
     + `<div class="brow" style="grid-template-columns:1fr"><button class="buy" data-tp="${q.id}" ${can ? '' : 'disabled'}>${mx ? '완료' : lk ? '잠김' : '◆ ' + fmt(c) + '<small>차원석</small>'}</button></div>`; }
@@ -1029,9 +1033,11 @@ function setOpt(k, v) { OPT[k] = isNaN(+v) ? v : +v; saveOpt(); if (k === 'gfx')
 // auto rebirth: unlocked once the transcendence auto-buy and the rebirth-tree keep (전생 각인) are both maxed; bought once for ◆10,
 // then toggled.  While on, every finished run that would give stars ends in a rebirth (and the auto-buy right after it).
 const AUTOREB_COST = 10, autoRebOpen = () => C.tl(S, 't_auto') >= C.TP.t_auto.max && C.tl(S, 't_keep') >= C.TP.t_keep.max;
-function autoRebBtn() { if (!(S.trans > 0)) return '';
-  if (!autoRebOpen()) return `<button class="buy auto" disabled>자동 환생<small>자동 구매·전생 각인 만렙 필요</small></button>`;
-  if (!S.autoReb) return `<button class="buy auto" data-autoreb="buy" ${(S.shards || 0) >= AUTOREB_COST ? '' : 'disabled'}>자동 환생<small>◆ ${AUTOREB_COST}</small></button>`;
+// auto rebirth is bought from the transcend tab's 편의 path; once bought, its on/off switch sits next to the rebirth button
+const AUTOREB_Q = { id: 'autoreb', name: '자동 환생', max: 1, desc: '판이 끝날 때마다 별이 생기면 자동으로 환생 · 업그레이드는 그대로 남음 · 산 뒤에는 환생 칸에서 켜고 끌 수 있음' };
+const tInfo = id => { if (id === 'autoreb') { const l = S.autoReb ? 1 : 0, lk = autoRebOpen() ? '' : '자동 구매·전생 각인 만렙 필요'; return { q: AUTOREB_Q, l, b: 0, mx: l >= 1, lk, cost: AUTOREB_COST, can: !l && !lk && (S.shards || 0) >= AUTOREB_COST, gate: '조건' }; }
+  const q = C.TP[id], l = C.tl(S, id), lk = C.tLock(S, id), cost = C.tCost(q, l); return { q, l, b: tBase(id), mx: l >= q.max, lk, cost, can: l < q.max && !lk && (S.shards || 0) >= cost, gate: '미지 ' + C.tGate(id, l) }; };
+function autoRebBtn() { if (!(S.trans > 0) || !S.autoReb) return '';
   return `<button class="buy auto${S.autoRebOn ? ' on' : ''}" data-autoreb="t">자동 환생<small>${S.autoRebOn ? '켜짐 · 판마다 환생' : '꺼짐 · 눌러서 켜기'}</small></button>`; }
 // ---- account status and moving a save by hand ----
 // In-app browsers (KakaoTalk, Naver, Instagram...) keep their own sign-in and storage, apart from Chrome or Safari, and claude.ai is
@@ -1071,7 +1077,7 @@ function renderShop() {
     list.innerHTML = `<div class="rbar"><div class="chips"><span class="chip"><i>보유</i>★ ${fmt(S.stars)}</span><span class="chip"><i>별 보너스</i>골드 +${fmt(S.starsTotal * per)}%</span><span class="chip hi"><i>${C.starsFor(S.bestLife) ? '다음 ★' : '첫 ★'}</i>${isFinite(nx) ? km(nx) + ' 달성' : '더 없음'}</span></div>${autoRebBtn()}<button class="buy star" data-rebirth="1" ${gain > 0 ? '' : 'disabled'}>${ask ? '정말요?<small>한 번 더 누르기</small>' : '환생하기<small>★ +' + fmt(gain) + '</small>'}</button>${ask ? `<p class="cap">골드·${S.autoReb ? '업그레이드 유지' : `업그레이드 초기화${keep ? ` (${keep}% 유지)` : ''}`} · 별·트리·업적 유지 · ★ 하나당 골드 +${per}%</p>` : ''}</div>` + treeHTML(C.PERKS, true); }
   else if (tab === 'trans') { const g2 = C.shardsFor(S);
     const ask = confirmKey === 'trans';
-    list.innerHTML = `<div class="rbar" style="--bc:#7df3da"><div class="chips"><span class="chip"><i>보유</i>◆ ${fmt(S.shards || 0)}</span><span class="chip"><i>초월</i>${fmt(S.trans || 0)}회</span><span class="chip"><i>초월 때 환생 트리</i>${50 + 10 * C.tl(S, 't_keep')}% 유지</span><span class="chip hi"><i>${g2 ? '지금 초월하면' : '초월 조건'}</i>${g2 ? '◆ +' + fmt(g2) : Z[C.LAST].name + ' 도달'}</span></div><button class="buy star" data-trans="1" ${g2 ? '' : 'disabled'}>${ask ? '정말요?<small>한 번 더 누르기</small>' : '초월하기<small>◆ +' + fmt(g2) + '</small>'}</button>${ask ? `<p class="cap">골드·업그레이드·별 초기화 · 환생 트리 ${50 + 10 * C.tl(S, 't_keep')}% 유지 · 환생 횟수·업적·스킨·차원 능력 유지</p>` : ''}</div>` +
+    list.innerHTML = `<div class="rbar" style="--bc:#7df3da"><div class="chips"><span class="chip"><i>보유</i>◆ ${fmt(S.shards || 0)}</span><span class="chip"><i>초월</i>${fmt(S.trans || 0)}회</span><span class="chip"><i>초월 때 환생 트리</i>${50 + 10 * C.tl(S, 't_keep')}% 유지</span>${g2 ? '' : `<span class="chip hi"><i>초월 조건</i>${Z[C.LAST].name} 도달</span>`}</div><button class="buy star" data-trans="1" ${g2 ? '' : 'disabled'}>${ask ? '정말요?<small>한 번 더 누르기</small>' : '초월하기<small>◆ +' + fmt(g2) + '</small>'}</button>${ask ? `<p class="cap">골드·업그레이드·별 초기화 · 환생 트리 ${50 + 10 * C.tl(S, 't_keep')}% 유지 · 환생 횟수·업적·스킨·차원 능력 유지</p>` : ''}</div>` +
       transGridHTML(); }
   else if (tab === 'skin') { const cur = skinNow().id;
     list.innerHTML = `<div class="bh">스킨</div>` + SKINS.map(k => `<button type="button" class="sk${k.id === cur ? ' on' : ''}${skinOpen(k) ? '' : ' lock'}" data-skin="${k.id}"><canvas width="220" height="140" data-skin="${k.id}"></canvas>${k.name}<small>${skinOpen(k) ? (k.id === cur ? '사용 중' : '눌러서 변경') : skinHint(k)}</small></button>`).join('');
