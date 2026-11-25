@@ -307,7 +307,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 103, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 104, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -791,7 +791,7 @@ function treeHTML(items, perk) {
     const gz = perk && !mx ? C.perkGate(u.id, l) : 0, gated = !!gz && l > 0 && C.reached(S) < gz, price = mx ? '' : gated ? `<u class="poor">${Z[gz].name}</u>` : lock ? '' : `<u class="${can ? '' : 'poor'}">${perk ? '★ ' + fmt(C.perkCost(u, l)) : fmt(C.cost(S, u.id))}</u>`, pct = mx ? 100 : Math.round(100 * l / u.max), cls = gated ? 'gate' : lock ? 'lock' : mx ? 'max' : can ? 'can' : '', bd = lock ? 't_lock' : mx ? 't_check' : can ? 't_up' : '';
     h += `<button type="button" class="nd ${cls}${sel[tab] === u.id ? ' sel' : ''}" data-id="${u.id}" style="left:${X(c, r) - n / 2}px;top:${Y(c, r)}px;--bc:${col}"><svg class="ring" viewBox="0 0 54 54"><rect class="rt" x="1.5" y="1.5" width="51" height="51" rx="14.5"/>${pct && (!lock || gated) ? `<rect class="rf" x="1.5" y="1.5" width="51" height="51" rx="14.5" pathLength="100" stroke-dasharray="${pct} 100"/>` : ''}</svg>${icon(u.id)}${bd ? `<i class="bd">${icon(bd)}</i>` : ''}<b>${u.cap ? (l ? '완료' : '궁극') : mx ? 'MAX' : l + '/' + u.max}</b><span><em>${u.name}</em>${price}</span></button>`; }
   let ht = top + (flip ? T.cols : T.rows) * rh, pop = ''; const wd = inner, sid = sel[tab];
-  if (sid && T.pos[sid] && (!perk || starOpen())) { const u = items.find(q => q.id === sid), [c, r] = T.pos[sid], P = popAt(X(c, r) - n / 2, X(c, r) + n / 2, Y(c, r), BCOL[u.br], perk ? perkDetail(u) : upDetail(u), inner); pop = P.html; ht = Math.max(ht, P.y + 330); }
+  if (sid && T.pos[sid] && (!perk || starOpen())) { const u = items.find(q => q.id === sid), [c, r] = T.pos[sid], P = popAt(X(c, r) - n / 2, X(c, r) + n / 2, Y(c, r), BCOL[u.br], perk ? perkDetail(u) : upDetail(u), inner); pop = P.html; }
   return `<div class="tw" style="height:${ht}px;width:${wd}px;--cw:${cw - 6}px;--n:${n}px"><svg class="edges" width="${wd}" height="${ht}">${off}${on}${tags}</svg>${h}${pop}</div>`;
 }
 // ---- detail card ----
@@ -799,7 +799,7 @@ function treeHTML(items, perk) {
 // the card goes to the right of the tile when it fits in view, otherwise to its left.
 function popAt(nl, nr, ty, col, body, inner) { const el = $('#sList'), PW = TREE.det, vl = el ? el.scrollLeft : 0, vr = vl + (el ? el.clientWidth : inner);
   const x = nr + 12 + PW <= Math.min(inner, vr) - 4 ? nr + 12 : nl - 12 - PW >= vl + 4 ? nl - 12 - PW : Math.max(4, Math.min(nr + 12, inner - PW - 4));
-  return { y: Math.max(4, ty - 8), html: `<div class="pop" style="left:${x}px;top:${Math.max(4, ty - 8)}px;--bc:${col}">${body}</div>` }; }
+  return { y: Math.max(4, ty - 8), html: `<div class="pop" data-ty="${ty}" data-tb="${ty + (nr - nl)}" style="left:${x}px;top:${Math.max(4, ty - 8)}px;--bc:${col}">${body}</div>` }; }
 // ---- detail panel ----
 const reqLi = (ok, t) => `<li class="${ok ? 'ok' : ''}">${icon(ok ? 't_check' : 't_lock')}${t}</li>`;
 function detHead(u, l, sub) { return `<div class="dh"><div class="di">${icon(u.id)}</div><div><h3>${u.name}</h3><span>${sub}</span></div><button type="button" class="dx" data-x="1" aria-label="닫기">✕</button></div><div class="lvbar"><i style="width:${Math.round(100 * Math.min(1, l / u.max))}%"></i></div>`; }
@@ -809,8 +809,12 @@ function upDetail(u) { const l = C.lvl(S, u.id), lock = C.lockReason(S, u.id), m
   return detHead(u, l, mx ? '최대 레벨' : `Lv ${l} / ${u.max}`) + `<p>${u.desc}</p>${eff ? `<div class="eff">${eff}</div>` : ''}${reqs ? `<ul class="dr">${reqs}</ul>` : ''}<div class="brow"><button class="buy" data-up="${u.id}" ${can ? '' : 'disabled'}>${mx ? '최대 레벨' : lock ? '잠김' : fmt(C.cost(S, u.id)) + '<small>골드</small>'}</button><button class="buy sm" data-max="${u.id}" ${can ? '' : 'disabled'}>최대로</button></div>`; }
 function perkDetail(q) { const l = S.perks[q.id] || 0, mx = l >= q.max, lock = C.perkLock(S, q.id), c = C.perkCost(q, l), gz = mx ? 0 : C.perkGate(q.id, l), reqs = q.req.map(([r, n]) => reqLi((S.perks[r] || 0) >= n, `${C.PK[r].name} Lv${n}${(S.perks[r] || 0) >= n ? '' : ` · 지금 Lv${S.perks[r] || 0}`}`)).concat(gz ? [reqLi(C.reached(S) >= gz, `Lv${l + 1}: ${Z[gz].name} 도달`)] : []).join('');
   return detHead(q, l, q.cap ? '궁극 능력' : mx ? '최대 레벨' : `Lv ${l} / ${q.max}`) + `<p>${q.desc}</p>${PEFF[q.id] ? `<div class="eff">${mx ? `<p>${PEFF[q.id](l)}</p>` : arrow(PEFF[q.id](l), PEFF[q.id](l + 1))}</div>` : ''}${reqs ? `<ul class="dr">${reqs}</ul>` : ''}<div class="brow" style="grid-template-columns:1fr"><button class="buy star" data-perk="${q.id}" ${perkCan(q) ? '' : 'disabled'}>${mx ? '완료' : lock ? (l > 0 ? '조건 필요' : '잠김') : '★ ' + fmt(c)}</button></div>`; }
-// the card is part of the tree now; the docked panel never opens.  After a render, scroll so the whole card is in view.
+// the card is part of the tree now; the docked panel never opens.  After a render: a tile in the lower half of the view opens its card
+// upward (the card's bottom lines up with the tile's bottom), one in the upper half opens it downward; then scroll so it is all in view.
 function showDetail() { $('.sbody').classList.remove('det'); const el = $('#sList'), pc = el && el.querySelector('.pop'); if (!pc) return;
+  { const ty = +pc.dataset.ty, tb = +pc.dataset.tb, mid = el.scrollTop + el.clientHeight / 2, h = pc.offsetHeight, tw = pc.parentElement;
+    if ((ty + tb) / 2 > mid) pc.style.top = Math.max(4, tb + 8 - h) + 'px';
+    if (tw && pc.offsetTop + h + 8 > tw.offsetHeight) tw.style.height = pc.offsetTop + h + 8 + 'px'; }
   const l = pc.offsetLeft - 8, r = pc.offsetLeft + pc.offsetWidth + 8, t = pc.offsetTop - 8, b = pc.offsetTop + pc.offsetHeight + 8;
   if (r > el.scrollLeft + el.clientWidth) el.scrollLeft = r - el.clientWidth; if (l < el.scrollLeft) el.scrollLeft = Math.max(0, l);
   if (b > el.scrollTop + el.clientHeight) el.scrollTop = b - el.clientHeight; if (t < el.scrollTop) el.scrollTop = Math.max(0, t); }
@@ -836,7 +840,7 @@ function transGridHTML() {
       if (sel.trans === id) { const P = popAt(cx - n / 2, cx + n / 2, y, col, transDetail(q), inner); pop = P.html; popY = P.y; }
       h += `<button type="button" class="nd ${cls}${sel.trans === id ? ' sel' : ''}" data-id="${id}" style="left:${cx - n / 2}px;top:${y}px;--bc:${col}"><svg class="ring" viewBox="0 0 54 54"><rect class="rt" x="1.5" y="1.5" width="51" height="51" rx="14.5"/>${pct && !lk ? `<rect class="rf" x="1.5" y="1.5" width="51" height="51" rx="14.5" pathLength="100" stroke-dasharray="${pct} 100"/>` : ''}</svg>${icon(TIC[id])}${bd ? `<i class="bd">${icon(bd)}</i>` : ''}<b>${mx ? 'MAX' : (l + b) + '/' + (q.max + b)}</b><span><em>${q.name}</em>${price}</span></button>`; });
     x0 += bw + gut; });
-  const ht = Math.max(top + rmax * rh, pop ? popY + 330 : 0), wd = inner;
+  const ht = top + rmax * rh, wd = inner;
   return `<div class="tw" style="height:${ht}px;width:${wd}px;--cw:${cw - 6}px;--n:${n}px">${h}${pop}</div>`; }
 function transDetail(q) { const l = C.tl(S, q.id), b = tBase(q.id), mx = l >= q.max, lk = C.tLock(S, q.id), c = C.tCost(q, l), can = !mx && !lk && (S.shards || 0) >= c, fx = TEFX[q.id];
   return detHead({ id: TIC[q.id], name: q.name, max: q.max + b }, l + b, `${tGroupOf(q.id)[1]} · ${mx ? '최대 레벨' : `Lv ${l + b} / ${q.max + b}`}`) + `<p>${b ? '초월 때 환생 트리를 레벨당 10% 유지 · Lv5(50%)까지는 처음부터 찍혀 있음' : q.desc}</p><p class="tv" style="margin:0">초월해도 남음</p>`
