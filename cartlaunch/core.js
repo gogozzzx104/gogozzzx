@@ -394,7 +394,8 @@ const CORE = (() => {
     // dive: a hard push straight down plus some forward speed; from very high it starts fast enough to cover the drop in about 1.2 real seconds
     if (inp.dive && r.pdive > 0 && !grounded0 && r.pdc <= 0 && !r.fdive) { r.pdive--; r.pdc = PDIVE_T; r.ev.push({ k: 'fdivecharge', x: r.x, y: r.y }); }
     else if (inp.dive && r.dive > 0 && !grounded0 && r.pdc <= 0) { r.dive--; r.slam = true; r.vy = -Math.max(Math.abs(r.vy), 0.9 * r.v0, alt0 / (1.1 * r.tw * Math.sqrt(9.8 / (gZ * (1 - st.glide))))); r.vx += vRef * (0.05 + 0.02 * st.dive) + 4; r.spin = 0; r.ev.push({ k: 'dive', x: r.x, y: r.y }); }
-    if (r.pdc > 0) { r.pdc -= dtReal; const h2 = Math.exp(-dtReal * 9); r.vx *= h2; r.vy *= h2; r.spin = 0;
+    // phoenix dive wind-up: the cart hangs in the air (vertical motion held) but keeps all of its forward speed
+    if (r.pdc > 0) { r.pdc -= dtReal; r.vy *= Math.exp(-dtReal * 9); r.spin = 0;
       if (r.pdc <= 0) { r.pdc = 0; r.slam = true; r.fdive = true; r.vy = -Math.max(1.2 * r.v0, alt0 / (0.55 * r.tw * Math.sqrt(9.8 / (gZ * (1 - st.glide))))); r.vx += vRef * (0.08 + 0.02 * st.dive) + 4; r.ev.push({ k: 'fdive', x: r.x, y: r.y }); } }
     if (!r.slam) r.fdive = false;
     if (r.air) r.airT += dtReal; else r.airT = 0;

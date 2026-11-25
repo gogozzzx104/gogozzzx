@@ -35,5 +35,10 @@ const { chromium } = require('playwright'); const fs = require('fs');
   const C = require('../../core.js'); const o = C.convOf({ spring: 11, dash: 9, dive: 3 });
   check('규칙: 도약 11→4, 대시 9→5, 급강하 3→2', o.spring === 4 && o.dash === 5 && o.dive === 2, o);
   check('설명 문구', /^즉시 슈퍼 불사조로 언제든 변신 가능/.test(C.TP.t_sphx.desc), C.TP.t_sphx.desc);
+  // the phoenix dive's wind-up holds the cart in the air but must not eat its forward speed
+  { const sv = Object.assign(C.newSave(), JSON.parse(JSON.stringify(saves.z10)), { tperks: { t_sphx: 3 } }), st = C.stats(sv), out = {};
+    for (const kind of ['normal', 'phoenix']) { const r = C.newRun(st, 1, 1, 7); for (let i = 0; i < 150; i++) C.step(r, 1 / 60, {}); r.dive = 3; r.pdive = kind === 'phoenix' ? 3 : 0; const v0 = r.vx; let lo = v0; C.step(r, 1 / 60, { dive: true });
+      for (let t = 0; t < 6 && (r.slam || r.pdc > 0 || t < 0.05); t += 1 / 60) { C.step(r, 1 / 60, {}); lo = Math.min(lo, r.vx); } out[kind] = { start: +(v0 / r.v0).toFixed(3), low: +(lo / r.v0).toFixed(3), land: +(r.vx / r.v0).toFixed(3) }; }
+    check('불사조 급강하: 기 모으는 동안 앞속도 유지, 착지 속도 ≥ 일반 급강하', out.phoenix.low >= 0.9 * out.phoenix.start && out.phoenix.land >= out.normal.land, out); }
   check('페이지 오류 없음', !errs.length, errs);
   console.log(`\n${ok} OK, ${bad} FAIL`); await b.close(); process.exit(bad ? 1 : 0); })();
