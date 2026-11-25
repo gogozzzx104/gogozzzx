@@ -311,7 +311,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 106, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 107, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -847,9 +847,9 @@ function transGridHTML() {
     h += `<div class="tgrp" style="left:${x0 - 6}px;top:${top - 34}px;width:${bw + 12}px;height:${rows * rh + 30}px;--bc:${col}"></div><span class="bl" style="left:${x0 + bw / 2}px;top:10px;--bc:${col}">${name}</span>`;
     ids.forEach((id, k) => { const q = C.TP[id], l = C.tl(S, id), b = tBase(id), mx = l >= q.max, lk = C.tLock(S, id), cost = C.tCost(q, l), can = !mx && !lk && (S.shards || 0) >= cost;
       const pct = mx ? 100 : Math.round(100 * (l + b) / (q.max + b)), cls = lk ? 'lock' : mx ? 'max' : can ? 'can' : '', bd = lk ? 't_lock' : mx ? 't_check' : can ? 't_up' : '', cx = x0 + (k % c) * cw + cw / 2, y = top + Math.floor(k / c) * rh;
-      const price = mx ? '' : lk ? `<u class="poor">미지 ${q.gate}</u>` : `<u class="${can ? '' : 'poor'}">◆ ${fmt(cost)}</u>`;
+      const price = mx ? '' : lk ? `<u class="poor">미지 ${C.tGate(id, l)}</u>` : `<u class="${can ? '' : 'poor'}">◆ ${fmt(cost)}</u>`;
       if (sel.trans === id) { const P = popAt(cx - n / 2, cx + n / 2, y, col, transDetail(q), inner); pop = P.html; popY = P.y; }
-      h += `<button type="button" class="nd ${cls}${sel.trans === id ? ' sel' : ''}" data-id="${id}" style="left:${cx - n / 2}px;top:${y}px;--bc:${col}"><svg class="ring" viewBox="0 0 54 54"><rect class="rt" x="1.5" y="1.5" width="51" height="51" rx="14.5"/>${pct && !lk ? `<rect class="rf" x="1.5" y="1.5" width="51" height="51" rx="14.5" pathLength="100" stroke-dasharray="${pct} 100"/>` : ''}</svg>${icon(TIC[id])}${bd ? `<i class="bd">${icon(bd)}</i>` : ''}<b>${mx ? 'MAX' : (l + b) + '/' + (q.max + b)}</b><span><em>${q.name}</em>${price}</span></button>`; });
+      h += `<button type="button" class="nd ${cls}${sel.trans === id ? ' sel' : ''}" data-id="${id}" style="left:${cx - n / 2}px;top:${y}px;--bc:${col}"><svg class="ring" viewBox="0 0 54 54"><rect class="rt" x="1.5" y="1.5" width="51" height="51" rx="14.5"/>${pct && (!lk || l > 0) ? `<rect class="rf" x="1.5" y="1.5" width="51" height="51" rx="14.5" pathLength="100" stroke-dasharray="${pct} 100"/>` : ''}</svg>${icon(TIC[id])}${bd ? `<i class="bd">${icon(bd)}</i>` : ''}<b>${mx ? 'MAX' : (l + b) + '/' + (q.max + b)}</b><span><em>${q.name}</em>${price}</span></button>`; });
     x0 += bw + gut; });
   const ht = top + rmax * rh, wd = inner;
   return `<div class="tw" style="height:${ht}px;width:${wd}px;--cw:${cw - 6}px;--n:${n}px">${h}${pop}</div>`; }
