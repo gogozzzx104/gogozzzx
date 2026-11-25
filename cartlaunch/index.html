@@ -304,7 +304,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 93, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 94, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -1266,26 +1266,38 @@ function dollStep(dt, ang, ax, ay, wind, jolt) {
   for (let k = 0; k < n; k++) {
     for (const q of p) { const vx = (q.x - q.px) * 0.97, vy = (q.y - q.py) * 0.97; q.px = q.x; q.py = q.y; q.x += vx + (ax - wind) * h * h + jolt * (Math.random() - 0.5) * 3; q.y += vy + (ay + 600) * h * h - jolt * Math.random() * 2; }
     // posture: sits upright with a slight lean back; the free hand likes to rest on the rim until a jolt throws it up
-    const ch = p[0], hd = p[1], hr = p[4]; ch.x += (pel[0] + spine[0] - ch.x) * 0.24; ch.y += (pel[1] + spine[1] - ch.y) * 0.24; hd.x += (ch.x + neck[0] - hd.x) * 0.22; hd.y += (ch.y + neck[1] - hd.y) * 0.22; if (doll.mood === 1 || doll.mood === 3) { hr.x += (hd.x + 4 - hr.x) * 0.2; hr.y += (hd.y - 9 - hr.y) * 0.2; } else { hr.x += (rest[0] - hr.x) * 0.05; hr.y += (rest[1] - hr.y) * 0.05; }
+    const ch = p[0], hd = p[1], hr = p[4]; ch.x += (pel[0] + spine[0] - ch.x) * 0.24; ch.y += (pel[1] + spine[1] - ch.y) * 0.24; hd.x += (ch.x + neck[0] - hd.x) * 0.22; hd.y += (ch.y + neck[1] - hd.y) * 0.22; if (doll.mood === 1 || doll.mood === 3) { hr.x += (hd.x + 4 - hr.x) * 0.2; hr.y += (hd.y - 9 - hr.y) * 0.2; } else { const k = st ? 0.3 : 0.05; hr.x += (rest[0] - hr.x) * k; hr.y += (rest[1] - hr.y) * k; }
     for (let it = 0; it < 4; it++) { const pin = (a, b, len) => { const dx = a.x - b[0], dy = a.y - b[1], d = Math.hypot(dx, dy) || 1, f = (d - len) / d; a.x -= dx * f; a.y -= dy * f; };
       const link = (a, b, len) => { const dx = a.x - b.x, dy = a.y - b.y, d = Math.hypot(dx, dy) || 1, f = (d - len) / d * 0.5; a.x -= dx * f; a.y -= dy * f; b.x += dx * f; b.y += dy * f; };
       pin(p[0], pel, 14.2); link(p[1], p[0], 9.5); link(p[2], p[0], 8); pin(p[2], grip, 8); link(p[3], p[0], 8); link(p[4], p[3], 8); pin(p[5], knL, 11); pin(p[6], knR, 11); }
   }
-  // scarf: a short ribbon pinned at the neck that streams against the direction of travel
-  { const ch = p[0], hd = p[1], nx = ch.x + (hd.x - ch.x) * 0.55, ny = ch.y + (hd.y - ch.y) * 0.55; if (!doll.sc) doll.sc = Array.from({ length: 6 }, (_, i) => ({ x: nx - i * 3.6, y: ny + i, px: nx - i * 3.6, py: ny + i }));
-    const sc = doll.sc, wx = doll.wx || 0, wy = doll.wy || 0, tt = performance.now() / 1000; sc[0].x = nx; sc[0].y = ny;
-    for (let i = 1; i < sc.length; i++) { const q = sc[i], vx = (q.x - q.px) * 0.88, vy = (q.y - q.py) * 0.88; q.px = q.x; q.py = q.y; q.x += vx + (wx * 2.2 - 30) * dt * dt; q.y += vy + (wy * 2.2 + 260 + Math.sin(tt * 19 + i * 1.3) * (40 + Math.hypot(wx, wy) * 0.9)) * dt * dt; }
-    for (let it = 0; it < 3; it++) for (let i = 1; i < sc.length; i++) { const a2 = sc[i], b2 = sc[i - 1], dx = a2.x - b2.x, dy = a2.y - b2.y, d = Math.hypot(dx, dy) || 1, f = (d - 3.6) / d; a2.x -= dx * f; a2.y -= dy * f; } }
+  // scarf: wrapped just under the chin; its tail leaves from the back of the neck, hangs down the back at rest and streams against the direction of travel
+  { const ch = p[0], hd = p[1], bk = L(-2.4, 0.4), nx = ch.x + (hd.x - ch.x) * 0.3 + bk[0], ny = ch.y + (hd.y - ch.y) * 0.3 + bk[1]; if (!doll.sc) doll.sc = Array.from({ length: 8 }, (_, i) => ({ x: nx - i * 1.2, y: ny + i * 2.7, px: nx - i * 1.2, py: ny + i * 2.7 }));
+    const sc = doll.sc, wx = doll.wx || 0, wy = doll.wy || 0, tt = performance.now() / 1000; sc[0].x = nx; sc[0].y = ny; doll.knot = [ch.x + (hd.x - ch.x) * 0.3, ch.y + (hd.y - ch.y) * 0.3];
+    for (let i = 1; i < sc.length; i++) { const q = sc[i], vx = (q.x - q.px) * 0.88, vy = (q.y - q.py) * 0.88; q.px = q.x; q.py = q.y; q.x += vx + (wx * 2.2 - 150) * dt * dt; q.y += vy + (wy * 2.2 + 220 + Math.sin(tt * 19 + i * 1.3) * (40 + Math.hypot(wx, wy) * 0.9)) * dt * dt; }
+    for (let it = 0; it < 3; it++) for (let i = 1; i < sc.length; i++) { const a2 = sc[i], b2 = sc[i - 1], dx = a2.x - b2.x, dy = a2.y - b2.y, d = Math.hypot(dx, dy) || 1, f = (d - 2.5) / d; a2.x -= dx * f; a2.y -= dy * f; }
+    // the tail never sinks below the floor of the basket or car, so it cannot poke out underneath
+    const floor = skinNow().car ? -5 : -7; for (const q of sc) { const lx = q.x * c + q.y * s, ly = -q.x * s + q.y * c; if (ly > floor) { q.x = lx * c - floor * s; q.y = lx * s + floor * c; } } }
   doll.ang = ang;
   return { pel, grip, knL, knR };
 }
+// the scarf's tail as a ribbon that tapers to a fringed end, rippling harder the faster the ride
+function scarfTail(c, X, Y, sc) { const n = c.length, t = performance.now() / 1000, gust = Math.min(1, Math.hypot(doll.wx || 0, doll.wy || 0) / 600), L = [], R = [];
+  for (let i = 0; i < n; i++) { const a = c[Math.max(0, i - 1)], b = c[Math.min(n - 1, i + 1)], dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1, nx = -dy / d, ny = dx / d, u = i / (n - 1), w = (2.6 - 1.1 * u) * sc, f = Math.sin(t * 16 - i * 1.1) * u * (0.4 + 1.6 * gust) * sc, x = X(c[i].x) + nx * f, y = Y(c[i].y) + ny * f;
+    L.push([x + nx * w, y + ny * w]); R.push([x - nx * w, y - ny * w]); }
+  g.lineJoin = 'round'; g.fillStyle = '#f0452f'; g.lineWidth = 1.7 * sc; g.beginPath(); g.moveTo(...L[0]); for (const q of L) g.lineTo(...q); for (let i = n - 1; i >= 0; i--) g.lineTo(...R[i]); g.closePath(); g.fill(); g.stroke();
+  g.strokeStyle = '#fff'; g.lineWidth = 1.2 * sc; g.beginPath(); for (const i of [n - 3, n - 2]) { g.moveTo(...L[i]); g.lineTo(...R[i]); } g.stroke();
+  const e = c[n - 1], e2 = c[n - 2], ex = X(e.x), ey = Y(e.y), dx = X(e.x) - X(e2.x), dy = Y(e.y) - Y(e2.y), d = Math.hypot(dx, dy) || 1; g.strokeStyle = '#2b2233'; g.lineWidth = 1.2 * sc; g.lineCap = 'round'; g.beginPath();
+  for (const k of [-1, 0, 1]) { const ox = (L[n - 1][0] + R[n - 1][0]) / 2 + (L[n - 1][0] - R[n - 1][0]) * 0.4 * k - ex, oy = (L[n - 1][1] + R[n - 1][1]) / 2 + (L[n - 1][1] - R[n - 1][1]) * 0.4 * k - ey; g.moveTo(ex + ox, ey + oy); g.lineTo(ex + ox + dx / d * 2.2 * sc, ey + oy + dy / d * 2.2 * sc); } g.stroke(); g.strokeStyle = '#2b2233'; }
 // drawn in two passes so the rider sits inside the basket: body first, then the cart, then shins and the gripping hand on top
 function drawDoll(x, y, sc, pins, front) {
   const p = doll.p, X = v => x + v * sc, Y = v => y + v * sc; g.strokeStyle = '#2b2233'; g.lineCap = 'round'; g.lineJoin = 'round'; g.lineWidth = 3.2 * sc;
   const seg = (a, b) => { g.beginPath(); g.moveTo(X(a[0]), Y(a[1])); g.lineTo(X(b[0]), Y(b[1])); g.stroke(); }, q = i => [p[i].x, p[i].y];
   if (front) { if (!skinNow().car) { seg(pins.knR, q(6)); seg(pins.knL, q(5)); } g.fillStyle = '#2b2233'; g.beginPath(); g.arc(X(pins.grip[0]), Y(pins.grip[1]), 2.3 * sc, 0, 7); g.arc(X(p[4].x), Y(p[4].y), 2.1 * sc, 0, 7); g.fill(); g.lineCap = 'butt'; return; }
+  if (doll.sc) scarfTail(doll.sc, X, Y, sc);
   seg(pins.pel, pins.knR); seg(pins.pel, pins.knL); g.lineWidth = 4 * sc; seg(pins.pel, q(0)); g.lineWidth = 3.2 * sc; seg(q(0), q(2)); seg(q(2), pins.grip); seg(q(0), q(3)); seg(q(3), q(4));
-  if (doll.sc) { const c = doll.sc; for (const [w, col] of [[5.2, '#2b2233'], [3, '#f0452f']]) { g.strokeStyle = col; g.lineWidth = w * sc; g.beginPath(); g.moveTo(X(c[0].x), Y(c[0].y)); for (let i = 1; i < c.length; i++) g.lineTo(X(c[i].x), Y(c[i].y)); g.stroke(); } g.strokeStyle = '#2b2233'; }
+  if (doll.knot) { const [kx, ky] = doll.knot, a = Math.atan2(p[1].y - p[0].y, p[1].x - p[0].x) + Math.PI / 2; g.fillStyle = '#f0452f'; g.lineWidth = 1.7 * sc; g.beginPath(); g.ellipse(X(kx), Y(ky), 4 * sc, 2.2 * sc, a, 0, 7); g.fill(); g.stroke();
+    g.strokeStyle = '#fff'; g.lineWidth = 1.1 * sc; g.beginPath(); g.ellipse(X(kx), Y(ky), 4 * sc, 2.2 * sc, a, -0.5, 0.5); g.stroke(); g.strokeStyle = '#2b2233'; }
   const hx = p[1].x, hy = p[1].y, R = 5.6 * sc; g.fillStyle = '#fff6e6'; g.lineWidth = 2.6 * sc; g.beginPath(); g.arc(X(hx), Y(hy), R, 0, 7); g.fill(); g.stroke();
   // face: looks the way the cart points; wide-eyed on a launch or dash, crossed out after a knock, smiling after a clean landing
   if (R > 4.2) { const an = doll.ang || 0, fx = Math.cos(an), fy = Math.sin(an), ux = Math.sin(an), uy = -Math.cos(an), m = doll.mood || 0, P = (f, u) => [X(hx + fx * f + ux * u), Y(hy + fy * f + uy * u)], blink = !m && (performance.now() % 3400) < 130;
@@ -1317,7 +1329,7 @@ function drawObj(o) {
     else if (d === 'forest') { g.fillStyle = '#6b4a2f'; g.beginPath(); g.roundRect(x - r * 0.9, y - r * 0.55, r * 1.8, r * 0.55, 4); g.fill(); g.stroke(); g.fillStyle = '#c9a36b'; g.beginPath(); g.ellipse(x + r * 0.9, y - r * 0.28, r * 0.16, r * 0.27, 0, 0, 7); g.fill(); g.stroke(); }
     else { g.fillStyle = d === 'ice' ? '#b9d6ee' : d === 'hill' ? '#8a8f80' : d === 'canyon' ? '#8a3f22' : d === 'rock' ? '#8c8073' : d === 'cloud' ? '#9aa7c7' : '#5a5560'; g.beginPath(); g.moveTo(x - r * 0.8, y); g.lineTo(x - r * 0.4, y - r * 0.8); g.lineTo(x + r * 0.3, y - r); g.lineTo(x + r * 0.8, y); g.closePath(); g.fill(); g.stroke(); } }
 }
-const SKINS = [{ id: 'cart', name: '쇼핑카트', z: 0 }, { id: 'car', name: '스포츠카', z: 1, car: 1, col: '#f0452f', col2: '#ffffff', seat: { pel: [-1, -3], grip: [9, -14], rest: [6, -12] }, bx: 28.5, by: -12, my: -1 }, { id: 'taxi', name: '택시', z: 4, car: 1, col: '#f5b014', col2: '#2b2233', seat: { pel: [3, -3], grip: [12, -16], rest: [9, -15] }, bx: 28, by: -13, my: -2 },
+const SKINS = [{ id: 'cart', name: '쇼핑카트', z: 0 }, { id: 'car', name: '스포츠카', z: 1, car: 1, col: '#f0452f', col2: '#ffffff', seat: { pel: [-1, -3], grip: [9, -14], rest: [6, -12] }, bx: 28.5, by: -12, my: -1 }, { id: 'taxi', name: '택시', z: 4, car: 1, col: '#f5b014', col2: '#2b2233', seat: { pel: [3, -5], grip: [12, -17], rest: [9, -16] }, bx: 28, by: -13, my: -2 },
   { id: 'truck', name: '몬스터 트럭', z: 7, car: 1, col: '#3f8cff', col2: '#ffd24a', seat: { pel: [2, -15], grip: [11, -25], rest: [8, -24] }, bx: 28.5, by: -23, my: -14, fy: -19 }, { id: 'rocket', name: '로켓카', z: 10, car: 1, col: '#e9edf2', col2: '#f0452f', seat: { pel: [1, -4], grip: [9, -14], rest: [6, -14] }, bx: 33, by: -12, my: -3, fy: -8 }, { id: 'gold', name: '황금 카트', z: 26, tint: 'rgba(245,176,20,.8)' },
   // late carts: two for transcending from the far layers, one for those who have seen the ending
   { id: 'astral', name: '영원의 카트', tint: 'rgba(96,56,180,.78)', glow: '#c9a6ff', fx: 'astral', need: q => (q.farT || 0) >= 51, seen: () => C.LAST + 51, how: '영원의 회랑 이후에서 초월 시' },
@@ -1658,6 +1670,6 @@ const liveLS = LS.get('cart.live');   // read before the first toAim clears it
 toAim(); requestAnimationFrame(frame);
 { let booted = false; const boot = d => { if (booted) return; booted = true; try { if (d && d.v === 1 && Date.now() - d.at < 300000) { liveRestore(d, true); return; } const j = JSON.parse(liveLS || 'null'); if (j && Date.now() - j.at < 90000) liveRestore(j, false); } catch (e) {} };
   try { if (HOT && HOT.ready) { HOT.ready(boot); setTimeout(() => boot(HOT.data), 1500); } else boot(HOT && HOT.data); } catch (e) { boot(null); } }
-window.__cart = { C, SKINS, drawSkin(cx, k, x, y, sc, ride) { const g0 = g; g = cx; pvSkin = k; try { if (ride) { resetDoll(); doll.mood = 0; doll.wx = doll.wy = 0; let pins; for (let i = 0; i < 90; i++) pins = dollStep(0.016, 0, 0, 0, 0, 0); drawDoll(x, y, sc, pins, false); drawCart(x, y, 0, sc); drawDoll(x, y, sc, pins, true); } else drawCart(x, y, 0, sc); } finally { pvSkin = null; g = g0; resetDoll(); } }, get S() { return S; }, set S(v) { S = v; }, get run() { return run; }, get state() { return state; }, launch, toAim, openShop, save, set peek(v) { peekZ = v; }, CLOUD, get slot() { return slot; }, startCharge, release, tryKick, get charge() { return charge; }, get audio() { return actx ? actx.state : 'none'; }, MUS, EFF, PEFF, OPT, PERF, AUD, liveSnap, liveStore, MAP, get Q() { return Q; }, get updated() { return updated; } };
+window.__cart = { C, SKINS, drawSkin(cx, k, x, y, sc, ride, wind = 0) { const g0 = g; g = cx; pvSkin = k; try { if (ride) { resetDoll(); doll.mood = 0; doll.wx = -wind; doll.wy = 0; let pins; for (let i = 0; i < 90; i++) pins = dollStep(0.016, 0, 0, 0, wind, 0); drawDoll(x, y, sc, pins, false); drawCart(x, y, 0, sc); drawDoll(x, y, sc, pins, true); } else drawCart(x, y, 0, sc); } finally { pvSkin = null; g = g0; resetDoll(); } }, get S() { return S; }, set S(v) { S = v; }, get run() { return run; }, get state() { return state; }, launch, toAim, openShop, save, set peek(v) { peekZ = v; }, CLOUD, get slot() { return slot; }, startCharge, release, tryKick, get charge() { return charge; }, get audio() { return actx ? actx.state : 'none'; }, MUS, EFF, PEFF, OPT, PERF, AUD, liveSnap, liveStore, MAP, get Q() { return Q; }, get updated() { return updated; } };
 })();
 </script>
