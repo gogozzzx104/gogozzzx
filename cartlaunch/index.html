@@ -85,6 +85,8 @@ button{font-family:var(--disp);touch-action:manipulation}
 .nd em{display:inline-block;font:12px/1.12 var(--disp);font-style:normal;color:#e4dcff;word-break:keep-all;background:rgba(18,14,40,.9);border-radius:6px;padding:1px 4px}
 .nd u{font:700 10.5px/1.35 var(--body);text-decoration:none;color:#ffe27a;white-space:nowrap;font-variant-numeric:tabular-nums;background:rgba(18,14,40,.9);border-radius:6px;padding:0 5px}
 .nd u.poor{color:#8479b8}
+.tw.tight .nd span{top:calc(100% + 9px);gap:1px}
+.tw.tight .nd em{white-space:nowrap;font-size:11.5px;letter-spacing:-.2px}
 .nd.lock{background:#191335;color:#5d5488;box-shadow:none}
 .nd.lock .rt{stroke:#3a3070;stroke-dasharray:4 4}
 .nd.lock em{color:#7d72ad}
@@ -307,7 +309,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 104, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 105, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -770,15 +772,20 @@ function layoutTree(items) {
   return { pos, cols: col, rows: Math.max(...items.map(u => pos[u.id][1])) + 1 };
 }
 // n: tile size · lbl: room for the name and price under a tile · gap: room for the connector bus · det: width of the detail panel
-const TREE = { n: 54, lbl: 58, gap: 30, det: 244 };
+const TREE = { n: 54, lbl: 58, gap: 30, det: 244, off: {} };   // off: where the tree starts inside the list, per tab (measured after a render)
 // A connector leaves the bottom of the prerequisite, runs along a bus just under that row and comes down the child's own column,
 // so it never crosses another tile.  The first prerequisite is the solid line; any further ones are dotted.
 function orth(x1, y1, x2, y2, by) { if (Math.abs(x1 - x2) < 1) return `M${x1} ${y1}V${y2}`; const d = x2 > x1 ? 1 : -1, r = Math.min(9, Math.abs(x2 - x1) / 2, by - y1, y2 - by); return `M${x1} ${y1}V${by - r}Q${x1} ${by} ${x1 + d * r} ${by}H${x2 - d * r}Q${x2} ${by} ${x2} ${by + r}V${y2}`; }
 function orthH(x1, y1, x2, y2, bx) { if (Math.abs(y1 - y2) < 1) return `M${x1} ${y1}H${x2}`; const d = y2 > y1 ? 1 : -1, r = Math.min(9, Math.abs(y2 - y1) / 2, bx - x1, x2 - bx); return `M${x1} ${y1}H${bx - r}Q${bx} ${y1} ${bx} ${y1 + d * r}V${y2 - d * r}Q${bx} ${y2} ${bx + r} ${y2}H${x2}`; }
 function treeHTML(items, perk) {
-  const aw = $('#sList').clientWidth || 700, T = layoutTree(items), sm = root.classList.contains('sm'), lbl = sm ? 42 : TREE.lbl, gap = sm ? 28 : TREE.gap, top = perk ? 34 : 14;
+  const aw = $('#sList').clientWidth || 700, T = layoutTree(items), sm = root.classList.contains('sm'), top = perk ? 34 : 14; let lbl = sm ? 42 : TREE.lbl, gap = sm ? 28 : TREE.gap;
   // flip: depth runs left to right and siblings stack downward (the launch tree is one long chain)
-  const flip = !perk && T.rows > T.cols + 2, across = flip ? T.rows : T.cols, cw = flip ? Math.max(sm ? 58 : 76, Math.min(112, Math.floor((aw - 20) / across))) : Math.max(sm ? 44 : 60, Math.min(108, Math.floor((aw - 20) / across))), n = sm ? Math.max(38, Math.min(46, cw - 6)) : TREE.n, rh = flip ? n + lbl + 14 : n + lbl + gap;
+  const flip = !perk && T.rows > T.cols + 2, across = flip ? T.rows : T.cols, cw0 = flip ? Math.max(sm ? 58 : 76, Math.min(112, Math.floor((aw - 20) / across))) : Math.max(sm ? 44 : 60, Math.min(108, Math.floor((aw - 20) / across))), n = sm ? Math.max(38, Math.min(46, cw0 - 6)) : TREE.n;
+  // fit the rows to the height on screen: the tiles keep their size, only the room for the name plate (lbl) and the connector bus (gap)
+  // shrinks, down to one line of name and price over a thin bus; when that happens the names stay on one line and the columns may widen
+  const rows = flip ? T.cols : T.rows, room = ($('#sList').clientHeight || 480) - (TREE.off[tab] ?? (perk ? 84 : 40)) - top - 6;
+  let tight = false; if (!flip && rows * (n + lbl + gap) > room) { const budget = Math.floor(room / rows) - n; gap = Math.max(sm ? 14 : 16, Math.min(gap, Math.round(budget * 0.3))); lbl = Math.max(sm ? 34 : 44, Math.min(lbl, budget - gap)); tight = lbl < (sm ? 42 : 56); }
+  const cw = tight && !flip ? Math.max(cw0, Math.min(sm ? 96 : 122, Math.floor((aw - 20) / across))) : cw0, rh = flip ? n + lbl + 14 : n + lbl + gap;
   const inner = Math.max(aw, across * cw + 20), px = (inner - cw * across) / 2, X = (c, r) => Math.round(px + (flip ? r : c) * cw + cw / 2), Y = (c, r) => top + (flip ? c : r) * rh;
   const have = id => perk ? (S.perks[id] || 0) : C.lvl(S, id); let off = '', on = '', tags = '', h = '';
   for (const u of items) { const [c, r] = T.pos[u.id], col = BCOL[u.br], l = have(u.id), lock = perk ? C.perkLock(S, u.id) : C.lockReason(S, u.id), mx = l >= u.max, can = perk ? perkCan(u) : C.canBuy(S, u.id);
@@ -792,7 +799,7 @@ function treeHTML(items, perk) {
     h += `<button type="button" class="nd ${cls}${sel[tab] === u.id ? ' sel' : ''}" data-id="${u.id}" style="left:${X(c, r) - n / 2}px;top:${Y(c, r)}px;--bc:${col}"><svg class="ring" viewBox="0 0 54 54"><rect class="rt" x="1.5" y="1.5" width="51" height="51" rx="14.5"/>${pct && (!lock || gated) ? `<rect class="rf" x="1.5" y="1.5" width="51" height="51" rx="14.5" pathLength="100" stroke-dasharray="${pct} 100"/>` : ''}</svg>${icon(u.id)}${bd ? `<i class="bd">${icon(bd)}</i>` : ''}<b>${u.cap ? (l ? '완료' : '궁극') : mx ? 'MAX' : l + '/' + u.max}</b><span><em>${u.name}</em>${price}</span></button>`; }
   let ht = top + (flip ? T.cols : T.rows) * rh, pop = ''; const wd = inner, sid = sel[tab];
   if (sid && T.pos[sid] && (!perk || starOpen())) { const u = items.find(q => q.id === sid), [c, r] = T.pos[sid], P = popAt(X(c, r) - n / 2, X(c, r) + n / 2, Y(c, r), BCOL[u.br], perk ? perkDetail(u) : upDetail(u), inner); pop = P.html; }
-  return `<div class="tw" style="height:${ht}px;width:${wd}px;--cw:${cw - 6}px;--n:${n}px"><svg class="edges" width="${wd}" height="${ht}">${off}${on}${tags}</svg>${h}${pop}</div>`;
+  return `<div class="tw${tight ? ' tight' : ''}" style="height:${ht}px;width:${wd}px;--cw:${cw - 6}px;--n:${n}px"><svg class="edges" width="${wd}" height="${ht}">${off}${on}${tags}</svg>${h}${pop}</div>`;
 }
 // ---- detail card ----
 // The player asked (11-23, again 11-25) that details open right beside the tapped tile, never in a panel docked at the right edge:
@@ -957,6 +964,7 @@ function renderShop() {
       `<div class="bh">구역</div><div class="ac"><h3>${Z[S.zone].name}</h3><p>지금까지 간 곳은 지도에서 필름처럼 넘겨 볼 수 있어요.</p><button class="buy sm" data-goto="map">지도 열기</button></div>` +
       `<div class="bh">업적 · 하나당 골드 +3%</div>` + C.ACH.map(a => `<div class="ac${S.ach[a.id] ? ' done' : ' off'}"><h3>${a.name}</h3><p>${a.desc}</p></div>`).join('') +
       `<div class="bh">기타</div><p class="note">코인은 공중에 2~3개씩 떠 있어요. 부스트·도약·대시·급강하로 높이를 맞춰 보세요.</p><div class="ac"><h3>골드만 비우기</h3><p>업그레이드·별은 그대로 두고 보유 골드만 0으로. 이 기기의 내 기록에만 적용됩니다.</p><button class="buy sm" data-zero="1">${confirmKey === 'zero' ? '정말요? 한 번 더' : '골드 0으로'}</button></div><div class="ac"><h3>처음부터 다시</h3><p>지금 슬롯의 별·업적까지 모두 지웁니다. 다른 슬롯은 그대로예요.</p><button class="buy sm" data-wipe="1">${confirmKey === 'wipe' ? '정말요? 한 번 더' : '초기화'}</button></div>` + `<p class="note">버전 ${VER}</p>`; }
+  { const tw = list.querySelector(':scope > .tw, :scope > .vt > .tw'); if (tw && !renderShop.again) { const o = tw.offsetTop; if (Math.abs((TREE.off[tab] ?? -99) - o) > 3) { TREE.off[tab] = o; renderShop.again = true; renderShop(); renderShop.again = false; return; } } }
   if (keepScroll) { list.scrollLeft = sc0[0]; list.scrollTop = sc0[1]; } else { list.scrollLeft = 0; list.scrollTop = 0; }
   showDetail();
 }
