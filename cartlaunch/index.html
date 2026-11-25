@@ -317,7 +317,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 111, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 112, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -985,7 +985,7 @@ function renderShop() {
     // behind the veil: the blurred shape of the tree, drifting fog, and the one thing the player needs to know
     list.innerHTML = `<div class="veil"><div class="vt">${treeHTML(C.PERKS, true)}</div><div class="vf"></div><div class="vf b"></div><div class="vc">${icon('t_lock')}<h3>???</h3><b>${km(SEA_AT)} 해금</b><div class="lvbar"><i style="width:${Math.max(3, Math.round(100 * Math.min(1, S.best / SEA_AT)))}%"></i></div><span>지금 최고 ${km(S.best)}</span></div></div>`; }
   else if (tab === 'star') { const gain = C.starGain(S), per = Math.round(C.STAR_GOLD * (S.perks.r_bless ? 1.5 : 1) * 100), keep = (S.perks.r_mem || 0) * 8, nx = C.nextStarAt(S.bestLife), ask = confirmKey === 'rebirth' && !autoRebOpen();
-    list.innerHTML = `<div class="rbar"><div class="chips"><span class="chip"><i>보유</i>★ ${fmt(S.stars)}</span><span class="chip"><i>별 보너스</i>골드 +${fmt(S.starsTotal * per)}%</span><span class="chip hi"><i>${C.starsFor(S.bestLife) ? '다음 ★' : '첫 ★'}</i>${isFinite(nx) ? km(nx) + ' 달성' : '더 없음'}</span></div>${autoRebBtn()}<button class="buy star" data-rebirth="1" ${gain > 0 ? '' : 'disabled'}>${ask ? '정말요?<small>한 번 더 누르기</small>' : '환생하기<small>★ +' + fmt(gain) + '</small>'}</button>${ask ? `<p class="cap">골드·업그레이드 초기화${keep ? ` (${keep}% 유지)` : ''} · 별·트리·업적 유지 · ★ 하나당 골드 +${per}%</p>` : ''}</div>` + treeHTML(C.PERKS, true); }
+    list.innerHTML = `<div class="rbar"><div class="chips"><span class="chip"><i>보유</i>★ ${fmt(S.stars)}</span><span class="chip"><i>별 보너스</i>골드 +${fmt(S.starsTotal * per)}%</span><span class="chip hi"><i>${C.starsFor(S.bestLife) ? '다음 ★' : '첫 ★'}</i>${isFinite(nx) ? km(nx) + ' 달성' : '더 없음'}</span></div>${autoRebBtn()}<button class="buy star" data-rebirth="1" ${gain > 0 ? '' : 'disabled'}>${ask ? '정말요?<small>한 번 더 누르기</small>' : '환생하기<small>★ +' + fmt(gain) + '</small>'}</button>${ask ? `<p class="cap">골드·${S.autoReb ? '업그레이드 유지' : `업그레이드 초기화${keep ? ` (${keep}% 유지)` : ''}`} · 별·트리·업적 유지 · ★ 하나당 골드 +${per}%</p>` : ''}</div>` + treeHTML(C.PERKS, true); }
   else if (tab === 'trans') { const g2 = C.shardsFor(S);
     const ask = confirmKey === 'trans';
     list.innerHTML = `<div class="rbar" style="--bc:#7df3da"><div class="chips"><span class="chip"><i>보유</i>◆ ${fmt(S.shards || 0)}</span><span class="chip"><i>초월</i>${fmt(S.trans || 0)}회</span><span class="chip"><i>초월 때 환생 트리</i>${50 + 10 * C.tl(S, 't_keep')}% 유지</span><span class="chip hi"><i>${g2 ? '지금 초월하면' : '초월 조건'}</i>${g2 ? '◆ +' + fmt(g2) : Z[C.LAST].name + ' 도달'}</span></div><button class="buy star" data-trans="1" ${g2 ? '' : 'disabled'}>${ask ? '정말요?<small>한 번 더 누르기</small>' : '초월하기<small>◆ +' + fmt(g2) + '</small>'}</button>${ask ? `<p class="cap">골드·업그레이드·별 초기화 · 환생 트리 ${50 + 10 * C.tl(S, 't_keep')}% 유지 · 환생 횟수·업적·스킨·차원 능력 유지</p>` : ''}</div>` +
@@ -1019,7 +1019,7 @@ const shopClick = e => { const nd = e.target.closest('.nd'), sk = e.target.close
     if (b.dataset.up) { if (C.buy(S, b.dataset.up)) { SFX.buy(); if (C.lvl(S, b.dataset.up) >= C.UP[b.dataset.up].max) SFX.level(); } }
     else if (b.dataset.max) { let n = 0; while (n < 300 && C.buy(S, b.dataset.max)) n++; if (n) SFX.buy(); }
     else if (b.dataset.perk) { if (C.buyPerk(S, b.dataset.perk)) SFX.buy(); }
-    else if (b.dataset.autoreb) { if (b.dataset.autoreb === 'buy') { if (autoRebOpen() && !S.autoReb && (S.shards || 0) >= AUTOREB_COST) { S.shards -= AUTOREB_COST; S.autoReb = 1; S.autoRebOn = 1; SFX.buy(); toast('자동 환생을 켰어요 · 판이 끝날 때마다 환생합니다', 2400); } } else { S.autoRebOn = S.autoRebOn ? 0 : 1; SFX.ui(); toast(S.autoRebOn ? '자동 환생 켬' : '자동 환생 끔', 1200); } save(); }
+    else if (b.dataset.autoreb) { if (b.dataset.autoreb === 'buy') { if (autoRebOpen() && !S.autoReb && (S.shards || 0) >= AUTOREB_COST) { S.shards -= AUTOREB_COST; S.autoReb = 1; S.autoRebOn = 1; SFX.buy(); toast('자동 환생을 켰어요 · 판이 끝날 때마다 환생하고 업그레이드는 그대로예요', 2600); } } else { S.autoRebOn = S.autoRebOn ? 0 : 1; SFX.ui(); toast(S.autoRebOn ? '자동 환생 켬' : '자동 환생 끔', 1200); } save(); }
     else if (b.dataset.rebirth) { if (confirmKey !== 'rebirth' && !autoRebOpen()) confirmKey = 'rebirth'; else { const n = C.rebirth(S), au = C.tl(S, 't_auto') ? C.buyAll(S) : 0; confirmKey = ''; SFX.zone(); toast('환생! ★ +' + n + (au ? ` · ${au}레벨 자동 구매` : ''), 2400); } }
     else if (b.dataset.tp) { if (C.buyT(S, b.dataset.tp)) SFX.buy(); }
     else if (b.dataset.trans) { if (confirmKey !== 'trans') confirmKey = 'trans'; else { const n = C.transcend(S); if (C.tl(S, 't_auto')) C.buyAll(S); confirmKey = ''; SFX.zone(); SFX.perfect(); toast('초월! ◆ +' + n, 2400); } }
@@ -1189,7 +1189,8 @@ function drawWorld(cx, cy, dt) {
   for (let z = 1, lastG = -1e9; z < Z.length; z++) { const m = Z[z].at; if (m < x0 || m > x1) continue; const x = SX(m); if (x - lastG < 70) continue; lastG = x; const y = SY(G(m)); g.fillStyle = '#f0452f'; g.fillRect(x - 3, y - 120, 6, 120); g.fillStyle = '#fff'; g.font = `17px ${FONT}`; g.strokeStyle = '#2b2233'; g.lineWidth = 4; g.strokeText(Z[z].name, x, y - 128); g.fillText(Z[z].name, x, y - 128); }
   if (S.best > 3 && S.best > x0 && S.best < x1) { const x = SX(S.best), y = SY(G(S.best)); g.fillStyle = '#2b2233'; g.fillRect(x - 1.5, y - 64, 3, 64); g.fillStyle = '#f5b014'; g.beginPath(); g.moveTo(x, y - 64); g.lineTo(x + 30, y - 55); g.lineTo(x, y - 46); g.fill(); g.fillStyle = '#2b2233'; g.font = '700 10px sans-serif'; g.textAlign = 'left'; g.fillText('BEST', x + 4, y - 51); g.textAlign = 'center'; }
   // objects
-  if (run) { const i0 = Math.max(0, Math.floor(x0 / run.cw - 1.2)), i1 = Math.min(i0 + 40, Math.floor(x1 / run.cw - 1.2));
+  // objects: at most 40 cells, counted from a little behind the cart (in a very wide view the left edge is far behind it)
+  if (run) { const i0 = Math.max(0, Math.floor(x0 / run.cw - 1.2), Math.floor(run.x / run.cw) - 20), i1 = Math.min(i0 + 40, Math.floor(x1 / run.cw - 1.2));
     for (let i = i0; i <= i1; i++) for (const o of C.cellObjs(run, i)) if (!run.used.has(o.id)) drawObj(o);
     for (const m of run.mag) { const f = Math.min(1, (run.tr - m.t0) / (m.d || 0.3)), e = f * f, o = m.o, tx = o.x + (run.x - o.x) * e, ty = o.y + (run.y + 0.5 * run.S - o.y) * e; g.strokeStyle = m.beam ? `rgba(255,226,122,${0.85 * (1 - f * 0.5)})` : `rgba(255,90,90,${0.5 * (1 - f)})`; g.lineWidth = m.beam ? 4 : 2; g.beginPath(); g.moveTo(SX(tx), SY(ty)); g.lineTo(SX(run.x), SY(run.y + 0.5 * run.S)); g.stroke(); drawObj(Object.assign({}, o, { x: tx, y: ty })); } }
 }
@@ -1812,7 +1813,9 @@ function draw(now) {
   }
   // camera
   const r = run, px = r ? r.x : 0, py = r ? r.y : 0.6, sp = r ? Math.hypot(r.vx, r.vy) : 0, alt = r ? py - G(px) : 0;
-  const cu = Math.max(34 / 22, CU()), vwT = r ? Math.min(320 * cu, Math.max(22 * cu, alt * (W / H) * 2 + 8 * cu)) : 34; if (vwT > cam.vw * 300) cam.vw = vwT / 300; cam.vw *= Math.pow(vwT / cam.vw, Math.min(1, dt * (vwT > cam.vw * 3 ? 6 : 2.5)));
+  // up to 320U wide the view frames the ground as it always did; higher than that the ground is kept near the bottom edge (a tighter frame)
+  // and the view keeps widening until the screen is 3200U tall, so even the highest flights (about 2300U) still show the ground
+  const cu = Math.max(34 / 22, CU()), asp = W / H, vw0 = alt * asp * 2 + 8 * cu, vwT = r ? Math.max(22 * cu, vw0 <= 320 * cu ? vw0 : Math.min(3200 * cu * asp, Math.max(320 * cu, alt * asp * 1.3 + 8 * cu))) : 34; if (vwT > cam.vw * 300) cam.vw = vwT / 300; cam.vw *= Math.pow(vwT / cam.vw, Math.min(1, dt * (vwT > cam.vw * 3 ? 6 : 2.5)));
   zoomP *= Math.pow(0.003, dt); sqzV += (-sqz * 300 - sqzV * 16) * dt; sqz = Math.max(-0.35, Math.min(0.3, sqz + sqzV * dt)); moodT -= dt;
   ppm = W / cam.vw * (1 + zoomP); ox = W * 0.28; oy = H * 0.74; cam.x = px;
   // the cart rides near the top (12% down) so the ground shows below it for as long as it can; once it is so high that the ground has
