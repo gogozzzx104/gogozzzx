@@ -35,6 +35,9 @@ body { background: #0d1a2b; color: var(--paper); font-family: var(--body); overf
 .pill:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
 .pill:focus-visible, .pad:focus-visible, .go:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 #flash { position: fixed; inset: 0; pointer-events: none; z-index: 1; opacity: 0; background: #fff; }
+#pops { position: fixed; inset: 0; pointer-events: none; z-index: 2; overflow: hidden; }
+.pop { position: absolute; transform: translate(-50%, -50%); font: 18px var(--display); color: #fff; -webkit-text-stroke: 1px var(--ink); paint-order: stroke fill; white-space: nowrap; animation: popUp .95s ease-out forwards; }
+@keyframes popUp { 0% { opacity: 0; transform: translate(-50%, -30%) scale(.7); } 15% { opacity: 1; transform: translate(-50%, -60%) scale(1.08); } 100% { opacity: 0; transform: translate(-50%, -260%) scale(1); } }
 #toast { position: fixed; left: 50%; top: 32%; transform: translate(-50%, -50%); font: 34px var(--display); color: #fff; -webkit-text-stroke: 1.5px var(--ink); paint-order: stroke fill; text-align: center; pointer-events: none; z-index: 3; opacity: 0; transition: opacity .25s; white-space: nowrap; }
 #toast.on { opacity: 1; }
 #meter { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: min(460px, 70vw); z-index: 2; pointer-events: none; }
@@ -80,8 +83,9 @@ body { background: #0d1a2b; color: var(--paper); font-family: var(--body); overf
 <div id="stage"></div>
 <div class="hud" id="tl"><div id="dist">0m</div><div id="sub"></div><div id="combo"></div></div>
 <div class="hud" id="tc"><div id="zone"></div><div id="gold"></div></div>
-<div class="hud" id="tr"><button class="pill" id="snd" type="button">소리 켬</button><button class="pill" id="menu" type="button">시작 설정</button></div>
+<div class="hud" id="tr"><button class="pill" id="view" type="button">시점: 기본</button><button class="pill" id="snd" type="button">소리 켬</button><button class="pill" id="menu" type="button">시작 설정</button></div>
 <div id="flash"></div>
+<div id="pops"></div>
 <div id="toast"></div>
 <div id="meter" hidden><div class="lbl" id="mlbl">스페이스·화면을 꾹 눌렀다 떼서 발사</div><div class="bar"><div class="win" id="mwin"></div><div class="fill" id="mfill"></div></div></div>
 <div id="fuel" hidden><i id="fuelR"></i><b id="fuelP"></b></div>
@@ -355,7 +359,7 @@ const hash2 = (k, l) => { let t = (Math.imul((k % 2147483647) | 0, 2654435761) ^
 function scenery(px, py, U, cu, t) {
   for (const k in BPOOL) BPOOL[k].used = 0;
   const pxu = px / cu, tanH = Math.tan(camera.fov * Math.PI / 360) * camera.aspect;
-  LAYERS.forEach((L, li) => { const pm = li === 0 ? 2.6 : li === 1 ? 1.4 : 1, zMid = (L.z[0] + L.z[1]) / 2, half = (camera.position.z - zMid) * tanH + L.sp * 2, cx = camera.position.x, k0 = Math.floor((pxu * pm + cx - half) / L.sp), k1 = Math.ceil((pxu * pm + cx + half) / L.sp);
+  LAYERS.forEach((L, li) => { const pm = li === 0 ? 2.6 : li === 1 ? 1.4 : 1, zMid = (L.z[0] + L.z[1]) / 2, half = (camera.position.z - zMid) * tanH + L.sp * 2 + 4, cx = camera.position.x, k0 = view === 'chase' && state === 'fly' ? Math.floor((pxu * pm + cx - 8) / L.sp) : Math.floor((pxu * pm + cx - half) / L.sp), k1 = view === 'chase' && state === 'fly' ? Math.ceil((pxu * pm + cx + [140, 220, 360, 700][li]) / L.sp) : Math.ceil((pxu * pm + cx + half) / L.sp);
     if (!(Math.abs(k0) < 1e14)) return;
     for (let k = k0; k <= Math.min(k1, k0 + 400); k++) { const h1 = hash2(k, li * 11 + 1); if (h1 > L.p) continue; const wx = k * L.sp * cu, zi = li >= 2 ? C.zoneAt(Math.max(0, px)) : C.zoneAt(Math.max(0, wx)), zn = Z[zi], th = THEME[zn.deco] || THEME.void, set = th[li], kind = set[Math.floor(hash2(k, li * 11 + 2) * set.length)];
       const o = bget(kind), lx = k * L.sp - pxu * pm + (hash2(k, li * 11 + 3) - 0.5) * L.sp * 0.6, gy = (C.ground(Math.max(0, px + lx * cu), U) - py) / cu, sc = L.s[0] + (L.s[1] - L.s[0]) * hash2(k, li * 11 + 4), fl = FLOAT[kind];
@@ -419,12 +423,14 @@ const NSL = 160, slGeo = new THREE.PlaneGeometry(1, 1), slMat = new THREE.MeshBa
 const speedLines = new THREE.InstancedMesh(slGeo, slMat, NSL); speedLines.instanceMatrix.setUsage(THREE.DynamicDrawUsage); speedLines.frustumCulled = false; scene.add(speedLines);
 speedLines.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(NSL * 3), 3);
 const SL = Array.from({ length: NSL }, () => ({ x: 0, y: 0, z: 0, v: 0, len: 0, life: 0, t: 1 })), slM = new THREE.Matrix4(), slQ = new THREE.Quaternion(), slS = new THREE.Vector3(), slP = new THREE.Vector3(), slCol = new THREE.Color();
-function speedLinesTick(dt, q, mode, camD) { const vert = mode === 'dive', col = mode === 'dash' ? 0x5af0ff : mode === 'dive' ? 0xc08cff : mode === 'fire' ? 0xffa040 : 0xffffff, want = Math.round(NSL * Math.min(1, q * 1.2 + (mode !== 'plain' ? 0.5 : 0)));
-  slCol.set(col); const W = camD * 1.6;
+function speedLinesTick(dt, q, mode, camD) { const vert = mode === 'dive', col = mode === 'dash' ? 0x5af0ff : mode === 'dive' ? 0xc08cff : mode === 'fire' ? 0xffa040 : 0xffffff, want = Math.round(NSL * Math.min(1, (view === 'chase' ? q * 1.2 : q * 0.55) + (mode !== 'plain' ? 0.5 : 0)));
+  slCol.set(col); const W = camD * 1.6, ch = view === 'chase' && state === 'fly';
+  { const n = new THREE.Vector3(0, camera.position.y - speedLines.position.y, camera.position.z - speedLines.position.z).normalize(); if (n.lengthSq() > 0) slQ.setFromUnitVectors(new THREE.Vector3(0, 0, 1), n); }
   for (let i = 0; i < NSL; i++) { const s = SL[i]; s.t += dt;
     if (s.t >= s.life) { if (i >= want) { s.on = false; slM.makeScale(0, 0, 0); speedLines.setMatrixAt(i, slM); continue; } s.on = true; s.t = 0; s.life = 0.25 + Math.random() * 0.35; s.z = -2 + Math.random() * (camD * 0.75); const spread = W * 0.6;
-      if (vert) { s.x = (Math.random() - 0.5) * W; s.y = -spread * 0.9 - Math.random() * spread * 0.3; } else { s.x = W * 0.7 + Math.random() * W * 0.3; s.y = (Math.random() - 0.5) * spread * 1.2; }
-      s.v = (vert ? 1 : -1) * camD * (2.2 + q * 4 + Math.random() * 2); s.len = camD * (0.08 + q * 0.35 + Math.random() * 0.12); }
+      if (ch && !vert) { s.x = camD * (2 + Math.random() * 7); const a = Math.random() * 6.283, rr = camD * (0.25 + Math.random() * 0.9); s.y = Math.sin(a) * rr * 0.8; s.z = Math.cos(a) * rr; s.life = 0.35 + Math.random() * 0.3; s.v = -camD * (9 + q * 16 + Math.random() * 4); s.len = camD * (0.4 + q * 1.1 + Math.random() * 0.3); }
+      else { if (vert) { s.x = (Math.random() - (ch ? 0.1 : 0.5)) * W; s.y = -spread * 0.9 - Math.random() * spread * 0.3; } else { s.x = W * 0.7 + Math.random() * W * 0.3; s.y = (Math.random() - 0.5) * spread * 1.2; }
+        s.v = (vert ? 1 : -1) * camD * (2.2 + q * 4 + Math.random() * 2); s.len = camD * (0.08 + q * 0.35 + Math.random() * 0.12); } }
     if (vert) s.y += s.v * dt; else s.x += s.v * dt;
     const f = Math.sin(Math.min(1, s.t / s.life) * Math.PI), th = camD * 0.006 * (0.6 + Math.random() * 0.6);
     slP.set(s.x, s.y, s.z); if (vert) slS.set(th, s.len, 1); else slS.set(s.len, th, 1); slM.compose(slP, slQ, slS); speedLines.setMatrixAt(i, slM);
@@ -437,6 +443,10 @@ function ringFx(x, y, col, r = 3, life = 0.5, flat = false, delay = 0) { const R
 function ringsTick(dt, ox, oy) { for (const R of RINGS) { if (R.t >= R.life) { R.m.visible = false; continue; } R.t += dt; const f = Math.max(0, R.t / R.life); R.m.position.set(R.x - ox, R.y - oy, 0.6); const s = R.r * (0.2 + 0.9 * (1 - Math.pow(1 - f, 2))); R.m.scale.set(s, s, s); R.m.material.opacity = R.t < 0 ? 0 : Math.pow(1 - f, 1.5); } }
 
 // a full-screen colour flash and a camera shake, as in the 2D game
+const popsEl = $('#pops'); let popN = 0, popLast = {};
+function pop(txt, col = '#fff') { const now = performance.now(); if (popLast[txt] && now - popLast[txt].t < 600) { const el = popLast[txt].el; el.dataset.n = (+el.dataset.n || 1) + 1; el.textContent = txt + ' ×' + el.dataset.n; popLast[txt].t = now; return; }
+  if (popsEl.childElementCount > 6) popsEl.firstChild.remove(); const v = new THREE.Vector3(0, cartScale() * 1.6, 0.6).project(camera), el = document.createElement('div'); el.className = 'pop'; el.textContent = txt; el.style.color = col;
+  el.style.left = ((v.x * 0.5 + 0.5) * innerWidth) + 'px'; el.style.top = ((-v.y * 0.5 + 0.5) * innerHeight - (popN++ % 3) * 22) + 'px'; popsEl.appendChild(el); popLast[txt] = { t: now, el }; setTimeout(() => el.remove(), 1000); }
 const flashEl = $('#flash'); let flash = 0, flashCol = '#fff', shake = 0, punch = 0;
 function flashFx(a, col) { flash = Math.max(flash, a); flashCol = col; }
 
@@ -455,8 +465,8 @@ for (let i = 0; i < NT - 1; i++) { const a = i * 2; rIdx.push(a, a + 1, a + 2, a
 ribGeo.setIndex(rIdx); ribGeo.setAttribute('position', new THREE.BufferAttribute(rPos, 3)); ribGeo.setAttribute('color', new THREE.BufferAttribute(rCol, 3));
 const ribbon = new THREE.Mesh(ribGeo, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false })); ribbon.frustumCulled = false; scene.add(ribbon);
 let trail = [];
-function ribbonTick(px, py, cu, w, col) { const n = trail.length; for (let i = 0; i < NT; i++) { const j = Math.max(0, n - NT + i), p = trail[j] || [px, py, col], f = i / (NT - 1), x = (p[0] - px) / cu, y = (p[1] - py) / cu + w * 0.9, hw = w * 0.22 * f;
-    const k = i * 6; rPos[k] = x; rPos[k + 1] = y - hw; rPos[k + 2] = 0.6; rPos[k + 3] = x; rPos[k + 4] = y + hw; rPos[k + 5] = 0.6; tmpC.set(p[2]); const a = f * f * 0.7; rCol[k] = rCol[k + 3] = tmpC.r * a; rCol[k + 1] = rCol[k + 4] = tmpC.g * a; rCol[k + 2] = rCol[k + 5] = tmpC.b * a; }
+function ribbonTick(px, py, cu, w, col, flat) { const n = trail.length; for (let i = 0; i < NT; i++) { const j = Math.max(0, n - NT + i), p = trail[j] || [px, py, col], f = i / (NT - 1), x = (p[0] - px) / cu, y = (p[1] - py) / cu + w * 0.9, hw = w * 0.22 * f;
+    const k = i * 6; rPos[k] = x; rPos[k + 3] = x; if (flat) { rPos[k + 1] = rPos[k + 4] = y - w * 0.5; rPos[k + 2] = 0.6 - hw * 2; rPos[k + 5] = 0.6 + hw * 2; } else { rPos[k + 1] = y - hw; rPos[k + 2] = 0.6; rPos[k + 4] = y + hw; rPos[k + 5] = 0.6; } tmpC.set(p[2]); const a = f * f * 0.7; rCol[k] = rCol[k + 3] = tmpC.r * a; rCol[k + 1] = rCol[k + 4] = tmpC.g * a; rCol[k + 2] = rCol[k + 5] = tmpC.b * a; }
   ribGeo.attributes.position.needsUpdate = true; ribGeo.attributes.color.needsUpdate = true; }
 
 /* ---------- state ---------- */
@@ -492,7 +502,9 @@ $('#cont').hidden = !S; $('#cont').addEventListener('click', () => { if (S) toAi
 $('#menu').addEventListener('click', e => { e.stopPropagation(); if (state === 'fly') return; state = 'menu'; $('#result').hidden = true; $('#meter').hidden = true; $('#start').hidden = false; $('#cont').hidden = !S; });
 
 /* ---------- frame ---------- */
-let gMaxNear = -1e9, sqz = 0, sqzV = 0, fdiveOn = false, lookX = 0, lookY = 0, fovNow = 42, slMode = 'plain', camLead = 0;
+// two views: 'chase' rides behind the cart so the world rushes at the camera, 'side' is the original side-on view
+let view = LS.get('cart3d.view') === 'chase' ? 'chase' : 'side', vw2 = 22, camDist = 40, gMaxNear = -1e9, sqz = 0, sqzV = 0, fdiveOn = false, lookX = 0, lookY = 0, fovNow = 42, slMode = 'plain', camLead = 0;
+$('#view').textContent = view === 'chase' ? '시점: 추격' : '시점: 기본'; $('#view').addEventListener('click', e => { e.stopPropagation(); view = view === 'chase' ? 'side' : 'chase'; LS.set('cart3d.view', view); $('#view').textContent = view === 'chase' ? '시점: 추격' : '시점: 기본'; });
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 function frame(now) { requestAnimationFrame(frame); const dt = Math.min(0.05, (now - last) / 1000); last = now; const t = now / 1000;
   if (state === 'charge') { charge += chargeDir * dt * 0.9; if (charge >= 1) { charge = 1; chargeDir = -1; } if (charge <= 0) { charge = 0; chargeDir = 1; } $('#mfill').style.width = (charge * 100).toFixed(1) + '%'; $('#mlbl').textContent = charge >= 1 - st.window ? '지금! 퍼펙트' : '떼면 발사'; }
@@ -503,12 +515,12 @@ function frame(now) { requestAnimationFrame(frame); const dt = Math.min(0.05, (n
     const U = run.U, cu = Math.max(34 / 22, U), cs = cartScale();
     for (const e of run.ev) { const ex = e.x, ey = e.y, lx = 0, ly = cs * 0.6;
       if (e.k === 'coin' || e.k === 'pull') { burstW(ex, ey, 10, [0xffd24a, 0xffffff], 1.1, 0.45); ringFx(ex, ey, 0xffd24a, cs * 1.2, 0.25); tone(1200 + Math.random() * 300, 1800, 0.06, 0.03); }
-      else if (e.k === 'crate') { burstW(ex, ey, 26, [0xff6a3a, 0xffd24a, 0x5af0ff, 0xff8ab3, 0xffffff], 1.4, 0.8); ringFx(ex, ey, 0xffffff, cs * 2.2, 0.45); ringFx(ex, ey, 0xffd24a, cs * 3.2, 0.6, false, 0.06); tone(500, 1500, 0.12, 0.05); punch = Math.max(punch, 0.03); }
+      else if (e.k === 'crate') { burstW(ex, ey, 26, [0xff6a3a, 0xffd24a, 0x5af0ff, 0xff8ab3, 0xffffff], 1.4, 0.8); ringFx(ex, ey, 0xffffff, cs * 2.2, 0.45); ringFx(ex, ey, 0xffd24a, cs * 3.2, 0.6, false, 0.06); tone(500, 1500, 0.12, 0.05); punch = Math.max(punch, 0.03); pop('상자!', '#ffd24a'); }
       else if (e.k === 'ring') { burstW(ex, ey, 16, 0x14e4c4, 1.1, 0.5); ringFx(ex, ey, 0x14e4c4, cs * 2.4, 0.4); tone(700, 1400, 0.12, 0.05); }
       else if (e.k === 'pad' || e.k === 'tramp' || e.k === 'geyser') { burstW(ex, ey, 16, 0xff8a1f, 1.2, 0.5); ringFx(ex, ey, 0xff8a1f, cs * 2.6, 0.45, true); shake = Math.max(shake, 0.25); sqzV -= 6; tone(220, 880, 0.18, 0.06); }
-      else if (e.k === 'slam') { const fire = fdiveOn; fdiveOn = false; burstW(ex, ey, 30, fire ? [0xff6a2a, 0xffd24a, 0xfff3b0] : [0xffffff, 0xe8dcc0, 0xb68cff], 1.6, 0.7); ringFx(ex, ey, fire ? 0xff7a1a : 0xb68cff, cs * 4, 0.5, true); ringFx(ex, ey, 0xffffff, cs * 6, 0.6, true, 0.06); shake = Math.max(shake, 0.6); flashFx(0.16, fire ? '#ffb04a' : '#ffffff'); sqzV -= 9; tone(110, 45, 0.3, 0.12, 'sine'); toast('슬램!', 600); }
+      else if (e.k === 'slam') { const fire = fdiveOn; fdiveOn = false; burstW(ex, ey, 30, fire ? [0xff6a2a, 0xffd24a, 0xfff3b0] : [0xffffff, 0xe8dcc0, 0xb68cff], 1.6, 0.7); ringFx(ex, ey, fire ? 0xff7a1a : 0xb68cff, cs * 4, 0.5, true); ringFx(ex, ey, 0xffffff, cs * 6, 0.6, true, 0.06); shake = Math.max(shake, 0.6); flashFx(0.16, fire ? '#ffb04a' : '#ffffff'); sqzV -= 9; tone(110, 45, 0.3, 0.12, 'sine'); pop(`슬램! 콤보 ${e.combo || run.combo} · 골드 +${Math.round(st.slamB * 100)}%`, '#d9c2ff'); }
       else if (e.k === 'bounce') { if (e.imp > 0.3 * run.v0) { burstW(ex, ey, 10, 0xd8c8a8, 0.8, 0.5); sqzV -= 4; } }
-      else if (e.k === 'clean') { if (e.pf) { burstW(ex, ey, 18, 0xffe27a, 1, 0.6); ringFx(ex, ey, 0xffd24a, cs * 3, 0.45, true); toast('완벽 착지!', 700); } else burstW(ex, ey, 8, 0xffffff, 0.8, 0.4); }
+      else if (e.k === 'clean') { if (e.pf) { burstW(ex, ey, 18, 0xffe27a, 1, 0.6); ringFx(ex, ey, 0xffd24a, cs * 3, 0.45, true); pop(`완벽 착지 · 골드 +${Math.round(st.landP * 100)}%`, '#ffe27a'); } else { burstW(ex, ey, 8, 0xffffff, 0.8, 0.4); pop(`착지 · 골드 +${Math.round(st.landG * 100)}%`, '#ffffff'); } }
       else if (e.k === 'dash' || e.k === 'fdash') { const f = e.k === 'fdash'; dashT = 0.4; ghostCol = f ? 0xff8a1f : 0x5af0ff; ghostMat.color.set(ghostCol); burstW(ex, ey, 18, f ? [0xff6a2a, 0xffd24a] : [0x5af0ff, 0xffffff], 1.6, 0.4); ringFx(ex, ey, f ? 0xff9a2a : 0x5af0ff, cs * 2.6, 0.35); punch = Math.max(punch, 0.06); shake = Math.max(shake, 0.25); tone(400, 1300, 0.15, 0.06, 'sawtooth'); if (f) flashFx(0.12, '#ffb057'); }
       else if (e.k === 'spring' || e.k === 'airspring' || e.k === 'pspring' || e.k === 'fspring') { burstW(ex, ey, 14, e.k === 'fspring' ? 0xff8a1f : 0x14e4c4, 1.1, 0.45); ringFx(ex, ey, e.k === 'fspring' ? 0xff8a1f : 0x14e4c4, cs * 2.2, 0.4, true); sqzV += 7; tone(300, 900, 0.15, 0.06); if (e.k === 'airspring') toast('공중 도약!', 600); }
       else if (e.k === 'dive') { tone(900, 120, 0.3, 0.07, 'sawtooth'); ringFx(ex, ey, 0xb68cff, cs * 2.2, 0.35); toast('급강하!', 500); }
@@ -516,6 +528,7 @@ function frame(now) { requestAnimationFrame(frame); const dt = Math.min(0.05, (n
       else if (e.k === 'fdive') { fdiveOn = true; shake = Math.max(shake, 0.4); ringFx(ex, ey, 0xff9a2a, cs * 3, 0.4); tone(1400, 90, 0.5, 0.1, 'sawtooth'); }
       else if (e.k === 'phoenix' || e.k === 'sphxon') { burstW(ex, ey, 70, [0xff6a2a, 0xffd24a, 0xfff3b0], 2.2, 1.1); for (let k = 0; k < 4; k++) ringFx(ex, ey, k % 2 ? 0xffd24a : 0xff6a2a, cs * (3 + k * 2), 0.7 + k * 0.1, false, k * 0.07); flashFx(0.55, '#ffb057'); shake = Math.max(shake, 0.9); punch = Math.max(punch, 0.1); toast(e.sup || e.k === 'sphxon' ? '슈퍼 불사조!' : '불사조!', 1300); tone(160, 1800, 0.8, 0.1, 'sawtooth'); }
       else if (e.k === 'sphxend') toast('질주 끝 · 10초에 걸쳐 원래 속도로', 1200);
+      else if (e.k === 'trick') { pop(`공중제비 ${e.n || ''}`.trim() + '!', '#7ff0ff'); }
       else if (e.k === 'rekindle') { ringFx(ex, ey, 0xff8a3a, cs * 2, 0.4); }
       else if (e.k === 'zboost') { toast(Z[e.z].name + ' 통과 가속 +' + e.pct + '%', 900); ringFx(ex, ey, 0x7ff0ff, cs * 3, 0.4); }
       else if (e.k === 'double') { toast('2단 발사!', 900); ringFx(ex, ey, 0xffd24a, cs * 3, 0.5); shake = Math.max(shake, 0.4); }
@@ -525,21 +538,26 @@ function frame(now) { requestAnimationFrame(frame); const dt = Math.min(0.05, (n
 
   // ---------- camera: close by default, widens and looks ahead with speed, punches and shakes on impacts
   const r = run, U = r ? r.U : 1, cu = Math.max(34 / 22, U), px = r ? r.x : 0, py = r ? r.y : 0, alt = r ? (py - C.ground(px, U)) / cu : 0, sp = r ? Math.hypot(r.vx, r.vy) : 0, q = r ? clamp((sp / (r.v0 + 1) - 0.5) / 5, 0, 1) : 0, cs = cartScale();
-  if (r && state === 'fly') { const want = Math.max(10.5, (alt * 1.3 + 4) / 0.62 + q * 3); camD += (want - camD) * Math.min(1, dt * (want > camD ? 4 : 2)); camLead += ((q * 0.32 + 0.12) * camD - camLead) * Math.min(1, dt * 3); lookY += ((-alt * 0.45 + cs * 0.8) - lookY) * Math.min(1, dt * 5); }
-  else { camD += (12 - camD) * Math.min(1, dt * 3); camLead += (camD * 0.1 - camLead) * Math.min(1, dt * 3); lookY += (1.2 - lookY) * Math.min(1, dt * 3); }
+  const chase = view === 'chase' && r && state === 'fly';
+  if (chase) { const want = 6.2 + q * 2.6 + Math.min(45, alt * 0.32); camD += (want - camD) * Math.min(1, dt * (want > camD ? 5 : 2)); camLead += ((1.5 + q * 1.4) * camD - camLead) * Math.min(1, dt * 3); lookY += ((cs * 0.5 - alt * 0.38) - lookY) * Math.min(1, dt * 5); }
+  else { const asp = camera.aspect, vw0 = alt * asp * 2 + 8, vwT = r && state === 'fly' ? Math.max(22, vw0 <= 320 ? vw0 : Math.min(3200 * asp, Math.max(320, alt * asp * 1.3 + 8))) : 22;
+    if (vwT > vw2 * 300) vw2 = vwT / 300; vw2 *= Math.pow(vwT / vw2, Math.min(1, dt * (vwT > vw2 * 3 ? 6 : 2.5)));
+    const vwE = vw2 / (1 + punch * 1.5), vh = vwE / asp, ex = clamp((alt / vh - 0.85) / 0.6, 0, 1), yc = r && state === 'fly' ? Math.max(0.12 + 0.28 * ex * ex * (3 - 2 * ex), 0.1 + Math.max(1.3, vwE * 0.11 / 2) * 1.6 / vh) : 0.55;
+    camD = vwE * 0.5; camLead = vwE * (0.5 - 0.28); lookY = -(0.5 - yc) * vh + (r ? 0 : 1.2); camDist = vwE * 0.5 / (Math.tan(15 * Math.PI / 180) * asp); }
   lookX = camLead; punch *= Math.pow(0.02, dt); shake *= Math.pow(0.004, dt); flash *= Math.pow(0.01, dt);
-  const fovT = 40 + q * 20 + punch * 120 + (dashT > 0 ? 6 : 0); fovNow += (fovT - fovNow) * Math.min(1, dt * 6); camera.fov = fovNow; camera.updateProjectionMatrix();
-  const sk = shake * camD * 0.02, camYY = Math.max(lookY + camD * 0.16, gMaxNear + 1.5 + camD * 0.06); camera.position.set(lookX - camD * 0.06 + (Math.random() - 0.5) * sk, camYY + (Math.random() - 0.5) * sk, camD); camera.lookAt(lookX, lookY, 0);
+  const fovT = chase ? 56 + q * 28 + punch * 140 + (dashT > 0 ? 12 : 0) : 30; fovNow += (fovT - fovNow) * Math.min(1, dt * 6); camera.fov = fovNow; camera.updateProjectionMatrix();
+  const sk = shake * camD * 0.02, camYY = Math.max(lookY + camD * 0.16, gMaxNear + 1.5 + camD * 0.06); if (chase) { const cy = Math.max(cs * 0.6 + camD * 0.42, gMaxNear + 1.2); camera.position.set(-camD * 1.05 + (Math.random() - 0.5) * sk, cy + (Math.random() - 0.5) * sk, camD * 0.62); camera.lookAt(lookX, lookY, 0.3); }
+  else { const tilt = Math.tan(7 * Math.PI / 180) * camDist, sk2 = shake * camD * 0.03; camera.position.set(lookX + (Math.random() - 0.5) * sk2, Math.max(lookY + tilt, gMaxNear + 1) + (Math.random() - 0.5) * sk2, camDist); camera.lookAt(lookX, lookY, 0.6); }
   flashEl.style.opacity = flash.toFixed(3); flashEl.style.background = flashCol;
   const zi = C.zoneAt(Math.max(0, px)); if (zi !== lastZone) { paintSky(zi); if (state === 'fly' && zi > 0 && lastZone >= 0) { toast(Z[zi].name + ' 진입!', 1300); flashFx(0.15, '#ffffff'); } lastZone = zi; }
   placeSky(zi); stars.position.set(camera.position.x, camera.position.y, 0);
   sun.position.set(lookX + 14, lookY + 22, 16); sun.target.position.set(lookX, lookY - 2, 0); const ssz = Math.max(14, camD * 0.95); Object.assign(sun.shadow.camera, { left: -ssz, right: ssz, top: ssz, bottom: -ssz, near: 0.5, far: ssz * 5 }); sun.shadow.camera.updateProjectionMatrix();
-  scene.fog.near = camD * 2.2; scene.fog.far = camD * 2.2 + 380;
+  const fd = chase ? camD : camDist; scene.fog.near = chase ? camD * 2.2 : fd * 1.05; scene.fog.far = chase ? camD * 2.2 + 380 : fd * 1.05 + Math.max(420, fd * 1.5);
 
   // ---------- terrain strip and far plain
-  const span = Math.max(80, (camD + 100) * Math.tan(fovNow * Math.PI / 360) * camera.aspect * 2.4), x0 = lookX - span * 0.5;
+  const span = chase ? camD * 2 + 420 : Math.max(60, (camDist + 100) / camDist * camD * 2.6), x0 = chase ? -camD * 2 - 12 : lookX - span * 0.5;
   gMaxNear = -1e9;
-  for (let i = 0; i < NG; i++) { const lx = x0 + span * i / (NG - 1), wx = px + lx * cu, gy = (C.ground(Math.max(0, wx), U) - py) / cu, z = Z[C.zoneAt(Math.max(0, wx))]; tmpC.set(z.ground || '#666'); if (Math.abs(lx - lookX) < camD * 0.9 && gy > gMaxNear) gMaxNear = gy;
+  for (let i = 0; i < NG; i++) { const fi = i / (NG - 1), lx = x0 + span * (chase ? Math.pow(fi, 1.7) : fi), wx = px + lx * cu, gy = (C.ground(Math.max(0, wx), U) - py) / cu, z = Z[C.zoneAt(Math.max(0, wx))]; tmpC.set(z.ground || '#666'); if (Math.abs(lx - lookX) < camD * 0.9 && gy > gMaxNear) gMaxNear = gy;
     for (let rr = 0; rr < NR; rr++) { const k = (i * NR + rr) * 3, zz = rr < GROWS.length ? GROWS[rr] : 9.6, yy = rr < 5 ? gy : rr === 5 ? gy - 0.6 : gy - camD * 3; gPos[k] = lx; gPos[k + 1] = yy; gPos[k + 2] = zz;
       const f = rr === 0 ? 0.55 : rr === 1 ? 0.8 : rr === 2 || rr === 3 ? 1.12 : rr === 4 ? 1 : 0.6; gCol[k] = tmpC.r * f; gCol[k + 1] = tmpC.g * f; gCol[k + 2] = tmpC.b * f; }
     ePos[i * 3] = lx; ePos[i * 3 + 1] = gy + 0.02; ePos[i * 3 + 2] = 1.42; }
@@ -575,9 +593,9 @@ function frame(now) { requestAnimationFrame(frame); const dt = Math.min(0.05, (n
 
   // ---------- ribbon, speed lines, rings, particles
   if (r && state === 'fly') { const col = r.sphxT > 0 ? '#ffb347' : dashT > 0 ? (ghostCol === 0x5af0ff ? '#5af0ff' : '#ff8a1f') : r.slam ? '#c08cff' : r.boosting ? '#ff8a5a' : '#cfe6ff'; trail.push([r.x, r.y, col]); if (trail.length > NT) trail.shift(); }
-  ribbonTick(px, py, cu, cs, '#ffffff'); ribbon.visible = !!(r && state === 'fly');
+  ribbonTick(px, py, cu, cs, '#ffffff', view === 'chase'); ribbon.visible = !!(r && state === 'fly');
   slMode = !r || state !== 'fly' ? 'plain' : r.slam && r.air ? 'dive' : dashT > 0 ? 'dash' : r.sphxT > 0 ? 'fire' : 'plain';
-  speedLines.position.set(lookX, lookY, 0); speedLinesTick(dt, state === 'fly' ? q : 0, slMode, camD); speedLines.visible = state === 'fly';
+  if (view === 'chase' && state === 'fly') speedLines.position.set(0, cs * 0.6, 0.6); else speedLines.position.set(lookX, lookY, 0); speedLinesTick(dt, state === 'fly' ? q : 0, slMode, camD); speedLines.visible = state === 'fly';
   ringsTick(dt, px / cu, py / cu);
   for (let i = parts.length - 1; i >= 0; i--) { const p = parts[i]; p.t += dt; if (p.t > p.life) { parts.splice(i, 1); continue; } p.vy -= (p.g ?? 9) * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
   for (let i = 0; i < NP; i++) { const p = parts[i]; if (p) { const f = 1 - p.t / p.life, wx = p.w ? (p.x - px) / cu : p.x, wy = p.w ? (p.y - py) / cu : p.y; pPos[i * 3] = wx; pPos[i * 3 + 1] = wy; pPos[i * 3 + 2] = p.z + 0.6; pCol[i * 3] = p.r * f; pCol[i * 3 + 1] = p.g2 * f; pCol[i * 3 + 2] = p.b * f; } else pPos[i * 3 + 1] = -9999; }
@@ -594,16 +612,16 @@ function frame(now) { requestAnimationFrame(frame); const dt = Math.min(0.05, (n
   else if (state === 'aim' || state === 'charge') { $('#combo').textContent = ''; $('#dist').textContent = S && S.best ? '최고 ' + fmtD(S.best) : '0m'; $('#sub').textContent = ''; $('#zone').textContent = '마트 주차장'; $('#gold').textContent = '● ' + fmt(S ? S.gold : 0); }
 
   // post: strength from speed and from what the cart is doing
-  { const v = new THREE.Vector3(0, cs * 0.6, 0.6).project(camera), dive = r && r.slam && r.air && state === 'fly' ? 1 : 0, fire = r && r.sphxT > 0 ? 1 : 0;
+  { const v = (view === 'chase' && state === 'fly' ? new THREE.Vector3(lookX, lookY, 0.3) : new THREE.Vector3(0, cs * 0.6, 0.6)).project(camera), dive = r && r.slam && r.air && state === 'fly' ? 1 : 0, fire = r && r.sphxT > 0 ? 1 : 0;
     postMat.uniforms.uC.value.set(clamp(v.x * 0.5 + 0.5, 0.15, 0.85), clamp(v.y * 0.5 + 0.5, 0.15, 0.85));
-    const S0 = state === 'fly' ? clamp(q * 0.09 + dashT * 0.28 + dive * 0.12 + fire * 0.1 + punch * 0.6, 0, 0.3) : 0; postMat.uniforms.uS.value += (S0 - postMat.uniforms.uS.value) * Math.min(1, dt * 10);
+    const S0 = state === 'fly' ? clamp((view === 'chase' ? 0.04 + q * 0.12 : q * 0.09) + dashT * 0.28 + dive * 0.12 + fire * 0.1 + punch * 0.6, 0, 0.3) : 0; postMat.uniforms.uS.value += (S0 - postMat.uniforms.uS.value) * Math.min(1, dt * 10);
     postMat.uniforms.uAb.value = postMat.uniforms.uS.value * 0.12; postMat.uniforms.uVig.value = 0.25 + postMat.uniforms.uS.value * 1.5;
     const ta = state === 'fly' ? (dashT > 0 ? dashT / 0.4 * 0.45 : dive ? 0.35 : fire ? 0.3 : 0) : 0; postMat.uniforms.uTA.value += (ta - postMat.uniforms.uTA.value) * Math.min(1, dt * 8);
     if (dashT > 0) postMat.uniforms.uTint.value.set(ghostCol); else if (dive) postMat.uniforms.uTint.value.set(fdiveOn ? 0xff7a1a : 0xa070ff); else if (fire) postMat.uniforms.uTint.value.set(0xff8a2a); postMat.uniforms.uT.value = t; }
   renderer.setRenderTarget(rt); renderer.render(scene, camera); renderer.setRenderTarget(null); renderer.render(postScene, postCam);
 }
 // the cart stays readable: never smaller than a set share of the view, so the world grows around it as the camera pulls back
-function cartScale() { const r = run; if (!r) return 1.6; const cu = Math.max(34 / 22, r.U); return Math.max(1.6, r.S / cu * 1.6, camD * 0.085); }
+function cartScale() { const r = run; if (!r) return 1.6; const cu = Math.max(34 / 22, r.U); return view === 'chase' && state === 'fly' ? Math.max(1.6, r.S / cu * 1.6, camD * 0.085) : Math.max(1.3, r.S / cu * 1.5, camD * 0.11); }
 // particles in world coordinates (they stay where they were spawned while the cart flies on) and local ones (flame)
 function burstW(x, y, n, col, spd, life) { const cols = Array.isArray(col) ? col : [col], cu = Math.max(34 / 22, run.U), sc = cartScale(); for (let i = 0; i < n && parts.length < NP; i++) { const c = new THREE.Color(cols[i % cols.length]), a = Math.random() * 6.283, v = spd * sc * 4 * (0.4 + Math.random()); parts.push({ w: true, x, y: y + sc * 0.6 * cu, z: (Math.random() - 0.5) * sc, vx: Math.cos(a) * v * cu, vy: Math.sin(a) * v * cu, g: 9 * cu * 0.4, t: 0, life: life * (0.6 + Math.random() * 0.6), r: c.r, g2: c.g, b: c.b }); } }
 function burstL(x, y, n, col, spd, life, ang) { const c = new THREE.Color(col), ca = Math.cos(ang), sa = Math.sin(ang), wx = x * ca - y * sa, wy = x * sa + y * ca; for (let i = 0; i < n && parts.length < NP; i++) { const v = spd * cartScale() * 6 * (0.5 + Math.random()); parts.push({ w: false, x: wx, y: wy, z: (Math.random() - 0.5) * 0.3, vx: -ca * v + (Math.random() - 0.5) * 2, vy: -sa * v + (Math.random() - 0.5) * 2, g: 0, t: 0, life, r: c.r, g2: c.g, b: c.b }); } }
