@@ -319,7 +319,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 123, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 124, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -1135,7 +1135,7 @@ let ppm = 20, ox = 0, oy = 0, dollJolt = 0, camV = 0, camPy = 0;
 let zoneIn = 0, zoneSaid = true, jingleT = -9e9, landT = -9e9, fuelShown = 1, fuelUpT = -9e9, liveG = 0, liveT = -9e9, launchFx = null;
 let fxs = [], trail = [], flash = 0, flashCol = '#fff', goldPopT = 0, dashT = 0, sonicLv = 0, cartX = 200, cartY = 200;
 // hit-stop (a few frozen frames on a heavy impact), squash and stretch of the cart, a short zoom punch, and the rider's expression
-let objK = 1, spinAcc = 0, spinPrev = null, whooshT = 0, hitT = 0, sqz = 0, sqzV = 0, zoomP = 0, moodK = 0, moodT = 0, phxT = -9e9, phxTail = [];
+let pivK = 0, objK = 1, spinAcc = 0, spinPrev = null, whooshT = 0, hitT = 0, sqz = 0, sqzV = 0, zoomP = 0, moodK = 0, moodT = 0, phxT = -9e9, phxTail = [];
 const PHX_WING = 2.2, PHX_TAIL = 6;   // seconds the fire wings and the fire tail last
 const hitStop = t => { if (OPT.shake > 0) hitT = Math.max(hitT, t); }, punch = k => { zoomP = Math.max(zoomP, k * OPT.shake); }, mood = (k, t = 0.8) => { moodK = k; moodT = t; };
 // floating texts: a repeat of the same line within half a second becomes one line with a count, and the cart never carries more than five
@@ -1951,7 +1951,10 @@ function draw(now) {
   const onRamp = state === 'aim' || state === 'charge' || state === 'push', RA = st.angle, RL = C.RAMP, RH = RL * Math.tan(RA);
   const csc = Math.max(0.62, Math.min(1.5, (r ? r.S : 1) * ppm / 23.5)), tgt = onRamp ? -RA : r && (state === 'fly' || state === 'result') ? -r.ang : 0; { let dr = tgt - rot; dr = Math.atan2(Math.sin(dr), Math.cos(dr)); rot += dr * Math.min(1, dt * 22); if (onRamp) rot = -RA; }
   // on the ramp the wheels sit on the slope: offset the cart along the slope normal by the wheel radius
-  const rwx = -RL * (1 - rampU), rwy = RH * rampU, cxp = onRamp ? SX(rwx) - Math.sin(RA) * 3.8 * csc : SX(px), cyp = onRamp ? SY(rwy) - Math.cos(RA) * 3.8 * csc : SY(py) - 4 * csc;
+  // in the air the cart turns about its middle (a spin looks like a top, not a wheel swinging round its rim); on the ground about its wheels
+  pivK += ((r && state === 'fly' && r.air ? 1 : 0) - pivK) * Math.min(1, dt * 8);
+  const rwx = -RL * (1 - rampU), rwy = RH * rampU, cx0 = onRamp ? SX(rwx) - Math.sin(RA) * 3.8 * csc : SX(px), cy0 = onRamp ? SY(rwy) - Math.cos(RA) * 3.8 * csc : SY(py) - 4 * csc;
+  const pvh = !onRamp && r && state === 'fly' ? 14 * csc * pivK : 0, cxp = cx0 - pvh * Math.sin(rot), cyp = cy0 + pvh * (Math.cos(rot) - 1);
   if (px < cam.vw * 1.2) { // ramp: slope, struts, lip, and the launch band's anchor post
     g.lineJoin = 'round'; g.strokeStyle = '#2b2233'; g.lineWidth = 2.5; g.fillStyle = '#c98b3c';
     for (const f of [0.35, 0.7, 1]) { g.fillRect(SX(-RL * (1 - f)) - 3, SY(RH * f), 6, RH * f * ppm); g.strokeRect(SX(-RL * (1 - f)) - 3, SY(RH * f), 6, RH * f * ppm); }
@@ -1967,7 +1970,7 @@ function draw(now) {
       gr.addColorStop(0, `rgba(255,236,140,${0.75 * a})`); gr.addColorStop(0.45, `rgba(255,210,74,${0.45 * a})`); gr.addColorStop(1, 'rgba(255,200,60,0)'); g.fillStyle = gr; g.beginPath(); g.arc(pxT, pyT - 14, 34 + 10 * kg, 0, 7); g.fill();
       g.globalAlpha = a; g.strokeStyle = '#ffd24a'; g.lineWidth = 4.5; g.beginPath(); g.arc(pxT, pyT - 14, 15, 0, 7); g.stroke(); g.strokeStyle = '#fff8d0'; g.lineWidth = 1.5; g.beginPath(); g.arc(pxT, pyT - 14, 15, 0, 7); g.stroke(); g.globalAlpha = 1; } }
   }
-  cartX = cxp; cartY = cyp - 14 * csc;
+  cartX = cx0; cartY = cy0 - 14 * csc;
   if (r && state === 'fly') { const ca = Math.cos(rot), sa = Math.sin(rot);
     // ribbon behind the cart
     g.lineCap = 'round'; for (const gp of Q.trail ? [1, 0] : [0]) { if (gp) g.globalCompositeOperation = 'lighter'; for (let i = 1; i < trail.length; i++) { const a = trail[i - 1], b = trail[i], f = i / trail.length; g.globalAlpha = f * (gp ? 0.14 : 0.55); g.strokeStyle = b.c; g.lineWidth = (2 + f * 10 * csc) * (gp ? 2.8 : 1); g.beginPath(); g.moveTo(Math.max(-50, SX(a.x)), SY(a.y) - 14 * csc); g.lineTo(SX(b.x), SY(b.y) - 14 * csc); g.stroke(); } g.globalCompositeOperation = 'source-over'; } g.globalAlpha = 1; g.lineCap = 'butt';
@@ -1991,7 +1994,7 @@ function draw(now) {
       g.lineWidth = 3.5; g.strokeStyle = `rgba(255,236,150,${0.8 * pu})`; g.beginPath(); g.arc(0, 0, R, Math.PI / 2 - jp, Math.PI / 2 + jp); g.stroke(); g.restore(); }
     // phoenix: a pillar of fire, streaks rushing past as the cart soars, two great wings of flame that beat and burn away,
     // and a long tail of fire that follows the cart for several seconds
-    { const pa = (now - phxT) / 1000; if (pa >= 0 && pa < PHX_TAIL && state === 'fly') { const sz = Math.max(52, 92 * csc), wx = cxp, wy = cyp - 16 * csc, fdT = 1 - pa / PHX_TAIL; g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
+    { const pa = (now - phxT) / 1000; if (pa >= 0 && pa < PHX_TAIL && state === 'fly') { const sz = Math.max(52, 92 * csc), wx = cx0, wy = cy0 - 16 * csc, fdT = 1 - pa / PHX_TAIL; g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
         // the tail: a ribbon through the cart's last positions, red outside, gold inside, white at the root, flickering like feathers
         if (phxTail.length > 2) { const P = phxTail.map(q => [SX(q.x), SY(q.y) - 14 * csc]); P[P.length - 1] = [wx, wy]; const N = P.length, wmax = sz * 0.55 * Math.min(1, pa / 0.25) * (0.35 + 0.65 * fdT);
           for (const [ps, col, wk] of [[0, '200,40,20', 1], [1, '255,150,40', 0.62], [2, '255,240,180', 0.28]]) { for (let i = 1; i < N; i++) { const f = i / (N - 1), w = wmax * wk * Math.pow(f, 0.9) * (0.85 + 0.15 * Math.sin(now / 45 + i * 1.7)); if (w < 0.6) continue; g.strokeStyle = `rgba(${col},${(ps === 2 ? 0.9 : 0.75) * Math.pow(f, 0.6) * Math.min(1, fdT * 2)})`; g.lineWidth = w; g.beginPath(); g.moveTo(P[i - 1][0], P[i - 1][1]); g.lineTo(P[i][0], P[i][1]); g.stroke(); } }
@@ -2007,7 +2010,7 @@ function draw(now) {
           const hg = g.createRadialGradient(wx, wy, 0, wx, wy, sz * 1.7); hg.addColorStop(0, `rgba(255,240,170,${0.85 * fd})`); hg.addColorStop(0.5, `rgba(255,150,40,${0.45 * fd})`); hg.addColorStop(1, 'rgba(255,100,30,0)'); g.fillStyle = hg; g.beginPath(); g.arc(wx, wy, sz * 1.7, 0, 7); g.fill();
           if (pa < 1.4 && Math.random() < 0.9) burst(wx + (Math.random() - 0.5) * sz, wy + sz * 0.4, 3, ['#ff6a2a', '#ffd24a', '#fff3b0'], 340, 0.8, { a0: -1.57, spread: 0.9, g: -320, z: 4 }); }
         g.restore(); } }
-    if (state === 'fly' && r) { const sp3 = Math.hypot(r.vx, r.vy); airFx(r, cxp, cyp, csc, sp3); diveTrail(r, cxp, cyp, csc, sp3); phxSkillFx(r, cxp, cyp, csc); phoenixOnCart(r, cxp, cyp, csc); }
+    if (state === 'fly' && r) { const sp3 = Math.hypot(r.vx, r.vy); airFx(r, cx0, cy0, csc, sp3); diveTrail(r, cx0, cy0, csc, sp3); phxSkillFx(r, cx0, cy0, csc); phoenixOnCart(r, cx0, cy0, csc); }
     drawDoll(cxp, cyp, csc, pins, false); drawCart(cxp, cyp, rot, csc, sqz); drawDoll(cxp, cyp, csc, pins, true); }
   g.textAlign = 'center'; g.font = `15px ${FONT}`;
   { let ai = 0; for (const p of pops) { p.t += dt; const life = p.a ? 1.3 : 0.9, x2 = p.a ? Math.max(120, cartX + 20) : SX(p.x), y2 = p.a ? Math.max(150, cartY - 44) - 20 * ai++ - p.t * 26 : SY(p.y) - p.t * 50; g.font = `${p.a ? 17 : 15}px ${FONT}`; g.globalAlpha = Math.max(0, Math.min(1, (life - p.t) * 3)); g.lineWidth = 3.5; g.strokeStyle = '#2b2233'; g.strokeText(p.txt, x2, y2); g.fillStyle = p.col || '#ffd24a'; g.fillText(p.txt, x2, y2); } } g.globalAlpha = 1; pops = pops.filter(p => p.t < (p.a ? 1.3 : 0.9));
