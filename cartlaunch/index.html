@@ -305,7 +305,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 98, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 99, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -1023,11 +1023,10 @@ function immerseFx(dt) { const K = FXK(); diveA += ((state === 'fly' && run && r
     for (let i = 0; i < n; i++) { const x = hsh(i * 13 + 4) * W, l = (60 + 160 * hsh(i * 3)) * diveA, y = H + 150 - (((hsh(i * 7) * H + t * 2400 * (0.7 + 0.6 * hsh(i))) % (H + 300)) + 0); g.strokeStyle = `rgba(${i % 3 ? '225,210,255' : '182,140,255'},${0.35 * diveA})`; g.lineWidth = 1 + 2 * hsh(i * 5); g.beginPath(); g.moveTo(x, y); g.lineTo(x, y + l); g.stroke(); }
     g.globalCompositeOperation = 'source-over'; edge('120,70,220', 0.3 * diveA * K); if (K > 0.5) focus('220,200,255', 0.25 * diveA, 12); }
   g.restore(); }
-// gold crate fanfare: a turning gold starburst, twinkling stars, confetti and a stream of coins to the counter; a chain of crates
+// gold crate fanfare: twinkling stars, a white ring, confetti and a stream of coins to the counter (no gold ray burst: the player found it too busy); a chain of crates
 // in quick succession gets one full fanfare and small sparkles for the rest, so a big haul does not drown the screen
 function crateFanfare(x, y) { const K = FXK(), nowT = performance.now(), big = nowT - fanT > 260; ringFx(x, y, '#ffd24a', 70, 0.5, 5);
   if (!big || !K) { burst(x, y, 3, ['#ffd24a', '#fff3b0'], 200, 0.4, { g: 200, z: 3 }); coinFly(x, y, 2); return; } fanT = nowT;
-  fxs.push({ k: 'b', x, y, t: 0, life: 0.55 + 0.25 * K, r1: 60 + 50 * K, n: 10, c: '#ffd24a' });
   for (let i = 0; i < Math.round(5 * K) + 1; i++) { const a = Math.random() * 6.283, v = 40 + 90 * Math.random(); fxs.push({ k: 'st', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 30, t: -i * 0.04, life: 0.6 + 0.3 * Math.random(), z: 5 + 4 * Math.random() * K }); }
   ringFx(x, y, '#ffffff', 110 * K + 40, 0.6, 3, 0.08); confetti(x, y, Math.round(14 * (0.5 + K))); coinFly(x, y, Math.round(4 + 6 * K)); }
 function drawFx(dt) {
@@ -1682,11 +1681,10 @@ function draw(now) {
   const cu = Math.max(34 / 22, CU()), vwT = r ? Math.min(180 * cu, Math.max(22 * cu, alt * (W / H) * 2 + 8 * cu)) : 34; if (vwT > cam.vw * 300) cam.vw = vwT / 300; cam.vw *= Math.pow(vwT / cam.vw, Math.min(1, dt * (vwT > cam.vw * 3 ? 6 : 2.5)));
   zoomP *= Math.pow(0.003, dt); sqzV += (-sqz * 300 - sqzV * 16) * dt; sqz = Math.max(-0.35, Math.min(0.3, sqz + sqzV * dt)); moodT -= dt;
   ppm = W / cam.vw * (1 + zoomP); ox = W * 0.28; oy = H * 0.74; cam.x = px; const camYT = G(px) + Math.max(0, alt - cam.vw * (H / W) * 0.62); cam.y += (camYT - cam.y) * Math.min(1, dt * 6);
-  // the cart never leaves the screen: however fast it climbs it stays below the top band (the HUD lives there), and while diving the
-  // camera rides with it so the cart holds one height on screen and the world rushes up, until the ground comes into view
-  if (r && state === 'fly') { const top = H * 0.3, bot = H * 0.86, sy = oy - (py - cam.y) * ppm;
-    if (r.slam && r.air) cam.y = Math.max(G(px), py - (oy - H * 0.42) / ppm);
-    else if (sy < top) cam.y = py - (oy - top) / ppm;
+  // the camera keeps its usual way (the cart rides higher on screen the higher it flies, and the ground stays in view as long as it can);
+  // only when the lagging follow would let the cart slip off the very top or bottom edge is it pulled back in
+  if (r && state === 'fly') { const top = Math.max(H * 0.14, 64), bot = H * 0.9, sy = oy - (py - cam.y) * ppm;
+    if (sy < top) cam.y = py - (oy - top) / ppm;
     else if (sy > bot) cam.y = Math.max(G(px), py - (oy - bot) / ppm); }
   { const dxw = px - (frame.lx || 0); frame.lx = px; bgScroll += Math.max(-80, Math.min(80, dxw * ppm)); const hy = SY(G(px + cam.vw * 0.25)); horizon += (hy - horizon) * Math.min(1, dt * 6); }
   g.save();
