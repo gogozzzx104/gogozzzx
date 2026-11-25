@@ -315,9 +315,9 @@ const CORE = (() => {
   const RAMP = 4, WEAR = 0.12, VCAP = 3, PHX_T = 0.7, PDIVE_T = 0.38; let TIRE = 30;
   // top speed allowed at a moment of the run: three times launch speed at first, tiring as the run goes on, so even a maxed cart's run winds down
   // the top-speed cap fades with time since launch (r.fresh).  Holding the boost winds that fatigue back by BOOST_REST seconds per second
-  // (with the endurance perk maxed, +0.1% of the cap a second), the phoenix booster by PBOOST_REST (+2.11%).  A dash wins back DASH_REST
+  // (with the endurance perk maxed, +1% of the cap a second), the phoenix booster by PBOOST_REST (+2.11%).  A dash wins back DASH_REST
   // of the fatigue built up so far, a phoenix dash PDASH_REST, a phoenix spring PSPRING_REST
-  const BOOST_REST = 0.06, PBOOST_REST = 1.25, DASH_REST = 0.02, PDASH_REST = 0.05;
+  const BOOST_REST = 0.597, PBOOST_REST = 1.25, DASH_REST = 0.02, PDASH_REST = 0.05;
   // after the super phoenix sprint the raised ceiling eases back to the normal one over SPHX_FADE seconds instead of dropping at once
   const SPHX_FADE = 10;
   const vcap = r => { const c = r.st.vcap * r.v0 * Math.max(0.085, (1 + (r.rew || 0)) * Math.exp(-(r.tr - (r.fresh || 0)) / r.st.tire)); return r.sphxT > 0 ? Math.max(c, sphxSpeed(r) * 1.02) : r.sphxF > 0 ? c * (1 + (r.sphxM - 1) * r.sphxF / SPHX_FADE) : c; };
