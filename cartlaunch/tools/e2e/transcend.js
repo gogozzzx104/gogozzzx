@@ -12,7 +12,7 @@ const { chromium } = require('playwright');
   const g0 = await pg.evaluate(() => ({ sh: window.__cart.S.shards, lv: window.__cart.C.total(window.__cart.S) }));
   await pg.click('[data-trans]'); await pg.waitForTimeout(100); await pg.click('[data-trans]'); await pg.waitForTimeout(200);
   // abilities are tiles now: open one, then buy from the detail panel
-  for (const id of ['t_speed', 't_auto']) { await pg.click(`.nd[data-id="${id}"]`); await pg.waitForTimeout(120); await pg.click(`#sDet [data-tp="${id}"]`); await pg.waitForTimeout(120); }
+  for (const id of ['t_speed', 't_auto']) { await pg.click(`.nd[data-id="${id}"]`); await pg.waitForTimeout(120); await pg.click(`.pop [data-tp="${id}"]`); await pg.waitForTimeout(120); }
   console.log(JSON.stringify(g0), '→', await pg.evaluate(() => { const s = window.__cart.S; return JSON.stringify({ shards: s.shards, trans: s.trans, lv: window.__cart.C.total(s), tperks: s.tperks, rebirths: s.rebirths, gold: s.gold }); }));
   await pg.evaluate(() => window.__cart.toAim()); await pg.waitForTimeout(200);
   await pg.keyboard.down('Space'); await pg.waitForFunction(() => window.__cart.charge > 0.9); await pg.keyboard.up('Space'); await pg.waitForFunction(() => window.__cart.state === 'result', null, { timeout: 60000 });
