@@ -224,7 +224,7 @@ const CORE = (() => {
     TK('t_cap', '한계 돌파', 50, '최고 속도 한도 증가 · 레벨이 오를수록 더 크게'), TK('t_time', '지구력', 10, '최고 속도가 10% 더 천천히 줄어듦'), TK('t_keep', '전생 각인', 5, '초월 때 환생 트리 유지 +10% (기본 50%)'), TK('t_auto', '자동 구매', 1, '판이 끝날 때마다 살 수 있는 업그레이드 자동 구매'),
     TK('t_land', '완벽주의', 20, '착지·슬램 골드 보너스 +50%', 3), TK('t_multi', '다중 광선', 20, '견인 광선이 한 번에 상자·코인을 1개 더 끌어옴', 5), TK('t_beam', '견인 강화', 25, '견인 광선 주기 -8%', 8),
     TK('t_starpow', '별의 힘', 50, '지금까지 받은 별이 많을수록 발사 속도 증가 · 초월해도 유지 · 레벨이 오를수록 더 크게', 10), TK('t_rekindle', '재점화', 10, '깔끔한 착지마다 최고 속도 한도가 올라가고 그만큼 바로 가속 (완벽 착지는 3배)', 12), TK('t_deep', '심연 개척', 50, '미지의 영역에서 받는 차원석 +10%', 15),
-    TK('t_gauge', '급속 충전', 20, '발사 게이지가 빨리 참 (Lv20에 3배) · Lv10부터 퍼펙트 구간에서 자동 발사'), TK('t_spin', '초회전', 50, '2초 넘게 계속 돌리면 회전 속도 증가 · 레벨이 오를수록 더 크게', 16), TK('t_sphx', '슈퍼 불사조', 3, '멈추면 불사조보다 강하게 부활 · 발사 직후 최고 속도 한도의 1.1/1.3/1.5배로 2/3/4초 질주 · 불사조 도약·대시·급강하 2회씩과 불사조 부스터 50%', 7), TK('t_judge', '수호 보호막', 50, '착지 판정이 넓어짐 · 판정 범위가 보호막으로 보임 · Lv50은 어느 방향이든 완벽 착지', 18),
+    TK('t_gauge', '급속 충전', 20, '발사 게이지가 빨리 참 (Lv20에 3배) · Lv10부터 퍼펙트 구간에서 자동 발사'), TK('t_spin', '초회전', 50, '2초 넘게 계속 돌리면 회전 속도 증가 · 레벨이 오를수록 더 크게', 16), TK('t_sphx', '슈퍼 불사조', 3, '멈추면 불사조보다 강하게 부활 · 발사 직후 최고 속도 한도의 1.1/1.3/1.5배로 2/3/4초 질주 · 불사조 도약·대시·급강하 2회씩과 불사조 부스터 50% · 부활 뒤 전환(Q)으로 남은 스킬을 불사조 스킬로', 7), TK('t_judge', '수호 보호막', 50, '착지 판정이 넓어짐 · 판정 범위가 보호막으로 보임 · Lv50은 어느 방향이든 완벽 착지', 18),
   ];
   // TW: the strongest abilities cost a multiple of the base price; the 50-level ones climb faster in each band of ten levels (10, 20, 30, 40)
   // TV: what each level of the growing abilities is worth (every level adds more than the one before)
@@ -320,6 +320,11 @@ const CORE = (() => {
   const vcap = r => { const c = r.st.vcap * r.v0 * Math.max(0.085, (1 + (r.rew || 0)) * Math.exp(-(r.tr - (r.fresh || 0)) / r.st.tire)); return r.sphxT > 0 ? Math.max(c, sphxSpeed(r) * 1.02) : c; };
   // super phoenix: the sprint speed is a multiple of the cap right after launch
   const sphxSpeed = r => r.sphxM * r.st.vcap * r.v0 * (1 + (r.rew || 0));
+  // super phoenix conversion (player's choice, after the super phoenix rose): every normal skill held turns into phoenix skills,
+  // 3 springs / 2 dives / 2 dashes make one and a short last group still makes one (11 springs -> 4, 9 dashes -> 5)
+  const CONV = { spring: 3, dive: 2, dash: 2 }, convOf = r => ({ spring: Math.ceil(r.spring / CONV.spring), dive: Math.ceil(r.dive / CONV.dive), dash: Math.ceil(r.dash / CONV.dash) });
+  const canConv = r => !!(r && !r.over && r.risen && r.st.sphx && r.spring + r.dive + r.dash > 0);
+  const conv = r => { const o = convOf(r), e = { k: 'sconv', x: r.x, y: r.y, from: { spring: r.spring, dive: r.dive, dash: r.dash }, to: o }; r.pspring += o.spring; r.pdive += o.dive; r.pdash += o.dash; r.spring = r.dive = r.dash = 0; r.convs = (r.convs || 0) + 1; r.ev.push(e); return e; };
   // super phoenix by level: sprint multiple, sprint seconds, and phoenix dashes, springs, booster share and dives granted on rising
   const SPHX = [null, { m: 1.1, t: 2, n: 2, f: 0.5 }, { m: 1.3, t: 3, n: 3, f: 0.7 }, { m: 1.5, t: 4, n: 5, f: 1 }];
   // fatigue won back: a phoenix dash and the phoenix booster 2.5x the plain ones, a phoenix spring 10% of the built-up fatigue
@@ -379,6 +384,7 @@ const CORE = (() => {
     const dashAdd = () => (6 + st.dash + Math.min(1.2 * r.v0, Math.max(sp0, 0.8 * r.v0)) * (0.08 + 0.006 * st.dash)) * (st.dashpow || 1);
     const doSpring = k => { const pf = k === 1 && r.tr - r.lastBounce < 0.22 + 0.008 * st.jspring ? 1.35 : 1; if (pf > 1 && st.jspring) r.vx += 0.008 * st.jspring * r.v0 * Math.pow(0.94, r.tops++); const fire = r.pspring > 0; if (fire) r.pspring--; else r.spring--; let up = (5 + 0.5 * st.spring + Math.min(1.2 * r.v0, Math.max(sp0, 0.8 * r.v0)) * (0.26 + 0.012 * st.spring)) * pf * k; if (k === 1) up = Math.max(up, Math.sqrt(2.3 * gZ * river(r, r.x + 0.5 * r.cw)) * pf); r.vy = Math.min(0.85 * r.v0 * gk + 8, Math.max(r.vy, 0) + up); r.vx *= 1.03; if (k < 1) r.vx += st.leap * r.v0; if (fire) { r.vx += 0.8 * dashAdd(); r.fresh = (r.fresh || 0) + (r.tr - (r.fresh || 0)) * PSPRING_REST; } r.air = true; if (k === 1) r.rotAcc = 0; r.ev.push({ k: k < 1 ? 'airspring' : pf > 1 ? 'pspring' : 'spring', x: r.x, y: r.y }); if (fire) r.ev.push({ k: 'fspring', x: r.x, y: r.y }); };
     const doDash = () => { const fire = r.pdash > 0; if (fire) r.pdash--; else r.dash--; r.fresh = (r.fresh || 0) + (r.tr - (r.fresh || 0)) * DASH_REST * (fire ? PHX_REST : 1); const add = dashAdd(); r.vx += add; r.vy = grounded0 ? Math.max(r.vy, 0.18 * r.v0 + 3) : Math.max(r.vy, -0.12 * sp0); if (grounded0) r.air = true; r.ev.push({ k: fire ? 'fdash' : 'dash', x: r.x, y: r.y }); };
+    if (inp.conv && canConv(r)) conv(r);
     const nSpring = r.spring + r.pspring, nDash = r.dash + r.pdash;
     if (inp.skill) { if (grounded0 && nSpring > 0) doSpring(1); else if (nDash > 0 && !grounded0) doDash(); else if (!grounded0 && st.airjump && nSpring > 0) doSpring(st.airjump); }
     if (inp.spring && nSpring > 0) { if (grounded0) doSpring(1); else if (st.airjump) doSpring(st.airjump); }
@@ -463,8 +469,8 @@ const CORE = (() => {
       if (!r.air && r.vx < 0) r.back += dtReal; else r.back = 0;
       if (r.rest > 0.5 || r.back > 0.7) { if ((st.phoenix || st.sphx) && !r.risen) { r.risen = true; r.rest = r.back = 0; r.fresh = Math.max(r.fresh || 0, r.tr - st.tire * Math.log(1 / 0.7)); r.vx = 0.75 * r.v0; r.vy = 1.05 * r.v0 * Math.sqrt(gZ * (1 - st.glide) / 9.8); r.y += 0.5; r.air = true; r.phx = PHX_T; r.slam = false; r.fdive = false; r.pdc = 0;
         if (st.sphx) { const L = SPHX[Math.min(3, st.sphx)]; r.sphxM = L.m; r.sphxT = L.t; r.fresh = r.tr;
-          // leftovers turn into phoenix skills (3 springs, 2 dives or 2 dashes make one), then the level's own phoenix skills and booster share
-          r.pspring += Math.floor(r.spring / 3) + L.n; r.spring %= 3; r.pdive += Math.floor(r.dive / 2) + L.n; r.dive %= 2; r.pdash += Math.floor(r.dash / 2) + L.n; r.dash %= 2; if (st.fuel) r.pfuel += L.f * st.fuel; }
+          // the level's own phoenix skills and booster share; leftover normal skills stay normal until the player converts them (canConv / conv)
+          r.pspring += L.n; r.pdive += L.n; r.pdash += L.n; if (st.fuel) r.pfuel += L.f * st.fuel; }
         else { r.spring++; r.dash++; }
         r.ev.push({ k: 'phoenix', x: r.x, y: r.y, sup: st.sphx || 0 }); } else { r.over = true; r.why = r.back > 0.7 ? '언덕을 넘지 못했어요' : '멈췄어요'; } }
       if (r.tr > 100 + st.time + (r.risen ? 30 : 0) + Math.min(100, 10 * Math.max(0, zoneAt(r.maxX) - 8))) { r.over = true; r.why = '시간 초과'; } }
@@ -484,6 +490,6 @@ const CORE = (() => {
   function buyAllPerks(s) { let n = 0; for (; n < 2000;) { let best = null, bc = Infinity; for (const q of PERKS) { const l = s.perks[q.id] || 0, c = perkCost(q, l); if (l < q.max && !perkLock(s, q.id) && c <= s.stars && c < bc) { bc = c; best = q.id; } } if (!best) break; buyPerk(s, best); n++; } return n; }
   function buyPerk(s, id) { const p = PK[id], l = s.perks[id] || 0; if (!p || l >= p.max || perkLock(s, id) || s.stars < perkCost(p, l)) return false; s.stars -= perkCost(p, l); s.perks[id] = l + 1; return true; }
   return { ZONES, ZI, zoneAt, zoneProg, lerpZ, ground, isWater, UPS, UP, BRANCH, PERKS, PK, PBRANCH, perkCost, perkLock, perkGate, reached, SEED, STAR_GOLD, starsFor, nextStarAt, ACH, checkAch, achCount, FIN_T,
-    setTire: v => { TIRE = v; }, vcap, newSave, migrate, lvl, total, cost, lockReason, canBuy, buy, stats, RAMP, scaleOf, newRun, PDIVE_T, tGate, river, cellObjs, step, payout, finish, rebirth, buyPerk, buyAll, buyAllPerks, gateZone, LAST, TPERKS, TP, tCost, tl, TV, shardsFor, shardMult, SHARD_M, buyT, tLock, deepEver, starsEver, transcend, starGain, cycleBest, gd, gref };
+    setTire: v => { TIRE = v; }, vcap, newSave, migrate, lvl, total, cost, lockReason, canBuy, buy, stats, RAMP, scaleOf, newRun, PDIVE_T, tGate, river, cellObjs, step, payout, finish, canConv, convOf, conv, CONV, rebirth, buyPerk, buyAll, buyAllPerks, gateZone, LAST, TPERKS, TP, tCost, tl, TV, shardsFor, shardMult, SHARD_M, buyT, tLock, deepEver, starsEver, transcend, starGain, cycleBest, gd, gref };
 })();
 if (typeof module !== 'undefined') module.exports = CORE;

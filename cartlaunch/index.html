@@ -32,6 +32,8 @@ button{font-family:var(--disp);touch-action:manipulation}
 #dashBtn small{color:#dff5ff}
 #diveBtn{right:32px;bottom:130px;width:68px;height:68px;background:#8a4dff;color:#fff;font-size:14px}
 #diveBtn small{color:#eadcff}
+#convBtn{left:114px;bottom:118px;width:58px;height:58px;background:linear-gradient(160deg,#ffb23a,#e2541a);color:#fff;font-size:13px;white-space:nowrap;box-shadow:0 4px 0 var(--ink),0 0 14px 3px rgba(255,120,30,.6);animation:fireBtn .9s ease-in-out infinite alternate}
+#convBtn small{color:#fff3c8;font-size:10px}
 #endBtn{position:absolute;top:8px;right:10px;font-size:13px;padding:3px 10px;opacity:.9}
 #topbar{position:absolute;top:8px;right:10px;display:flex;gap:6px}
 .pill{border:2px solid var(--ink);border-radius:999px;background:var(--paper);padding:4px 12px;font:15px var(--disp);color:var(--ink);box-shadow:0 3px 0 var(--ink)}
@@ -291,6 +293,7 @@ button{font-family:var(--disp);touch-action:manipulation}
   <button class="hbtn" id="skillBtn" type="button" data-key="W" hidden>도약<small></small></button>
   <button class="hbtn" id="dashBtn" type="button" data-key="E" hidden>대시<small></small></button>
   <button class="hbtn" id="diveBtn" type="button" data-key="S" hidden>급강하<small></small></button>
+  <button class="hbtn" id="convBtn" type="button" data-key="Q" hidden>🔥전환<small></small></button>
   <button class="pill" id="endBtn" type="button" hidden>결과 보기</button>
   <button class="hbtn" id="boostBtn" type="button" data-key="Space" hidden>부스트<small></small></button>
 
@@ -315,7 +318,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 108, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 109, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -509,15 +512,15 @@ const MUS = (() => {
 })();
 
 /* ---------------- game state ---------------- */
-let state = 'aim', st = C.stats(S), run = null, meterT = 0, parts = [], pops = [], shake = 0, banner = null, lastZone = 0, last = performance.now(), boostHeld = false, skillTap = false, dashTap = false, diveTap = false, spinDir = 0, pay = null, rot = 0, bgScroll = 0, horizon = 300, pvx = 0, pvy = 0;
+let state = 'aim', st = C.stats(S), run = null, meterT = 0, parts = [], pops = [], shake = 0, banner = null, lastZone = 0, last = performance.now(), boostHeld = false, skillTap = false, dashTap = false, diveTap = false, convTap = false, spinDir = 0, pay = null, rot = 0, bgScroll = 0, horizon = 300, pvx = 0, pvy = 0;
 const cam = { x: 0, y: 0, vw: 34 };
 // the world is drawn at the scale of the current run (before launch: the scale the next launch will roughly have)
 let aim = C.scaleOf(st, st.power * st.perfect);
 const CU = () => run ? run.U : aim.U, G = x => C.ground(x, CU());
-const boostBtn = $('#boostBtn'), skillBtn = $('#skillBtn'), dashBtn = $('#dashBtn'), diveBtn = $('#diveBtn'), endBtn = $('#endBtn');
+const boostBtn = $('#boostBtn'), skillBtn = $('#skillBtn'), dashBtn = $('#dashBtn'), diveBtn = $('#diveBtn'), convBtn = $('#convBtn'), endBtn = $('#endBtn');
 // a skill count, with the phoenix charges (used first) after a flame
 const cnt = (n, p) => p ? `🔥${p} · ${n}회` : n + '회';
-const flyUI = on => { boostBtn.hidden = !(on && st.thrust); skillBtn.hidden = !(on && (st.springN || (run && run.spring + run.pspring > 0))); dashBtn.hidden = !(on && (st.dashN || (run && run.dash + run.pdash > 0))); diveBtn.hidden = !(on && (st.diveN || (run && run.pdive > 0))); endBtn.hidden = !on; $('#topbar').hidden = on; };
+const flyUI = on => { boostBtn.hidden = !(on && st.thrust); skillBtn.hidden = !(on && (st.springN || (run && run.spring + run.pspring > 0))); dashBtn.hidden = !(on && (st.dashN || (run && run.dash + run.pdash > 0))); diveBtn.hidden = !(on && (st.diveN || (run && run.pdive > 0))); convBtn.hidden = !(on && C.canConv(run)); endBtn.hidden = !on; $('#topbar').hidden = on; };
 // the tune of a zone: its own if it has one, else the one of its sky, else the one of its scenery
 const tuneOf = zn => [zn.mus, zn.id, zn.fx, zn.deco].find(k => k && MUS.T[k]) || 'lot';
 function toast(t, ms = 1600) { const el = $('#toast'); el.innerHTML = t; el.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(() => el.classList.remove('show'), ms); }
@@ -682,10 +685,10 @@ function dragScroll(el) { let id = null, x0 = 0, y0 = 0, sx = 0, sy = 0, moved =
   el.addEventListener('click', e => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true); }
 ['#sList', '#sDet', '#sTabs', '#rBody'].forEach(q => { $(q).style.touchAction = 'none'; dragScroll($(q)); });
 const hold = (el, on, off) => { el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); el.classList.add('down'); on(); try { el.setPointerCapture(e.pointerId); } catch (er) {} }); const up = () => { el.classList.remove('down'); off && off(); }; el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); };
-hold(boostBtn, () => boostHeld = true, () => boostHeld = false); hold(skillBtn, () => skillTap = true); hold(dashBtn, () => dashTap = true); hold(diveBtn, () => diveTap = true);
+hold(boostBtn, () => boostHeld = true, () => boostHeld = false); hold(skillBtn, () => skillTap = true); hold(dashBtn, () => dashTap = true); hold(diveBtn, () => diveTap = true); hold(convBtn, () => convTap = true);
 endBtn.addEventListener('click', () => { if (state === 'fly' && run && !run.over) { run.over = true; run.why = '여기까지!'; endRun(); } });
 const KB = matchMedia('(pointer: fine)').matches; if (KB) root.classList.add('kb');
-addEventListener('keydown', e => { if (e.target && e.target.closest && e.target.closest('textarea, input')) return; if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); keys.add(e.code); if (e.repeat) return; snd(); root.classList.add('kb'); if (state === 'ending') { if (e.code === 'Space' || e.code === 'Enter') endSkip(); return; } if (state === 'shop' && e.code === 'Escape') toAim(); if (state === 'shop' && tab === 'map' && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) mapHold(e.code === 'ArrowLeft' ? -1 : 1); if (state === 'result' && e.code === 'KeyU') openShop(); if (e.code === 'Space') { if (state === 'aim') startCharge(); else if (state === 'push') tryKick(); else if (state === 'fly') boostHeld = true; else if (state === 'result') toAim(); } if (e.code === 'KeyW' || e.code === 'ArrowUp' || e.code === 'ShiftLeft') skillTap = true; if (e.code === 'KeyE') dashTap = true; if (e.code === 'KeyS' || e.code === 'ArrowDown' || e.code === 'KeyQ') diveTap = true; });
+addEventListener('keydown', e => { if (e.target && e.target.closest && e.target.closest('textarea, input')) return; if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); keys.add(e.code); if (e.repeat) return; snd(); root.classList.add('kb'); if (state === 'ending') { if (e.code === 'Space' || e.code === 'Enter') endSkip(); return; } if (state === 'shop' && e.code === 'Escape') toAim(); if (state === 'shop' && tab === 'map' && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) mapHold(e.code === 'ArrowLeft' ? -1 : 1); if (state === 'result' && e.code === 'KeyU') openShop(); if (e.code === 'Space') { if (state === 'aim') startCharge(); else if (state === 'push') tryKick(); else if (state === 'fly') boostHeld = true; else if (state === 'result') toAim(); } if (e.code === 'KeyW' || e.code === 'ArrowUp' || e.code === 'ShiftLeft') skillTap = true; if (e.code === 'KeyE') dashTap = true; if (e.code === 'KeyS' || e.code === 'ArrowDown') diveTap = true; if (e.code === 'KeyQ') convTap = true; });
 addEventListener('keyup', e => { keys.delete(e.code); if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') mapHold(0); if (e.code === 'Space') { boostHeld = false; if (state === 'charge') release(); } });
 document.addEventListener('contextmenu', e => e.preventDefault());
 $('#rAgain').addEventListener('click', toAim); $('#rShop').addEventListener('click', openShop); // Full screen: the browser bar and the site's own header sit outside this page, so the only way past them is to ask for the whole
@@ -1694,6 +1697,7 @@ function hud(r) {
       g.textAlign = 'center'; txt(r.pfuel > 0 ? `부스트 ${Math.round((r.fuel + r.pfuel) / st.fuel * 100)}% · 불사조` : '부스트', W / 2, by - 7, 12, r.pfuel > 0 ? '#ffb23a' : r.fuel > 0 ? '#ffe27a' : '#b9ad9a'); g.textAlign = 'left'; }
     const grounded = alt < Math.max(1.2, 0.5 * r.S); skillBtn.firstChild.textContent = grounded || !st.airjump ? '도약' : '공중도약'; skillBtn.querySelector('small').textContent = cnt(r.spring, r.pspring); skillBtn.disabled = !(r.spring + r.pspring > 0 && (grounded || st.airjump)); skillBtn.classList.toggle('fire', r.pspring > 0);
     dashBtn.querySelector('small').textContent = cnt(r.dash, r.pdash); dashBtn.disabled = !(r.dash + r.pdash > 0); dashBtn.classList.toggle('fire', r.pdash > 0); diveBtn.querySelector('small').textContent = cnt(r.dive, r.pdive); diveBtn.disabled = !(r.dive + r.pdive > 0 && !grounded && !(r.pdc > 0)); diveBtn.classList.toggle('fire', r.pdive > 0);
+    { const cv = C.canConv(r); convBtn.hidden = !cv; if (cv) { const o = C.convOf(r); convBtn.querySelector('small').textContent = '+' + (o.spring + o.dive + o.dash); } }
     // live gold + combo
     { const pv = C.payout(r, S), nowT = performance.now(); if (pv.total > liveG * 1.002 + 0.5) liveT = nowT; liveG = pv.total;   // what this run would pay if it ended now
       const pz = 1 + 0.3 * Math.max(0, 1 - (nowT - liveT) / 220), gt = fmt(pv.total); g.font = `${22 * pz}px ${D}`; const wv = g.measureText(gt).width;
@@ -1737,7 +1741,7 @@ function draw(now) {
   if (state === 'aim') rampU += (0.5 - rampU) * Math.min(1, dt * 8);
   if (state === 'fly' && run) {
     spinDir = keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : keys.has('KeyD') || keys.has('ArrowRight') ? -1 : ptrSide;
-    if (hitT > 0) { hitT -= dt; run.ev.length = 0; } else { C.step(run, dt, { boost: boostHeld, spring: skillTap, dash: dashTap, dive: diveTap, spin: spinDir }); skillTap = dashTap = diveTap = false; }
+    if (hitT > 0) { hitT -= dt; run.ev.length = 0; } else { C.step(run, dt, { boost: boostHeld, spring: skillTap, dash: dashTap, dive: diveTap, conv: convTap, spin: spinDir }); skillTap = dashTap = diveTap = convTap = false; }
     for (const e of run.ev) {
       const ex = Math.max(-40, Math.min(W + 40, SX(e.x))), ey = Math.max(-40, Math.min(H + 40, SY(e.y)));
       if (e.k === 'bounce') { const hard = Math.min(1, e.imp / (0.5 * run.v0 + 1)); shake = Math.max(shake, 2 + 6 * hard); SFX.bounce(0.1 + 0.3 * hard); burst(cartX, cartY + 8, 4 + Math.round(6 * hard), ['#ffffff', '#e8dcc0'], 200, 0.45, { a0: -1.57, spread: 2.6, g: 600, z: 4 }); if (hard > 0.5) ringFx(cartX, cartY + 8, '#ffffff', 40 + 40 * hard, 0.35, 3); }
@@ -1754,6 +1758,9 @@ function draw(now) {
       else if (e.k === 'fspring') { fireFlashT = now; tone(220, 1100, 0.4, 0.12, 'sawtooth', 0, { rev: 0.5 }); ringFx(cartX, cartY + 8, '#ff9a2a', 110, 0.5, 6); burst(cartX, cartY + 10, 16, ['#ff6a2a', '#ffd24a', '#fff3b0'], 600, 0.5, { a0: 1.57, spread: 1.4, g: 300, z: 5 }); toast('불사조 도약!', 700); }
       else if (e.k === 'fdivecharge') { tone(330, 990, 0.38, 0.16, 'sawtooth', 0, { rev: 0.7 }); tone(660, 1980, 0.3, 0.08, 'triangle', 0.05, { rev: 0.7 }); noise(0.38, 0.25, 1200, { rev: 0.5 }); toast('불사조 급강하!', 700); }
       else if (e.k === 'fdive') { SFX.dash(); tone(1400, 90, 0.5, 0.2, 'sawtooth', 0, { rev: 0.5 }); noise(0.5, 0.45, 900); ringFx(cartX, cartY, '#ff9a2a', 120, 0.45, 8); burst(cartX, cartY, 22, ['#ff6a2a', '#ffd24a', '#fff3b0'], 700, 0.5, { a0: -1.57, spread: 1.0, g: 0, z: 6 }); shake = Math.max(shake, 8); fdiveOn = true; }
+      else if (e.k === 'sconv') { const nm = { spring: '도약', dash: '대시', dive: '급강하' }, parts2 = ['spring', 'dash', 'dive'].filter(q => e.from[q] > 0).map(q => `${nm[q]} ${e.from[q]}→🔥${e.to[q]}`); toast('불사조 전환! ' + parts2.join(' · '), 1800); fireFlashT = now; flash = 0.35; flashCol = '#ffc070'; shake = Math.max(shake, 7); buzz(60);
+        tone(260, 1560, 0.5, 0.16, 'sawtooth', 0, { rev: 0.7 }); [523, 784, 1047].forEach((f, k) => tone(f, f * 1.25, 0.35, 0.08, 'triangle', 0.08 + k * 0.07, { rev: 0.6 })); noise(0.4, 0.25, 1600, { rev: 0.5 });
+        for (let k = 0; k < 3; k++) ringFx(cartX, cartY, k % 2 ? '#fff3b0' : '#ff8a1f', 90 + k * 60, 0.5 + k * 0.1, 8 - k * 2, k * 0.06); burst(cartX, cartY, 34, ['#ff6a2a', '#ffd24a', '#fff3b0'], 700, 0.7, { a0: -1.57, spread: 3.0, g: -200, z: 6 }); }
       else if (e.k === 'sphxend') { toast('질주 끝 · 최고 속도 한도 100%', 1100); ringFx(cartX, cartY, '#ffd24a', 140, 0.6, 5); }
       else if (e.k === 'slam') { if (fdiveOn) { fdiveOn = false; ringFx(cartX, cartY + 10, '#ff7a1a', 180, 0.6, 9); burst(cartX, cartY + 10, 30, ['#ff6a2a', '#ffd24a', '#fff3b0'], 900, 0.7, { a0: -1.57, spread: 3.0, g: 600, z: 7 }); flash = 0.25; flashCol = '#ffb04a'; } SFX.bounce(0.4); SFX.slam(); shake = 10; flash = 0.14; flashCol = '#fff'; dollJolt = 14; ringFx(cartX, cartY + 10, '#b68cff', 90, 0.45, 7); ringFx(cartX, cartY + 10, '#ffffff', 140, 0.55, 4, 0.06); burst(cartX, cartY + 10, 18, ['#ffffff', '#e8dcc0', '#b68cff'], 560, 0.6, { a0: -1.57, spread: 3.0, g: 800, z: 6 }); pop({ a: 1, im: 1, t: 0, col: '#d9c2ff', txt: `슬램! 콤보 ${e.combo} · 골드 +${Math.round(st.slamB * 100)}%` }); goldPopT = performance.now(); }
       else if (e.k === 'skip' || e.k === 'sink') { SFX.splash(); for (let i = 0; i < 12; i++) parts.push({ x: e.x, y: e.y, vx: (Math.random() - 0.3) * 10, vy: 3 + Math.random() * 9, t: 0, life: 0.7, c: '#bfe9ff', s: 1 }); }
@@ -1773,8 +1780,8 @@ function draw(now) {
       else if (e.k === 'crash') { toast('쿵! 착지 실패', 900); shake = 12; SFX.bonk(); dollJolt = 14; }
       else if (e.k === 'pspring') { toast('퍼펙트 도약!', 900); SFX.spring(); SFX.perfect(); ringFx(cartX, cartY + 12, '#ffd24a', 110, 0.5, 8); ringFx(cartX, cartY + 12, '#12e0c4', 70, 0.4, 5, 0.05); burst(cartX, cartY + 12, 20, ['#ffd24a', '#12e0c4', '#fff'], 520, 0.5, { a0: 1.57, spread: 1.4, g: 0, z: 5 }); }
       else if (e.k === 'double') { toast('2단 발사!', 900); SFX.launch(); shake = 8; ringFx(cartX, cartY, '#ffd24a', 120, 0.5, 8); burst(cartX, cartY, 24, ['#ffd24a', '#fff'], 700, 0.5, { a0: Math.PI, spread: 1.2, g: 0 }); }
-      else if (e.k === 'phoenix') { if (e.sup) { const L = [0, [1.1, 2, 2], [1.3, 3, 3], [1.5, 4, 5]][Math.min(3, e.sup)]; toast(`슈퍼 불사조! 한도 ×${L[0]} ${L[1]}초 질주 · 불사조 스킬 ${L[2]}회씩`, 2200); sphxOnT = now; flash = 0.6; flashCol = '#ffe0a0'; for (let k = 0; k < 4; k++) ringFx(cartX, cartY, k % 2 ? '#fff3b0' : '#ff8a1f', 140 + k * 90, 0.7 + k * 0.12, 9 - k, k * 0.08); tone(220, 2600, 1.1, 0.2, 'sawtooth', 0.1, { rev: 0.8 }); } else toast('불사조! 도약·대시 +1', 1500); phxT = now; phxTail = []; flyUI(true); SFX.launch(); SFX.zone(); tone(160, 1800, 0.9, 0.22, 'sawtooth', 0, { rev: 0.6 }); tone(80, 34, 0.8, 0.4, 'sine'); noise(1.3, 0.55, 1800, { rev: 0.6 }); [659, 880, 1319, 1760].forEach((f, k) => tone(f, f * 1.5, 0.6, 0.1, 'triangle', 0.15 + k * 0.1, { rev: 0.7 })); buzz(120);
-        shake = 20; flash = 0.6; flashCol = '#ffb057'; for (let k = 0; k < 6; k++) ringFx(cartX, cartY, k % 2 ? '#ffd24a' : '#ff6a2a', 100 + k * 70, 0.8 + k * 0.08, 10 - k, k * 0.07); burst(cartX, cartY + 10, 70, ['#ff6a2a', '#ffd24a', '#fff3b0', '#fff'], 900, 1.3, { a0: -1.57, spread: 1.3, g: -320, z: 8 }); burst(cartX, cartY, 30, ['#ff6a2a', '#ffb057', '#c0281e'], 1000, 0.7, { a0: Math.PI, spread: 0.8, g: 0, z: 7 }); pop({ a: 1, im: 1, t: 0, col: '#ffb057', txt: '지친 속도 회복 · 도약 +1 · 대시 +1' }); }
+      else if (e.k === 'phoenix') { if (e.sup) { const L = [0, [1.1, 2, 2], [1.3, 3, 3], [1.5, 4, 5]][Math.min(3, e.sup)]; toast(`슈퍼 불사조! 한도 ×${L[0]} ${L[1]}초 질주 · 불사조 스킬 ${L[2]}회씩` + (C.canConv(run) ? (root.classList.contains('kb') ? ' · Q로 남은 스킬 전환' : ' · 🔥전환으로 남은 스킬 전환') : ''), 2600); sphxOnT = now; flash = 0.6; flashCol = '#ffe0a0'; for (let k = 0; k < 4; k++) ringFx(cartX, cartY, k % 2 ? '#fff3b0' : '#ff8a1f', 140 + k * 90, 0.7 + k * 0.12, 9 - k, k * 0.08); tone(220, 2600, 1.1, 0.2, 'sawtooth', 0.1, { rev: 0.8 }); } else toast('불사조! 도약·대시 +1', 1500); phxT = now; phxTail = []; flyUI(true); SFX.launch(); SFX.zone(); tone(160, 1800, 0.9, 0.22, 'sawtooth', 0, { rev: 0.6 }); tone(80, 34, 0.8, 0.4, 'sine'); noise(1.3, 0.55, 1800, { rev: 0.6 }); [659, 880, 1319, 1760].forEach((f, k) => tone(f, f * 1.5, 0.6, 0.1, 'triangle', 0.15 + k * 0.1, { rev: 0.7 })); buzz(120);
+        shake = 20; flash = 0.6; flashCol = '#ffb057'; for (let k = 0; k < 6; k++) ringFx(cartX, cartY, k % 2 ? '#ffd24a' : '#ff6a2a', 100 + k * 70, 0.8 + k * 0.08, 10 - k, k * 0.07); burst(cartX, cartY + 10, 70, ['#ff6a2a', '#ffd24a', '#fff3b0', '#fff'], 900, 1.3, { a0: -1.57, spread: 1.3, g: -320, z: 8 }); burst(cartX, cartY, 30, ['#ff6a2a', '#ffb057', '#c0281e'], 1000, 0.7, { a0: Math.PI, spread: 0.8, g: 0, z: 7 }); pop({ a: 1, im: 1, t: 0, col: '#ffb057', txt: e.sup ? '지친 속도 회복 · 불사조 스킬' : '지친 속도 회복 · 도약 +1 · 대시 +1' }); }
       else if (SFX[e.k]) SFX[e.k]();
       if (e.k === 'bounce') dollJolt = 2 + 10 * Math.min(1, e.imp / (0.5 * run.v0 + 1));
     }
@@ -1802,7 +1809,7 @@ function draw(now) {
     finP = run.fin != null ? Math.min(1, (run.tr - run.fin) / C.FIN_T) : 0;
     if (now - liveAt > (run.used.size > 3000 ? 7000 : 2500)) { liveAt = now; liveStore(); }
     if (now - phxT < PHX_TAIL * 1000) { phxTail.push({ x: run.x, y: run.y }); if (phxTail.length > 46) phxTail.shift(); } else if (phxTail.length) phxTail = [];
-    if (run.over) { BST.set(false); if (run.finDone) { state = 'ending'; endT = performance.now(); endS = {}; for (const b2 of [boostBtn, skillBtn, dashBtn, diveBtn, endBtn]) b2.hidden = true; flash = 1; flashCol = '#fff'; shake = 20; } else endRun(); }
+    if (run.over) { BST.set(false); if (run.finDone) { state = 'ending'; endT = performance.now(); endS = {}; for (const b2 of [boostBtn, skillBtn, dashBtn, diveBtn, convBtn, endBtn]) b2.hidden = true; flash = 1; flashCol = '#fff'; shake = 20; } else endRun(); }
   }
   // camera
   const r = run, px = r ? r.x : 0, py = r ? r.y : 0.6, sp = r ? Math.hypot(r.vx, r.vy) : 0, alt = r ? py - G(px) : 0;
@@ -1941,7 +1948,7 @@ function liveRestore(d, fromHot) { if (!d || d.v !== 1 || d.slot !== slot || sta
     r.used = new Set(r.used || []); r.ev = []; r.mag = r.mag || []; r.st = Object.assign({}, C.stats(S), r.st);
     run = r; state = 'fly'; lastZone = d.lastZone != null ? d.lastZone : C.zoneAt(r.x); zoneSaid = true; zoneIn = r.tr - 2; sonicLv = d.sonicLv || 0; if (d.cam && d.cam.vw > 0) { cam.vw = d.cam.vw; cam.y = d.cam.y; }
     frame.lx = r.x; pvx = r.vx; pvy = r.vy; rot = -r.ang; trail = []; flyUI(true); last = performance.now();
-    if (r.over && r.finDone) { state = 'ending'; endT = performance.now(); endS = {}; for (const b2 of [boostBtn, skillBtn, dashBtn, diveBtn, endBtn]) b2.hidden = true; } else if (r.over) endRun();
+    if (r.over && r.finDone) { state = 'ending'; endT = performance.now(); endS = {}; for (const b2 of [boostBtn, skillBtn, dashBtn, diveBtn, convBtn, endBtn]) b2.hidden = true; } else if (r.over) endRun();
     return true; }
   if (d.state === 'shop') { if (TABS.some(t => t[0] === d.tab)) tab = d.tab; openShop(); }
   if (updated) { updated = false; toast('새 버전이 적용됐어요', 2000); }
