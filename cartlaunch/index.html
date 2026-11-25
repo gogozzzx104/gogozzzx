@@ -304,7 +304,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 94, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 95, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -890,7 +890,7 @@ function renderShop() {
       `<div class="bh">차원 능력 · 초월해도 남음</div>` + C.TPERKS.map(q => { const l = C.tl(S, q.id), mx = l >= q.max, c = C.tCost(q, l), lk = C.tLock(S, q.id); if (lk) return `<div class="ac off"><h3>${icon('t_lock')}${q.name}</h3><p>${lk}</p></div>`; const base = q.id === 't_keep' ? 5 : 0; return `<div class="ac tc${mx ? ' done' : ''}"><h3>${q.name}<small>${mx ? 'MAX' : 'Lv ' + (l + base) + ' / ' + (q.max + base)}</small></h3><div class="lvbar"><i style="width:${Math.round(100 * (l + base) / (q.max + base))}%"></i></div><p>${base ? '초월 때 환생 트리를 레벨당 10% 유지 · Lv5(50%)까지는 처음부터 찍혀 있음' : q.desc}</p><p class="tv">${TE[q.id](l)}${mx ? '' : ' → ' + TE[q.id](l + 1)}</p><button class="buy sm" data-tp="${q.id}" ${!mx && S.shards >= c ? '' : 'disabled'}>${mx ? '완료' : '◆ ' + fmt(c)}</button></div>`; }).join(''); }
   else if (tab === 'skin') { const cur = skinNow().id;
     list.innerHTML = `<div class="bh">스킨</div>` + SKINS.map(k => `<button type="button" class="sk${k.id === cur ? ' on' : ''}${skinOpen(k) ? '' : ' lock'}" data-skin="${k.id}"><canvas width="220" height="140" data-skin="${k.id}"></canvas>${k.name}<small>${skinOpen(k) ? (k.id === cur ? '사용 중' : '눌러서 변경') : skinHint(k)}</small></button>`).join('');
-    for (const c2 of list.querySelectorAll('.sk canvas')) { const g0 = g; g = c2.getContext('2d'); pvSkin = SKINS.find(k => k.id === c2.dataset.skin); g.setTransform(2, 0, 0, 2, 0, 0); drawCart(64, 54, 0, 1.25); pvSkin = null; g = g0; } }
+    for (const c2 of list.querySelectorAll('.sk canvas')) { const g0 = g; g = c2.getContext('2d'); pvSkin = SKINS.find(k => k.id === c2.dataset.skin); g.setTransform(2, 0, 0, 2, 0, 0); const [x0, y0, x1, y1] = PVB[pvSkin.id] || PVB.cart, ps = Math.min(1.35, 100 / (x1 - x0), 62 / (y1 - y0)); drawCart(55 - (x0 + x1) / 2 * ps, 36 - (y0 + y1) / 2 * ps, 0, ps); pvSkin = null; g = g0; } }
   else if (tab === 'map') mapMount(list);
   else if (tab === 'opt') list.innerHTML = optHTML();
   else { const n = C.achCount(S);
@@ -1337,6 +1337,8 @@ const SKINS = [{ id: 'cart', name: '쇼핑카트', z: 0 }, { id: 'car', name: '�
   { id: 'light', name: '빛의 카트', tint: 'rgba(255,251,228,.94)', glow: '#fff3b0', fx: 'light', need: q => (q.ended || 0) >= 1, seen: () => Z.length - 1, how: '엔딩을 본 뒤' }];
 // a locked cart names its condition only once the zone it points to is on the player's map (same rule as the map's ?? frames), so the late carts spoil nothing
 const skinHint = k => C.reached(S) >= (k.need ? k.seen() : k.z) ? k.how || Z[k.z].name + ' 도달 시' : '???';
+// how far each skin reaches in cart-local units (x0, y0, x1, y1), so the skin tab can fit the tall and long cars into its preview box
+const PVB = { cart: [-28, -32, 22, 4], gold: [-28, -32, 22, 4], car: [-32, -21, 31, 4], taxi: [-28, -44, 30, 4], truck: [-28, -51, 30, 4], rocket: [-32, -31, 38, 4], astral: [-29, -32, 28, 4], genesis: [-30, -38, 22, 4], light: [-32, -42, 32, 4] };
 let pvSkin = null; const skinOpen = k => k.need ? k.need(S) : C.zoneAt(S.best) >= k.z, skinNow = () => { if (pvSkin) return pvSkin; const k = SKINS.find(q => q.id === S.skin); return k && skinOpen(k) ? k : SKINS[0]; };
 // each car is its own drawing; the rag-doll driver is drawn before (body) and after (hands) this, so cockpits stay open or glazed
 function carTire(x, r, rim, tread) { const y = 3.6 - r; g.fillStyle = '#2b2233'; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
