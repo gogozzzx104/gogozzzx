@@ -319,7 +319,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 128, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 129, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -1997,7 +1997,13 @@ function draw(now) {
     if (state === 'fly' && r && r.air && C.tl(S, 't_judge')) { const R = Math.max(40, 100 * csc), jg = Math.min(Math.PI, r.st.judgeG), jp = Math.min(jg, r.st.judgeP), pu = 0.75 + 0.25 * Math.sin(performance.now() / 200);
       g.save(); g.translate(cxp, cyp); g.rotate(rot); g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, R, Math.PI / 2 - jg, Math.PI / 2 + jg); g.closePath(); const gr = g.createRadialGradient(0, 0, R * 0.3, 0, 0, R); gr.addColorStop(0, 'rgba(120,220,255,0)'); gr.addColorStop(1, `rgba(120,220,255,${0.3 * pu})`); g.fillStyle = gr; g.fill();
       g.lineCap = 'round'; g.lineWidth = 2; g.strokeStyle = `rgba(150,230,255,${0.6 * pu})`; g.beginPath(); g.arc(0, 0, R, Math.PI / 2 - jg, Math.PI / 2 + jg); g.stroke();
-      g.lineWidth = 3.5; g.strokeStyle = `rgba(255,236,150,${0.8 * pu})`; g.beginPath(); g.arc(0, 0, R, Math.PI / 2 - jp, Math.PI / 2 + jp); g.stroke(); g.restore(); }
+      // the perfect window glows gold: a warm wedge, a thick gold rim with a bright core, a soft halo and a glint that runs along it
+      g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, R, Math.PI / 2 - jp, Math.PI / 2 + jp); g.closePath(); const gg = g.createRadialGradient(0, 0, R * 0.45, 0, 0, R * 1.02); gg.addColorStop(0, 'rgba(255,200,60,0)'); gg.addColorStop(1, `rgba(255,196,40,${0.42 * pu})`); g.fillStyle = gg; g.fill();
+      if (Q.glow) { g.shadowColor = 'rgba(255,190,40,.95)'; g.shadowBlur = 16; }
+      g.lineWidth = 6; g.strokeStyle = `rgba(232,160,20,${0.95 * pu})`; g.beginPath(); g.arc(0, 0, R, Math.PI / 2 - jp, Math.PI / 2 + jp); g.stroke(); g.shadowBlur = 0;
+      g.lineWidth = 2.5; g.strokeStyle = `rgba(255,246,190,${pu})`; g.beginPath(); g.arc(0, 0, R, Math.PI / 2 - jp, Math.PI / 2 + jp); g.stroke();
+      { const ta = Math.PI / 2 - jp + (performance.now() / 700 % 1) * 2 * jp, gx = Math.cos(ta) * R, gy = Math.sin(ta) * R, sg = g.createRadialGradient(gx, gy, 0, gx, gy, 9); sg.addColorStop(0, 'rgba(255,255,235,.95)'); sg.addColorStop(1, 'rgba(255,210,80,0)'); g.fillStyle = sg; g.beginPath(); g.arc(gx, gy, 9, 0, 7); g.fill(); }
+      g.restore(); }
     // phoenix: a pillar of fire, streaks rushing past as the cart soars, two great wings of flame that beat and burn away,
     // and a long tail of fire that follows the cart for several seconds
     { const pa = (now - phxT) / 1000; if (pa >= 0 && pa < PHX_TAIL && state === 'fly') { const sz = Math.max(52, 92 * csc), wx = cx0, wy = cy0 - 16 * csc, fdT = 1 - pa / PHX_TAIL; g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
