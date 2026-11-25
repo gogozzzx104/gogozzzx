@@ -154,6 +154,7 @@ button{font-family:var(--disp);touch-action:manipulation}
 .buy:not(:disabled):active{transform:translateY(3px);box-shadow:0 1px 0 #0d0a1c}
 .buy.star{background:linear-gradient(#d3b3ff,#9a66ff);color:#fff}
 .buy.star:disabled{background:#2a2350;color:#7d72b5}
+.buy.auto{background:linear-gradient(#a8f7e6,#2fbfa3);color:#10302b}.buy.auto.on{background:linear-gradient(#7df3da,#12a594);color:#fff;box-shadow:0 0 10px rgba(125,243,218,.6)}.buy.auto:disabled{background:#1f3a40;color:#6fa39a}
 .buy.sm{font-size:13px;padding:8px 10px}
 .brow{display:grid;grid-template-columns:1fr auto;gap:6px}
 .rb{border:2px solid #9a66ff;border-radius:12px;padding:8px;background:rgba(154,102,255,.12);display:flex;flex-direction:column;gap:5px}
@@ -304,7 +305,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 96, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 97, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -341,7 +342,7 @@ const fmtD = m => m < 1000 ? m.toFixed(1) + 'm' : m < 1e6 ? (m / 1000).toFixed(2
 /* ---------------- options ---------------- */
 // Kept on this device only.  gfx: auto | low | mid | high · fps: 0 (no limit) | 30 | 60 · shake / flash: strength 0..1
 const RM = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
-const OPT = Object.assign({ gfx: 'auto', fps: 0, shake: RM ? 0.4 : 1, flash: RM ? 0.35 : 1, vib: 1, sfx: 1, mus: 1, meter: 0, pops: 1 }, (() => { try { return JSON.parse(LS.get('cart.opt') || '{}') || {}; } catch (e) { return {}; } })());
+const OPT = Object.assign({ gfx: 'auto', fx: RM ? 1 : 2, fps: 0, shake: RM ? 0.4 : 1, flash: RM ? 0.35 : 1, vib: 1, sfx: 1, mus: 1, meter: 0, pops: 1 }, (() => { try { return JSON.parse(LS.get('cart.opt') || '{}') || {}; } catch (e) { return {}; } })());
 const saveOpt = () => LS.set('cart.opt', JSON.stringify(OPT));
 // What each graphics mode draws.  dpr: pixel-ratio ceiling · part: particle amount · cap: live particles · cnt: sky object amount
 // glow: blurred glows · haze, far, shade, shadow, rays, vig, trail: the extra scenery passes
@@ -511,7 +512,9 @@ const PUSH_T = 0.57, KICK_AT = 0.5; let pushStart = 0;   // the cart reaches the
 function humStart() { const a = snd(); if (!a) return; const o = a.createOscillator(), v = a.createGain(); o.type = 'triangle'; o.frequency.value = 110; v.gain.value = 0.05; o.connect(v); v.connect(AUD.sfxG); o.start(); hum = { o, v }; }
 function humStop() { if (!hum) return; try { hum.v.gain.setTargetAtTime(0.0001, actx.currentTime, 0.03); hum.o.stop(actx.currentTime + 0.15); } catch (e) {} hum = null; }
 const buzz = ms => { if (!OPT.vib) return; try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
-function startCharge() { state = 'charge'; charge = 0; slipT = 0; lastTick = 0; humStart(); }
+// any launch asks for full screen again (the release that follows is the tap that may grant it)
+let fsAuto = true;
+function startCharge() { fsAuto = true; state = 'charge'; charge = 0; slipT = 0; lastTick = 0; humStart(); }
 function chargeStep(dt) {
   const R = 1.6 / st.meter; charge += R * 1.5 * Math.pow(Math.max(0.02, 1.06 - charge), 0.7) * dt; slipT = Math.max(0, slipT - dt);
   if (st.autoFire && charge >= 0.995) { charge = 1; release(); return; }   // auto launch waits for a completely full gauge
@@ -623,9 +626,10 @@ function countUp(el, v) { const t0 = performance.now(), d = 650; if (RM || v < 1
 function endRun() {
   LS.del('cart.live');
   if (adoptLater) { adoptLater = false; S = loadSlot(slot) || S; toAim(); toast('계정에 저장된 기록을 불러왔어요', 2400); return; }
-  const veiled = !starOpen(); pay = C.finish(run, S); const unveil = veiled && starOpen(); if (C.tl(S, 't_auto')) C.buyAll(S); save(); state = 'result'; flyUI(false);
+  const veiled = !starOpen(); pay = C.finish(run, S); const unveil = veiled && starOpen(); if (C.tl(S, 't_auto')) C.buyAll(S);
+  let autoN = 0; if (S.autoReb && S.autoRebOn && autoRebOpen() && C.starGain(S) > 0) { autoN = C.rebirth(S); C.buyAll(S); } save(); state = 'result'; flyUI(false);
   $('#rWhy').textContent = run.why; $('#rDist').innerHTML = fmtD(run.maxX);
-  const tags = []; if (unveil) tags.push('환생 해금'); for (const a of pay.ach) tags.push('업적: ' + a.name); if (pay.record) tags.push('신기록'); if (pay.newZone) tags.push(Z[pay.zone].name + ' 첫 도달'); if (run.dbl) tags.push('더블 퍼펙트'); else if (run.perfect) tags.push('퍼펙트 발사'); if (run.kick > 1) tags.push((run.kick > 1.05 ? '퍼펙트 킥 +' : '굿 킥 +') + Math.round((run.kick - 1) * 100) + '%'); if (run.golden) tags.push('황금 판 ×3');
+  const tags = []; if (autoN) tags.push('자동 환생 ★ +' + fmt(autoN)); if (unveil) tags.push('환생 해금'); for (const a of pay.ach) tags.push('업적: ' + a.name); if (pay.record) tags.push('신기록'); if (pay.newZone) tags.push(Z[pay.zone].name + ' 첫 도달'); if (run.dbl) tags.push('더블 퍼펙트'); else if (run.perfect) tags.push('퍼펙트 발사'); if (run.kick > 1) tags.push((run.kick > 1.05 ? '퍼펙트 킥 +' : '굿 킥 +') + Math.round((run.kick - 1) * 100) + '%'); if (run.golden) tags.push('황금 판 ×3');
   { const mx = root.classList.contains('sm') ? 4 : 8, more = tags.length - mx; if (more > 0) { tags.length = mx; tags.push('+' + more); } }
   $('#rTags').innerHTML = tags.map((t, i) => `<span class="tagx" style="--i:${i}">${t}</span>`).join('');
   const rows = [['거리 수익', fmt(pay.dist)], [`코인 · 상자 (${run.coins}개)`, fmt(pay.coins)]]; if (pay.first) rows.push(['새 구역 개척', fmt(pay.first)]);
@@ -668,13 +672,17 @@ addEventListener('keydown', e => { if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowL
 addEventListener('keyup', e => { keys.delete(e.code); if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') mapHold(0); if (e.code === 'Space') { boostHeld = false; if (state === 'charge') release(); } });
 document.addEventListener('contextmenu', e => e.preventDefault());
 $('#rAgain').addEventListener('click', toAim); $('#rShop').addEventListener('click', openShop); // Full screen: the browser bar and the site's own header sit outside this page, so the only way past them is to ask for the whole
-// screen on a tap.  Not every phone or app view allows it; where it is refused the button goes away.
+// screen right after a tap.  It is asked for by itself: on the first tap or key after the page opens, and again on every launch.
+// The only button is '창으로' (shown while full screen); after it the game stays in a window until the next launch.
+// Where the browser or app view refuses, it stops asking after a few tries.
 { const fb = $('#fsBtn'), de = document.documentElement, req = de.requestFullscreen || de.webkitRequestFullscreen, isFs = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
-  if (req && (document.fullscreenEnabled || document.webkitFullscreenEnabled)) { fb.hidden = false;
-    const sync = () => { fb.textContent = isFs() ? '창으로' : '전체 화면'; setTimeout(layout, 60); if (state === 'shop') setTimeout(renderShop, 90); };
-    fb.addEventListener('click', () => { try { if (isFs()) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
-        const pr = req.call(de, { navigationUI: 'hide' }); if (pr && pr.then) pr.then(() => { try { const o = screen.orientation; if (o && o.lock && innerWidth > innerHeight) o.lock('landscape').catch(() => {}); } catch (e) {} }).catch(() => { fb.hidden = true; toast('이 기기에서는 전체 화면을 쓸 수 없어요', 2200); });
-      } catch (e) { fb.hidden = true; toast('이 기기에서는 전체 화면을 쓸 수 없어요', 2200); } });
+  let fails = 0;
+  if (req && (document.fullscreenEnabled || document.webkitFullscreenEnabled)) {
+    const sync = () => { const on = isFs(); fb.hidden = !on; fb.textContent = '창으로'; if (!on) fsAuto = false; setTimeout(layout, 60); if (state === 'shop') setTimeout(renderShop, 90); };
+    const tryFs = () => { if (!fsAuto || isFs() || fails >= 3) return; try { const pr = req.call(de, { navigationUI: 'hide' }); if (pr && pr.then) pr.then(() => { fails = 0; try { const o = screen.orientation; if (o && o.lock && innerWidth > innerHeight) o.lock('landscape').catch(() => {}); } catch (e) {} }).catch(() => { fails++; }); } catch (e) { fails++; } };
+    // pointerup / keyup rather than down, so a press-and-hold charge is not interrupted by the screen resizing under the finger
+    document.addEventListener('pointerup', tryFs, true); document.addEventListener('keyup', tryFs, true);
+    fb.addEventListener('click', e => { e.stopPropagation(); fsAuto = false; try { (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (er) {} });
     document.addEventListener('fullscreenchange', sync); document.addEventListener('webkitfullscreenchange', sync); } }
 $('#shopBtn').addEventListener('click', openShop); $('#optBtn').addEventListener('click', () => { tab = 'opt'; openShop(); }); $('#sClose').addEventListener('click', toAim);
 
@@ -861,6 +869,7 @@ function mapMount(list) { const M = MAP, far = C.reached(S), all = far >= Z.leng
 const VOL = [[0, '0'], [0.25, '25'], [0.5, '50'], [0.75, '75'], [1, '100']];
 const OPTS = [
   ['gfx', '그래픽 모드', () => OPT.gfx === 'auto' ? `기기 속도를 재서 스스로 고릅니다 · 지금 ${Q.name}` : { low: '해상도와 효과를 줄여 발열·배터리를 아낍니다', mid: '효과는 그대로, 해상도만 조금 낮춥니다', high: '빛살·그림자·안개까지 모두 그립니다' }[OPT.gfx], [['auto', '자동'], ['low', '절전'], ['mid', '균형'], ['high', '화려함']]],
+  ['fx', '연출', () => ['회전·부스터·대시·급강하·골드 연출을 작게 줄입니다', '연출을 적당히 보여 줍니다', '연출을 모두 보여 줍니다'][OPT.fx ?? 2] + (Q.n === 0 ? ' · 절전 모드라 조금 더 줄어듭니다' : ''), [[0, '적게'], [1, '보통'], [2, '화려하게']]],
   ['fps', '프레임 제한', () => OPT.fps ? `초당 ${OPT.fps}장까지만 그립니다` : '화면이 낼 수 있는 만큼 그립니다', [[30, '30'], [60, '60'], [0, '최대']]],
   ['shake', '화면 흔들림', () => '충돌·착지 때 화면이 흔들리는 정도', [[0, '끔'], [0.4, '약하게'], [1, '보통']]],
   ['flash', '번쩍임', () => '발사·슬램 때 화면이 밝아지는 정도', [[0.35, '줄임'], [1, '보통']]],
@@ -870,6 +879,13 @@ const OPTS = [
   ['meter', '성능 표시', () => '화면 아래에 fps와 프레임 처리 시간을 표시', [[0, '끔'], [1, '켬']]] ];
 function optHTML() { return `<div class="bh">설정 · 이 기기에만 저장</div>` + OPTS.map(([k, name, note, ch]) => `<div class="ac oc"><h3>${name}</h3>${note() ? `<p>${note()}</p>` : ''}<div class="seg">${ch.map(([v, lb]) => `<button type="button" class="${OPT[k] === v ? 'on' : ''}" data-opt="${k}" data-v="${v}">${lb}</button>`).join('')}</div></div>`).join(''); }
 function setOpt(k, v) { OPT[k] = isNaN(+v) ? v : +v; saveOpt(); if (k === 'gfx') { if (v === 'auto') { PERF.fail = 0; PERF.up = null; LS.del('cart.autofail'); } setQ(); } if (k === 'sfx' || k === 'mus') { snd(); AUD.vol(); } SFX.ui(); }
+// auto rebirth: unlocked once the transcendence auto-buy and the rebirth-tree keep (전생 각인) are both maxed; bought once for ◆10,
+// then toggled.  While on, every finished run that would give stars ends in a rebirth (and the auto-buy right after it).
+const AUTOREB_COST = 10, autoRebOpen = () => C.tl(S, 't_auto') >= C.TP.t_auto.max && C.tl(S, 't_keep') >= C.TP.t_keep.max;
+function autoRebBtn() { if (!(S.trans > 0)) return '';
+  if (!autoRebOpen()) return `<button class="buy auto" disabled>자동 환생<small>자동 구매·전생 각인 만렙 필요</small></button>`;
+  if (!S.autoReb) return `<button class="buy auto" data-autoreb="buy" ${(S.shards || 0) >= AUTOREB_COST ? '' : 'disabled'}>자동 환생<small>◆ ${AUTOREB_COST}</small></button>`;
+  return `<button class="buy auto${S.autoRebOn ? ' on' : ''}" data-autoreb="t">자동 환생<small>${S.autoRebOn ? '켜짐 · 판마다 환생' : '꺼짐 · 눌러서 켜기'}</small></button>`; }
 function renderShop() {
   st = C.stats(S); $('#sGold').textContent = fmt(S.gold);
   $('#sZones').innerHTML = `<b>${S.zone + 1}번째 구역 · ${Z[S.zone].name}</b>`;
@@ -882,8 +898,8 @@ function renderShop() {
   else if (tab === 'star' && !starOpen()) { sel.star = null;
     // behind the veil: the blurred shape of the tree, drifting fog, and the one thing the player needs to know
     list.innerHTML = `<div class="veil"><div class="vt">${treeHTML(C.PERKS, true)}</div><div class="vf"></div><div class="vf b"></div><div class="vc">${icon('t_lock')}<h3>???</h3><b>${km(SEA_AT)} 해금</b><div class="lvbar"><i style="width:${Math.max(3, Math.round(100 * Math.min(1, S.best / SEA_AT)))}%"></i></div><span>지금 최고 ${km(S.best)}</span></div></div>`; }
-  else if (tab === 'star') { const gain = C.starGain(S), per = Math.round(C.STAR_GOLD * (S.perks.r_bless ? 1.5 : 1) * 100), keep = (S.perks.r_mem || 0) * 8, nx = C.nextStarAt(S.bestLife), ask = confirmKey === 'rebirth';
-    list.innerHTML = `<div class="rbar"><div class="chips"><span class="chip"><i>보유</i>★ ${fmt(S.stars)}</span><span class="chip"><i>별 보너스</i>골드 +${fmt(S.starsTotal * per)}%</span><span class="chip hi"><i>${C.starsFor(S.bestLife) ? '다음 ★' : '첫 ★'}</i>${isFinite(nx) ? km(nx) + ' 달성' : '더 없음'}</span></div><button class="buy star" data-rebirth="1" ${gain > 0 ? '' : 'disabled'}>${ask ? '정말요?<small>한 번 더 누르기</small>' : '환생하기<small>★ +' + fmt(gain) + '</small>'}</button>${ask ? `<p class="cap">골드·업그레이드 초기화${keep ? ` (${keep}% 유지)` : ''} · 별·트리·업적 유지 · ★ 하나당 골드 +${per}%</p>` : ''}</div>` + treeHTML(C.PERKS, true); }
+  else if (tab === 'star') { const gain = C.starGain(S), per = Math.round(C.STAR_GOLD * (S.perks.r_bless ? 1.5 : 1) * 100), keep = (S.perks.r_mem || 0) * 8, nx = C.nextStarAt(S.bestLife), ask = confirmKey === 'rebirth' && !autoRebOpen();
+    list.innerHTML = `<div class="rbar"><div class="chips"><span class="chip"><i>보유</i>★ ${fmt(S.stars)}</span><span class="chip"><i>별 보너스</i>골드 +${fmt(S.starsTotal * per)}%</span><span class="chip hi"><i>${C.starsFor(S.bestLife) ? '다음 ★' : '첫 ★'}</i>${isFinite(nx) ? km(nx) + ' 달성' : '더 없음'}</span></div>${autoRebBtn()}<button class="buy star" data-rebirth="1" ${gain > 0 ? '' : 'disabled'}>${ask ? '정말요?<small>한 번 더 누르기</small>' : '환생하기<small>★ +' + fmt(gain) + '</small>'}</button>${ask ? `<p class="cap">골드·업그레이드 초기화${keep ? ` (${keep}% 유지)` : ''} · 별·트리·업적 유지 · ★ 하나당 골드 +${per}%</p>` : ''}</div>` + treeHTML(C.PERKS, true); }
   else if (tab === 'trans') { const g2 = C.shardsFor(S), TE = { t_speed: l => `발사 속도 ×${big(Math.pow(1.25, l))}`, t_gold: l => `모든 골드 ×${fmt(Math.pow(2, l))}`, t_star: l => `별 +${fmt(Math.round(C.TV.star(l) * 100))}%`, t_cap: l => `한도 ${C.TV.cap(l).toFixed(1)}배`, t_gauge: l => `게이지 속도 ×${(1 + 0.1 * l).toFixed(1)}${l >= 10 ? ' · 자동 발사' : ''}`, t_spin: l => `2초 뒤 회전 속도 +${Math.round(C.TV.spin(l) * 100)}%`, t_judge: l => { const d = x => Math.min(180, Math.round((x + 0.0606 * l) * 57.3)), gy = C.lvl(S, 'gyro'); return l >= 50 ? '모든 방향 완벽 착지' : `착지 ±${d(0.26 + 0.01 * gy)}° · 완벽 ±${d(0.11 + 0.004 * gy)}°`; }, t_time: l => `+${l * 10}%`, t_keep: l => `${50 + l * 10}% 유지`, t_auto: l => l ? '켜짐' : '꺼짐', t_land: l => `보너스 +${l * 50}%`, t_multi: l => `한 번에 ${1 + l}개`, t_beam: l => `주기 ${Math.round(Math.pow(0.92, l) * 100)}%`, t_starpow: l => `발사 속도 ×${big(1 + C.TV.starpow(l) * Math.log2(1 + C.starsEver(S)))} (별 ${fmt(C.starsEver(S))}개 기준)`, t_rekindle: l => `착지 +${(l * 0.5).toFixed(1)}% · 완벽 +${(l * 1.5).toFixed(1)}% (최대 +${l * 5}%)`, t_deep: l => `차원석 +${l * 10}%` };
     const ask = confirmKey === 'trans';
     list.innerHTML = `<div class="rbar" style="grid-column:1/-1;margin:0;--bc:#7df3da"><div class="chips"><span class="chip"><i>보유</i>◆ ${fmt(S.shards || 0)}</span><span class="chip"><i>초월</i>${fmt(S.trans || 0)}회</span><span class="chip"><i>초월 때 환생 트리</i>${50 + 10 * C.tl(S, 't_keep')}% 유지</span><span class="chip hi"><i>${g2 ? '지금 초월하면' : '초월 조건'}</i>${g2 ? '◆ +' + fmt(g2) : Z[C.LAST].name + ' 도달'}</span></div><button class="buy star" data-trans="1" ${g2 ? '' : 'disabled'}>${ask ? '정말요?<small>한 번 더 누르기</small>' : '초월하기<small>◆ +' + fmt(g2) + '</small>'}</button>${ask ? `<p class="cap">골드·업그레이드·별 초기화 · 환생 트리 ${50 + 10 * C.tl(S, 't_keep')}% 유지 · 환생 횟수·업적·스킨·차원 능력 유지</p>` : ''}</div>` +
@@ -916,7 +932,8 @@ const shopClick = e => { const nd = e.target.closest('.nd'), sk = e.target.close
     if (b.dataset.up) { if (C.buy(S, b.dataset.up)) { SFX.buy(); if (C.lvl(S, b.dataset.up) >= C.UP[b.dataset.up].max) SFX.level(); } }
     else if (b.dataset.max) { let n = 0; while (n < 300 && C.buy(S, b.dataset.max)) n++; if (n) SFX.buy(); }
     else if (b.dataset.perk) { if (C.buyPerk(S, b.dataset.perk)) SFX.buy(); }
-    else if (b.dataset.rebirth) { if (confirmKey !== 'rebirth') confirmKey = 'rebirth'; else { const n = C.rebirth(S), au = C.tl(S, 't_auto') ? C.buyAll(S) : 0; confirmKey = ''; SFX.zone(); toast('환생! ★ +' + n + (au ? ` · ${au}레벨 자동 구매` : ''), 2400); } }
+    else if (b.dataset.autoreb) { if (b.dataset.autoreb === 'buy') { if (autoRebOpen() && !S.autoReb && (S.shards || 0) >= AUTOREB_COST) { S.shards -= AUTOREB_COST; S.autoReb = 1; S.autoRebOn = 1; SFX.buy(); toast('자동 환생을 켰어요 · 판이 끝날 때마다 환생합니다', 2400); } } else { S.autoRebOn = S.autoRebOn ? 0 : 1; SFX.ui(); toast(S.autoRebOn ? '자동 환생 켬' : '자동 환생 끔', 1200); } save(); }
+    else if (b.dataset.rebirth) { if (confirmKey !== 'rebirth' && !autoRebOpen()) confirmKey = 'rebirth'; else { const n = C.rebirth(S), au = C.tl(S, 't_auto') ? C.buyAll(S) : 0; confirmKey = ''; SFX.zone(); toast('환생! ★ +' + n + (au ? ` · ${au}레벨 자동 구매` : ''), 2400); } }
     else if (b.dataset.tp) { if (C.buyT(S, b.dataset.tp)) SFX.buy(); }
     else if (b.dataset.trans) { if (confirmKey !== 'trans') confirmKey = 'trans'; else { const n = C.transcend(S); if (C.tl(S, 't_auto')) C.buyAll(S); confirmKey = ''; SFX.zone(); SFX.perfect(); toast('초월! ◆ +' + n, 2400); } }
     else if (b.dataset.zero) { if (confirmKey !== 'zero') confirmKey = 'zero'; else { S.gold = 0; confirmKey = ''; toast('골드를 비웠어요', 1500); } }
@@ -948,11 +965,78 @@ const burst = (x, y, n, cols, spd, life, o = {}) => { if (fxs.length > Q.cap) re
 const ringFx = (x, y, c, r1, life = 0.45, w = 5, delay = 0) => fxs.push({ k: 'r', x, y, t: -delay, life, c, r1, w });
 const confetti = (x, y, n) => burst(x, y, n, ['#f0452f', '#f5b014', '#12a594', '#3f8cff', '#ff8ab3', '#fff'], 420, 1.1, { a0: -1.57, spread: 3.4, g: 700, z: 6, sq: 1 });
 const coinFly = (x, y, n) => { for (let i = 0; i < n; i++) fxs.push({ k: 'c', x, y, x0: x, y0: y, t: -i * 0.05, life: 0.45, mx: x + (Math.random() - 0.5) * 120, my: y - 60 - Math.random() * 60 }); };
+// ---- motion effects: spin wind, booster flame, airflow, dash/dive immersion, gold-crate fanfare ----
+// every one is scaled by FXK(): the '연출' setting (적게 · 보통 · 화려하게), turned down again in power-saving graphics
+const FXK = () => [0.35, 0.7, 1][OPT.fx ?? 2] * (Q.n === 0 ? 0.6 : 1);
+let diveA = 0, fanT = 0;
+// spin wind: a small swirl hugging the cart. Before transcending the top speed is fixed, so the three tiers follow the gyro upgrade
+// (Lv0-6 · 7-13 · 14-20) and brighten as the spin nears that top speed; hyper spin (초회전) opens three more tiers by the actual
+// spin speed (past 9 · 22 · 40 rad/s), up to a gold-and-cyan whirl.  It stays within about one cart length of the body.
+function spinFx(r, cx, cy, csc, rot) {
+  const w = Math.abs(r.spin || 0), K = FXK(); if (!r.air || w < 2.5 || !K) return;
+  let tier, k; if (w > 9.6) { tier = w > 40 ? 6 : w > 22 ? 5 : 4; k = Math.min(1, 0.45 + (w - 9.6) / 60); } else { const gy = C.lvl(S, 'gyro'); tier = gy >= 14 ? 3 : gy >= 7 ? 2 : 1; k = Math.min(1, (w - 2.5) / 6.5); }
+  const dir = -Math.sign(r.spin), ccx = cx + 15 * csc * Math.sin(rot), ccy = cy - 15 * csc * Math.cos(rot), R = (32 + 3 * tier) * csc, t = performance.now() / 1000, A = k * K;
+  const hyper = tier >= 4, cols = hyper ? (tier === 6 ? ['150,235,255', '255,220,120'] : ['150,235,255', '220,245,255']) : ['255,255,255', '235,245,255'];
+  g.save(); g.globalCompositeOperation = 'lighter'; g.lineCap = 'round';
+  // tapered arcs that chase each other around the body, turning with the cart
+  const n = [0, 2, 3, 4, 4, 5, 6][tier], len = 0.8 + 0.5 * k + 0.15 * tier, base = rot + dir * t * (2 + tier);
+  for (let i = 0; i < n; i++) { const rr = R * (0.86 + 0.18 * ((i * 7) % 3) / 2), a0 = base + i * 6.283 / n, col = cols[i % 2];
+    for (let s = 0; s < 5; s++) { const f = s / 5; g.strokeStyle = `rgba(${col},${(0.1 + (hyper ? 0.24 : 0.32) * A) * (1 - f)})`; g.lineWidth = (1.4 + 0.35 * tier) * (1 - 0.6 * f) * Math.max(0.8, csc); g.beginPath(); const s0 = a0 - dir * len * f, s1 = a0 - dir * len * (f + 0.2); g.arc(ccx, ccy, rr, Math.min(s0, s1), Math.max(s0, s1)); g.stroke(); } }
+  // tier 2+: puffs of air flung off the rim
+  if (tier >= 2 && Math.random() < (0.15 + 0.1 * tier) * A) { const a = Math.random() * 6.283; burst(ccx + Math.cos(a) * R, ccy + Math.sin(a) * R, 1, hyper ? ['#bfefff', '#ffffff'] : ['#ffffff'], 120 + 30 * tier, 0.35, { a0: a + dir * 1.57, spread: 0.4, g: 0, z: 2 + 0.3 * tier }); }
+  // tier 3+: a faint full ring of moving air
+  if (tier >= 3) { g.strokeStyle = `rgba(${cols[0]},${0.08 + 0.12 * A})`; g.lineWidth = 1.2 * csc; g.setLineDash([6 * csc, 9 * csc]); g.lineDashOffset = -dir * t * 60; g.beginPath(); g.arc(ccx, ccy, R * 1.12, 0, 6.283); g.stroke(); g.setLineDash([]); }
+  // hyper tiers: a soft glow in the eye of the swirl, a counter-turning ring, and at the top tier gold sparks
+  if (hyper) { const gr = g.createRadialGradient(ccx, ccy, R * 0.2, ccx, ccy, R * 1.25); gr.addColorStop(0, 'rgba(150,235,255,0)'); gr.addColorStop(0.7, `rgba(150,235,255,${0.03 + 0.025 * (tier - 3) * A})`); gr.addColorStop(1, 'rgba(150,235,255,0)'); g.fillStyle = gr; g.beginPath(); g.arc(ccx, ccy, R * 1.25, 0, 6.283); g.fill();
+    if (tier >= 5) { g.strokeStyle = `rgba(${cols[1]},${0.1 + 0.12 * A})`; g.lineWidth = 1.4 * csc; for (let i = 0; i < 3; i++) { const a0 = -base * 0.7 + i * 2.094; g.beginPath(); g.arc(ccx, ccy, R * 0.68, a0, a0 + 0.9); g.stroke(); } }
+    if (tier === 6 && Math.random() < 0.5 * A) { const a = Math.random() * 6.283; burst(ccx + Math.cos(a) * R * 0.9, ccy + Math.sin(a) * R * 0.9, 1, ['#ffd24a', '#fff3b0'], 90, 0.4, { a0: a + dir * 1.57, spread: 0.6, g: 0, z: 2.5 }); } }
+  g.restore(); }
+// airflow: thin lines sliding past the cart once it is moving fast, more of them the faster it goes
+function airFx(r, cx, cy, csc, sp) { const K = FXK(), q = Math.min(1, Math.max(0, sp / (r.v0 + 1) - 0.35) / 0.9); if (!K || q <= 0) return;
+  const ux = r.vx / (sp + 1), uy = -r.vy / (sp + 1), nx = -uy, ny = ux, t = performance.now() / 1000, N = Math.round((3 + 5 * q) * K);
+  g.save(); g.globalCompositeOperation = 'lighter'; g.lineCap = 'round';
+  for (let i = 0; i < N; i++) { const off = (hsh(i * 5 + 3) - 0.5) * 70 * csc, ph = (t * (1.6 + hsh(i)) + hsh(i * 9)) % 1, along = (60 - 170 * ph) * csc, l = (18 + 30 * hsh(i * 2)) * csc * (0.6 + q), x0 = cx - 14 * csc * ny + nx * off + ux * along, y0 = cy - 14 * csc + ny * off + uy * along;
+    g.strokeStyle = `rgba(255,255,255,${(0.12 + 0.22 * q) * K * Math.sin(Math.PI * ph)})`; g.lineWidth = 1.3; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x0 - ux * l, y0 - uy * l); g.stroke(); }
+  g.restore(); }
+// booster flame: longer, wider and hotter with the rocket, jet and nozzle levels (bp 0-1), never more than about twice the base size;
+// a jet burns blue at the core; strong boosters show shock diamonds and a heat glow at the nozzle
+function boostFlame(bx, by, ux, uy, csc, bp, jet) { const K = FXK(), e = bp * (0.4 + 0.6 * K), fl = (22 + Math.random() * 16) * csc * (1 + 0.8 * e), w = 5 * csc * (1 + 0.4 * e), nx = -uy, ny = ux;
+  const lobe = (wk, lk, col) => { g.fillStyle = col; g.beginPath(); g.moveTo(bx + nx * w * wk, by + ny * w * wk); g.quadraticCurveTo(bx + ux * fl * lk * 0.35 + nx * w * wk * 1.25, by + uy * fl * lk * 0.35 + ny * w * wk * 1.25, bx + ux * fl * lk, by + uy * fl * lk); g.quadraticCurveTo(bx + ux * fl * lk * 0.35 - nx * w * wk * 1.25, by + uy * fl * lk * 0.35 - ny * w * wk * 1.25, bx - nx * w * wk, by - ny * w * wk); g.closePath(); g.fill(); };
+  g.save(); if (e > 0.5 && K > 0.5) { g.globalCompositeOperation = 'lighter'; const hg = g.createRadialGradient(bx, by, 0, bx, by, w * 3.2); hg.addColorStop(0, `rgba(255,190,90,${0.25 * e})`); hg.addColorStop(1, 'rgba(255,120,40,0)'); g.fillStyle = hg; g.beginPath(); g.arc(bx, by, w * 3.2, 0, 6.283); g.fill(); g.globalCompositeOperation = 'source-over'; }
+  lobe(1, 1, jet ? 'rgba(90,170,255,.85)' : 'rgba(255,120,40,.9)'); lobe(0.72, 0.78, jet ? '#8fe0ff' : '#ffd24a'); lobe(0.38, 0.5, '#ffffff');
+  if (e > 0.3 && K > 0.5) { g.globalCompositeOperation = 'lighter'; g.fillStyle = `rgba(255,255,255,${0.35 + 0.3 * e})`; for (const f of [0.32, 0.52, 0.7].slice(0, e > 0.65 ? 3 : 2)) { g.beginPath(); g.ellipse(bx + ux * fl * f, by + uy * fl * f, w * 0.22, w * 0.5, Math.atan2(uy, ux), 0, 6.283); g.fill(); } }
+  g.restore(); }
+// dive: a comet tail behind the falling cart
+function diveTrail(r, cx, cy, csc, sp) { if (diveA < 0.05) return; const K = FXK(), ux = -r.vx / (sp + 1), uy = r.vy / (sp + 1), L = (60 + 80 * diveA) * csc * (0.6 + 0.4 * K), w = 10 * csc, x0 = cx, y0 = cy - 14 * csc;
+  g.save(); g.globalCompositeOperation = 'lighter'; const gr = g.createLinearGradient(x0, y0, x0 + ux * L, y0 + uy * L); gr.addColorStop(0, `rgba(220,200,255,${0.38 * diveA})`); gr.addColorStop(0.35, `rgba(182,140,255,${0.22 * diveA})`); gr.addColorStop(1, 'rgba(120,80,255,0)'); g.fillStyle = gr;
+  g.beginPath(); g.moveTo(x0 - uy * w, y0 + ux * w); g.quadraticCurveTo(x0 + ux * L * 0.5 - uy * w * 0.6, y0 + uy * L * 0.5 + ux * w * 0.6, x0 + ux * L, y0 + uy * L); g.quadraticCurveTo(x0 + ux * L * 0.5 + uy * w * 0.6, y0 + uy * L * 0.5 - ux * w * 0.6, x0 + uy * w, y0 - ux * w); g.closePath(); g.fill(); g.restore(); }
+// screen immersion for dash (cyan, everything streaks past sideways) and dive (violet, the world rushes up), with lines that close in on the cart
+function immerseFx(dt) { const K = FXK(); diveA += ((state === 'fly' && run && run.slam && run.air ? 1 : 0) - diveA) * Math.min(1, dt * (run && run.slam ? 7 : 4)); if (!K || state !== 'fly') return;
+  const t = performance.now() / 1000, da = dashT / 0.35;
+  const edge = (col, a) => { const gr = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.hypot(W, H) * 0.6); gr.addColorStop(0, `rgba(${col},0)`); gr.addColorStop(1, `rgba(${col},${a})`); g.fillStyle = gr; g.fillRect(0, 0, W, H); };
+  const focus = (col, a, n) => { g.strokeStyle = `rgba(${col},${a})`; g.lineWidth = 2; g.beginPath(); for (let i = 0; i < n; i++) { const an = hsh(i * 17 + Math.floor(t * 12)) * 6.283, r0 = Math.hypot(W, H) * 0.55, r1 = r0 * (0.55 + 0.2 * hsh(i * 3)); g.moveTo(cartX + Math.cos(an) * r0, cartY + Math.sin(an) * r0); g.lineTo(cartX + Math.cos(an) * r1, cartY + Math.sin(an) * r1); } g.stroke(); };
+  g.save();
+  if (da > 0) { g.globalCompositeOperation = 'lighter'; const n = Math.round(18 * K); g.lineCap = 'round';
+    for (let i = 0; i < n; i++) { const y = hsh(i * 7 + 2) * H, l = (80 + 220 * hsh(i * 3)) * da, x = ((hsh(i * 11) * W - t * 3200) % (W + 300) + W + 300) % (W + 300) - 150; g.strokeStyle = `rgba(${i % 3 ? '200,250,255' : '90,240,255'},${0.35 * da})`; g.lineWidth = 1 + 2 * hsh(i * 5); g.beginPath(); g.moveTo(x, y); g.lineTo(x + l, y); g.stroke(); }
+    g.globalCompositeOperation = 'source-over'; edge('40,200,255', 0.28 * da * K); if (K > 0.5) focus('180,245,255', 0.3 * da, 14); }
+  if (diveA > 0.05) { g.globalCompositeOperation = 'lighter'; const n = Math.round(16 * K); g.lineCap = 'round';
+    for (let i = 0; i < n; i++) { const x = hsh(i * 13 + 4) * W, l = (60 + 160 * hsh(i * 3)) * diveA, y = H + 150 - (((hsh(i * 7) * H + t * 2400 * (0.7 + 0.6 * hsh(i))) % (H + 300)) + 0); g.strokeStyle = `rgba(${i % 3 ? '225,210,255' : '182,140,255'},${0.35 * diveA})`; g.lineWidth = 1 + 2 * hsh(i * 5); g.beginPath(); g.moveTo(x, y); g.lineTo(x, y + l); g.stroke(); }
+    g.globalCompositeOperation = 'source-over'; edge('120,70,220', 0.3 * diveA * K); if (K > 0.5) focus('220,200,255', 0.25 * diveA, 12); }
+  g.restore(); }
+// gold crate fanfare: a turning gold starburst, twinkling stars, confetti and a stream of coins to the counter; a chain of crates
+// in quick succession gets one full fanfare and small sparkles for the rest, so a big haul does not drown the screen
+function crateFanfare(x, y) { const K = FXK(), nowT = performance.now(), big = nowT - fanT > 260; ringFx(x, y, '#ffd24a', 70, 0.5, 5);
+  if (!big || !K) { burst(x, y, 3, ['#ffd24a', '#fff3b0'], 200, 0.4, { g: 200, z: 3 }); coinFly(x, y, 2); return; } fanT = nowT;
+  fxs.push({ k: 'b', x, y, t: 0, life: 0.55 + 0.25 * K, r1: 60 + 50 * K, n: 10, c: '#ffd24a' });
+  for (let i = 0; i < Math.round(5 * K) + 1; i++) { const a = Math.random() * 6.283, v = 40 + 90 * Math.random(); fxs.push({ k: 'st', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 30, t: -i * 0.04, life: 0.6 + 0.3 * Math.random(), z: 5 + 4 * Math.random() * K }); }
+  ringFx(x, y, '#ffffff', 110 * K + 40, 0.6, 3, 0.08); confetti(x, y, Math.round(14 * (0.5 + K))); coinFly(x, y, Math.round(4 + 6 * K)); }
 function drawFx(dt) {
   if (flash > 0.01) { g.globalAlpha = Math.min(0.6, flash) * OPT.flash; g.fillStyle = flashCol; g.fillRect(0, 0, W, H); g.globalAlpha = 1; flash *= Math.pow(0.001, dt); }
   g.globalCompositeOperation = 'lighter';
   for (const f of fxs) { f.t += dt; if (f.t < 0) continue; const p = f.t / f.life, q = 1 - p;
     if (f.k === 's') { f.x += f.vx * dt; f.y += f.vy * dt; f.vy += f.g * dt; f.vx *= 1 - dt * 1.5; g.globalAlpha = Math.max(0, q); g.fillStyle = f.c; const z = f.z * (0.4 + 0.6 * q); if (f.sq) { g.save(); g.translate(f.x, f.y); g.rotate(f.t * 9 + f.z); g.fillRect(-z, -z * 0.5, z * 2, z); g.restore(); } else { g.beginPath(); g.arc(f.x, f.y, z, 0, 7); g.fill(); } }
+    else if (f.k === 'b') { const e = 1 - q * q; g.save(); g.translate(f.x, f.y); g.rotate(f.t * 1.4); g.globalAlpha = Math.max(0, q) * 0.7; g.fillStyle = f.c; for (let i = 0; i < f.n; i++) { g.rotate(6.283 / f.n); const L = f.r1 * e * (i % 2 ? 0.7 : 1); g.beginPath(); g.moveTo(0, 0); g.lineTo(L, -L * 0.08); g.lineTo(L, L * 0.08); g.closePath(); g.fill(); } g.restore(); }
+    else if (f.k === 'st') { f.x += f.vx * dt; f.y += f.vy * dt; f.vx *= 1 - dt * 2; f.vy *= 1 - dt * 2; const z = f.z * Math.sin(Math.PI * Math.min(1, p)); g.globalAlpha = Math.max(0, q); g.fillStyle = p < 0.5 ? '#ffffff' : '#ffe27a'; g.beginPath(); g.moveTo(f.x, f.y - z); g.lineTo(f.x + z * 0.25, f.y - z * 0.25); g.lineTo(f.x + z, f.y); g.lineTo(f.x + z * 0.25, f.y + z * 0.25); g.lineTo(f.x, f.y + z); g.lineTo(f.x - z * 0.25, f.y + z * 0.25); g.lineTo(f.x - z, f.y); g.lineTo(f.x - z * 0.25, f.y - z * 0.25); g.closePath(); g.fill(); }
     else if (f.k === 'r') { const e = 1 - q * q * q; g.globalAlpha = Math.max(0, q); g.strokeStyle = f.c; g.lineWidth = Math.max(0.5, f.w * q); g.beginPath(); g.arc(f.x, f.y, 6 + f.r1 * e, 0, 7); g.stroke(); } }
   g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
   for (const f of fxs) { if (f.k !== 'c' || f.t < 0) continue; const p = Math.min(1, f.t / f.life), e = p * p, a = 1 - p, tx = 23, ty = 84, x = a * a * f.x0 + 2 * a * p * f.mx + e * tx, y = a * a * f.y0 + 2 * a * p * f.my + e * ty; g.fillStyle = '#f5b014'; g.strokeStyle = '#2b2233'; g.lineWidth = 2; g.beginPath(); g.ellipse(x, y, 6 * Math.abs(Math.cos(f.t * 14)) + 1.5, 6, 0, 0, 7); g.fill(); g.stroke(); if (p >= 1 && !f.done) { f.done = 1; goldPopT = performance.now(); } }
@@ -1496,7 +1580,9 @@ function hud(r) {
     const cl = st.comboT - (r.tr - r.comboT); if (r.combo >= 1 && cl > 0 && (r.combo >= 2 || r.slams)) { const pz = 1 + 0.4 * Math.max(0, 1 - (performance.now() - goldPopT) / 160); const xs = root.classList.contains('xs'), cx0 = xs ? 124 : 16, cy0 = xs ? 88 : 116; g.textAlign = 'left'; txt(r.combo + ' 콤보', cx0, cy0, (xs ? 19 : 23) * pz, r.combo >= 20 ? '#ff5a8a' : r.combo >= 10 ? '#ffd24a' : '#fff'); g.fillStyle = '#2b2233'; g.fillRect(cx0 - 2, cy0 + 6, 84, 6); g.fillStyle = '#ffd24a'; g.fillRect(cx0, cy0 + 8, 80 * cl / st.comboT, 2); }
   } else if (state === 'aim' || state === 'charge' || state === 'push') {
     g.textAlign = 'center'; txt(state === 'aim' ? '꾹 눌러서 당기기!' : state === 'charge' ? '흰 구간에서 손을 떼세요' : '발사대 끝에서 한 번 더 탭!', W / 2, H * 0.2, 28);
-    if (state === 'aim') { txt(`보유 골드 ${fmt(S.gold)}   ·   최고 ${fmtD(S.best)}`, W / 2, H * 0.2 + 26, 14, '#fff6e6'); txt('공중에서 화면 좌우를 누르면 회전 · 바퀴로 착지하면 보너스', W / 2, H * 0.2 + 48, 12, '#fff6e6'); if (root.classList.contains('kb')) txt('Space 발사·킥·부스트 · W 도약 · E 대시 · S 급강하 · A/D 회전', W / 2, H * 0.2 + 68, 12, '#ffd24a'); }
+    // under the prompt only the how-to lines; the best distance sits in the top-left corner where the distance counter shows in flight
+    if (state === 'aim') { txt('공중에서 화면 좌우를 누르면 회전 · 바퀴로 착지하면 보너스', W / 2, H * 0.2 + 28, 12, '#fff6e6'); if (root.classList.contains('kb')) txt('Space 발사·킥·부스트 · W 도약 · E 대시 · S 급강하 · A/D 회전', W / 2, H * 0.2 + 48, 12, '#ffd24a');
+      g.textAlign = 'left'; txt('최고 기록', 16, 24, 12, '#fff6e6'); txt(fmtD(S.best), 16, 48, 22); g.textAlign = 'center'; }
     const bw = Math.min(420, W * 0.6), bx = W / 2 - bw / 2, by = H - 54, pw = st.window * bw, tm = performance.now() / 1000, m = state === 'push' ? pushM : Math.min(1, Math.max(0, charge + Math.sin(tm * 46) * 0.007 * charge * charge)), inP = m >= 1 - st.window;
     const jx = state === 'charge' ? (Math.random() - 0.5) * charge * charge * 5 : 0, jy = state === 'charge' ? (Math.random() - 0.5) * charge * charge * 4 : 0; g.save(); g.translate(jx, jy);
     g.fillStyle = '#2b2233'; g.beginPath(); g.roundRect(bx - 5, by - 5, bw + 10, 32, 8); g.fill(); g.fillStyle = '#463c50'; g.fillRect(bx, by, bw, 22);
@@ -1534,7 +1620,7 @@ function draw(now) {
       const ex = Math.max(-40, Math.min(W + 40, SX(e.x))), ey = Math.max(-40, Math.min(H + 40, SY(e.y)));
       if (e.k === 'bounce') { const hard = Math.min(1, e.imp / (0.5 * run.v0 + 1)); shake = Math.max(shake, 2 + 6 * hard); SFX.bounce(0.1 + 0.3 * hard); burst(cartX, cartY + 8, 4 + Math.round(6 * hard), ['#ffffff', '#e8dcc0'], 200, 0.45, { a0: -1.57, spread: 2.6, g: 600, z: 4 }); if (hard > 0.5) ringFx(cartX, cartY + 8, '#ffffff', 40 + 40 * hard, 0.35, 3); }
       else if (e.k === 'coin') { const tn = performance.now(); if (tn - goldPopT > 140) pop({ x: e.x, y: e.y, t: 0, txt: '+' + fmt(e.g * st.rate) }); SFX.coin(run.combo, ex / W * 2 - 1); burst(ex, ey, 4, ['#ffd24a', '#fff3b0'], 220, 0.4, { g: 300, z: 4 }); coinFly(ex, ey, 1); goldPopT = tn; }
-      else if (e.k === 'crate') { pop({ x: e.x, y: e.y, t: 0, txt: '+' + fmt(e.g * st.rate) }); SFX.crate(ex / W * 2 - 1); confetti(ex, ey, 14); coinFly(ex, ey, 5); ringFx(ex, ey, '#ffd24a', 70, 0.5, 5); shake = Math.max(shake, 4); goldPopT = performance.now(); }
+      else if (e.k === 'crate') { pop({ x: e.x, y: e.y, t: 0, txt: '+' + fmt(e.g * st.rate) }); SFX.crate(ex / W * 2 - 1); crateFanfare(ex, ey); shake = Math.max(shake, 4); goldPopT = performance.now(); }
       else if (e.k === 'smash') { pop({ x: e.x, y: e.y, t: 0, txt: '+' + fmt(e.g * st.rate) }); SFX.bonk(); SFX.coin(); burst(ex, ey, 9, ['#ff8a1f', '#7a6f80', '#ffd24a'], 380, 0.6, { a0: -0.6, spread: 2.4, z: 5, sq: 1 }); coinFly(ex, ey, 2); shake = 5; }
       else if (e.k === 'pad') { SFX.pad(); ringFx(cartX, cartY, '#ff8a1f', 70, 0.4, 6); burst(cartX - 10, cartY, 8, ['#ff8a1f', '#ffd24a'], 520, 0.4, { a0: Math.PI, spread: 0.7, g: 0, z: 4 }); }
       else if (e.k === 'tramp') { SFX.tramp(); ringFx(cartX, cartY + 10, '#3f8cff', 80, 0.5, 6); ringFx(cartX, cartY + 10, '#bfe0ff', 50, 0.4, 3, 0.07); burst(cartX, cartY + 10, 10, ['#bfe0ff', '#fff'], 300, 0.5, { a0: -1.57, spread: 1.6, z: 4 }); }
@@ -1625,8 +1711,8 @@ function draw(now) {
     // ribbon behind the cart
     g.lineCap = 'round'; for (const gp of Q.trail ? [1, 0] : [0]) { if (gp) g.globalCompositeOperation = 'lighter'; for (let i = 1; i < trail.length; i++) { const a = trail[i - 1], b = trail[i], f = i / trail.length; g.globalAlpha = f * (gp ? 0.14 : 0.55); g.strokeStyle = b.c; g.lineWidth = (2 + f * 10 * csc) * (gp ? 2.8 : 1); g.beginPath(); g.moveTo(Math.max(-50, SX(a.x)), SY(a.y) - 14 * csc); g.lineTo(SX(b.x), SY(b.y) - 14 * csc); g.stroke(); } g.globalCompositeOperation = 'source-over'; } g.globalAlpha = 1; g.lineCap = 'butt';
     if (r.boosting) { const rm = (MOUNT[skinNow().id] || MOUNT.cart).rocket, nz = -(rm[0] - 24 * 0.62), ny = rm[1] - 11 * 0.62, bx2 = cxp - ca * nz * csc - sa * ny * csc, by2 = cyp - sa * nz * csc + ca * ny * csc;
-      { const ux = -r.vx / (sp + 1), uy = r.vy / (sp + 1), f = (22 + Math.random() * 16) * csc, w = 5 * csc;   // the flame streams behind the direction of travel, like the dash trail
-        g.fillStyle = '#ffd24a'; g.beginPath(); g.moveTo(bx2 - uy * w, by2 + ux * w); g.lineTo(bx2 + ux * f, by2 + uy * f); g.lineTo(bx2 + uy * w, by2 - ux * w); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.moveTo(bx2 - uy * w * 0.5, by2 + ux * w * 0.5); g.lineTo(bx2 + ux * f * 0.55, by2 + uy * f * 0.55); g.lineTo(bx2 + uy * w * 0.5, by2 - ux * w * 0.5); g.fill(); } burst(bx2, by2, 3, ['#ffd24a', '#ff8a1f', '#ffffff'], 520, 0.35, { a0: Math.atan2(r.vy, -r.vx), spread: 0.5, g: 0, z: 6 }); if (Math.random() < 0.5) fxs.push({ k: 's', x: bx2, y: by2, vx: -260, vy: -30, t: 0, life: 0.7, c: 'rgba(120,110,130,.5)', g: -60, z: 9 }); }
+      // the flame streams behind the direction of travel, like the dash trail; its size follows the rocket, jet and nozzle levels
+      const bp = Math.min(1, C.lvl(S, 'rocket') / 30 * 0.5 + C.lvl(S, 'jet') / 50 * 0.3 + C.lvl(S, 'nozzle') / 40 * 0.2); boostFlame(bx2, by2, -r.vx / (sp + 1), r.vy / (sp + 1), csc, bp, C.lvl(S, 'jet') > 0); burst(bx2, by2, Math.round(3 + 3 * bp), ['#ffd24a', '#ff8a1f', '#ffffff'], 520, 0.35, { a0: Math.atan2(r.vy, -r.vx), spread: 0.5, g: 0, z: 6 }); if (Math.random() < 0.5) fxs.push({ k: 's', x: bx2, y: by2, vx: -260, vy: -30, t: 0, life: 0.7, c: 'rgba(120,110,130,.5)', g: -60, z: 9 }); }
     if (r.golden && Math.random() < 0.5) burst(cxp + (Math.random() - 0.5) * 40, cyp - 20 + (Math.random() - 0.5) * 30, 1, ['#ffd24a', '#fff3b0'], 60, 0.6, { g: -80, z: 3 });
     if (r.v0 > 150 && sp > 0.9 * r.v0) { const k = Math.min(1, (sp / r.v0 - 0.9) * 3), gx = cxp + ca * 26 * csc, gy = cyp + sa * 26 * csc - 14 * csc, gr2 = g.createRadialGradient(gx, gy, 2, gx, gy, 46 * csc); gr2.addColorStop(0, `rgba(255,${200 - k * 90 | 0},${120 - k * 80 | 0},${0.25 + k * 0.5})`); gr2.addColorStop(1, 'rgba(255,120,60,0)'); g.fillStyle = gr2; g.beginPath(); g.arc(gx, gy, 46 * csc, rot - 1.5, rot + 1.5); g.fill(); }
     if (dashT > 0) for (let k = 3; k >= 1; k--) { g.globalAlpha = dashT / 0.4 * 0.4 / k; drawCart(cxp - r.vx / (sp + 1) * k * 30 * csc, cyp + r.vy / (sp + 1) * k * 30 * csc, rot, csc); } g.globalAlpha = 1; }
@@ -1659,11 +1745,13 @@ function draw(now) {
           const hg = g.createRadialGradient(wx, wy, 0, wx, wy, sz * 1.7); hg.addColorStop(0, `rgba(255,240,170,${0.85 * fd})`); hg.addColorStop(0.5, `rgba(255,150,40,${0.45 * fd})`); hg.addColorStop(1, 'rgba(255,100,30,0)'); g.fillStyle = hg; g.beginPath(); g.arc(wx, wy, sz * 1.7, 0, 7); g.fill();
           if (pa < 1.4 && Math.random() < 0.9) burst(wx + (Math.random() - 0.5) * sz, wy + sz * 0.4, 3, ['#ff6a2a', '#ffd24a', '#fff3b0'], 340, 0.8, { a0: -1.57, spread: 0.9, g: -320, z: 4 }); }
         g.restore(); } }
+    if (state === 'fly' && r) { const sp3 = Math.hypot(r.vx, r.vy); airFx(r, cxp, cyp, csc, sp3); diveTrail(r, cxp, cyp, csc, sp3); spinFx(r, cxp, cyp, csc, rot); }
     drawDoll(cxp, cyp, csc, pins, false); drawCart(cxp, cyp, rot, csc, sqz); drawDoll(cxp, cyp, csc, pins, true); }
   g.textAlign = 'center'; g.font = `15px ${FONT}`;
   { let ai = 0; for (const p of pops) { p.t += dt; const life = p.a ? 1.3 : 0.9, x2 = p.a ? Math.max(120, cartX + 20) : SX(p.x), y2 = p.a ? Math.max(150, cartY - 44) - 20 * ai++ - p.t * 26 : SY(p.y) - p.t * 50; g.font = `${p.a ? 17 : 15}px ${FONT}`; g.globalAlpha = Math.max(0, Math.min(1, (life - p.t) * 3)); g.lineWidth = 3.5; g.strokeStyle = '#2b2233'; g.strokeText(p.txt, x2, y2); g.fillStyle = p.col || '#ffd24a'; g.fillText(p.txt, x2, y2); } } g.globalAlpha = 1; pops = pops.filter(p => p.t < (p.a ? 1.3 : 0.9));
   g.restore();
   if (Q.vig && state !== 'ending') vignette();
+  immerseFx(dt);
   drawFx(dt);
   if (launchFx) { const a = (now - launchFx.t) / 1000, T = launchFx.tier, PL = launchFx.plus || 0, EX = launchFx.ext || 0, life = T < 4 ? [0, 0.35, 0.5, 0.6][T] : [0.9, 1.6, 2.0, 2.6, 3.2][PL] + [0, 0.5, 0.7, 0.9, 1.3][PL] * EX, f = a / life; if (f >= 1) launchFx = null; else { const x = W * 0.28, y = H * 0.66; g.save(); g.lineCap = 'round';
       if (T === 1) { g.strokeStyle = `rgba(255,255,255,${0.8 * (1 - f)})`; g.lineWidth = 4; for (let k = -1; k <= 1; k++) { g.beginPath(); g.moveTo(x - 40, y + k * 16); g.quadraticCurveTo(x + 40 * f, y + k * 30 * (1 - f), x + 120 * f, y + k * 6); g.stroke(); } }
@@ -1724,6 +1812,6 @@ const liveLS = LS.get('cart.live');   // read before the first toAim clears it
 toAim(); requestAnimationFrame(frame);
 { let booted = false; const boot = d => { if (booted) return; booted = true; try { if (d && d.v === 1 && Date.now() - d.at < 300000) { liveRestore(d, true); return; } const j = JSON.parse(liveLS || 'null'); if (j && Date.now() - j.at < 90000) liveRestore(j, false); } catch (e) {} };
   try { if (HOT && HOT.ready) { HOT.ready(boot); setTimeout(() => boot(HOT.data), 1500); } else boot(HOT && HOT.data); } catch (e) { boot(null); } }
-window.__cart = { C, SKINS, drawSkin(cx, k, x, y, sc, ride, wind = 0, gear = false) { const g0 = g; g = cx; pvSkin = k; pvGear = gear; try { if (ride) { resetDoll(); doll.mood = 0; doll.wx = -wind; doll.wy = 0; let pins; for (let i = 0; i < 90; i++) pins = dollStep(0.016, 0, 0, 0, wind, 0); drawDoll(x, y, sc, pins, false); drawCart(x, y, 0, sc); drawDoll(x, y, sc, pins, true); } else drawCart(x, y, 0, sc); } finally { pvSkin = null; pvGear = false; g = g0; resetDoll(); } }, get S() { return S; }, set S(v) { S = v; }, get run() { return run; }, get state() { return state; }, launch, toAim, openShop, save, set peek(v) { peekZ = v; }, CLOUD, get slot() { return slot; }, startCharge, release, tryKick, get charge() { return charge; }, get audio() { return actx ? actx.state : 'none'; }, MUS, EFF, PEFF, OPT, PERF, AUD, liveSnap, liveStore, MAP, get Q() { return Q; }, get updated() { return updated; } };
+window.__cart = { C, SKINS, get cartXY() { return [cartX, cartY]; }, fxTest(cx, f) { const g0 = g; g = cx; try { f({ spinFx, airFx, boostFlame, diveTrail, drawCart, crateFanfare, setDive: v => { diveA = v; } }); } finally { g = g0; } }, drawSkin(cx, k, x, y, sc, ride, wind = 0, gear = false) { const g0 = g; g = cx; pvSkin = k; pvGear = gear; try { if (ride) { resetDoll(); doll.mood = 0; doll.wx = -wind; doll.wy = 0; let pins; for (let i = 0; i < 90; i++) pins = dollStep(0.016, 0, 0, 0, wind, 0); drawDoll(x, y, sc, pins, false); drawCart(x, y, 0, sc); drawDoll(x, y, sc, pins, true); } else drawCart(x, y, 0, sc); } finally { pvSkin = null; pvGear = false; g = g0; resetDoll(); } }, get S() { return S; }, set S(v) { S = v; }, get run() { return run; }, get state() { return state; }, launch, toAim, openShop, save, set peek(v) { peekZ = v; }, CLOUD, get slot() { return slot; }, startCharge, release, tryKick, get charge() { return charge; }, get audio() { return actx ? actx.state : 'none'; }, MUS, EFF, PEFF, OPT, PERF, AUD, liveSnap, liveStore, MAP, get Q() { return Q; }, get updated() { return updated; } };
 })();
 </script>

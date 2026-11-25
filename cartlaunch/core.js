@@ -372,25 +372,26 @@ const CORE = (() => {
     if (inp.skill) { if (grounded0 && r.spring > 0) doSpring(1); else if (r.dash > 0 && !grounded0) doDash(); else if (!grounded0 && st.airjump && r.spring > 0) doSpring(st.airjump); }
     if (inp.spring && r.spring > 0) { if (grounded0) doSpring(1); else if (st.airjump) doSpring(st.airjump); }
     if (inp.dash && r.dash > 0) doDash();
-    // dive: a hard push straight down (always enough to reach the ground quickly, whatever the altitude) plus some forward speed
-    if (inp.dive && r.dive > 0 && !grounded0) { r.dive--; r.slam = true; r.vy = -Math.max(Math.abs(r.vy), 0.9 * r.v0); r.vx += vRef * (0.05 + 0.02 * st.dive) + 4; r.spin = 0; r.ev.push({ k: 'dive', x: r.x, y: r.y }); }
+    // dive: a hard push straight down plus some forward speed; from very high it starts fast enough to cover the drop in about 1.2 real seconds
+    if (inp.dive && r.dive > 0 && !grounded0) { r.dive--; r.slam = true; r.vy = -Math.max(Math.abs(r.vy), 0.9 * r.v0, alt0 / (1.1 * r.tw * Math.sqrt(9.8 / (gZ * (1 - st.glide))))); r.vx += vRef * (0.05 + 0.02 * st.dive) + 4; r.spin = 0; r.ev.push({ k: 'dive', x: r.x, y: r.y }); }
     if (r.air) r.airT += dtReal; else r.airT = 0;
     if (r.air) { const sd = inp.spin || 0;
       // hyper spin only kicks in after the stick has been held one way for 2 s, so short taps stay easy to aim
       if (sd) { r.spinH = sd === r.spinD ? (r.spinH || 0) + dtReal : 0; r.spinD = sd; const up = 1 + st.spinUp * Math.max(0, Math.min(1, (r.spinH - 2) / 0.4)), mx = 9 * up; r.spin += sd * 16 * st.spinK * up * up * dtReal; r.spin = Math.max(-mx, Math.min(mx, r.spin)); r.spinT = r.tr; r.spinUp = up; }
       else { r.spinD = 0; r.spinH = 0; r.spin *= Math.pow(0.02, dtReal); if (Math.abs(r.rotAcc) < 0.6 && r.tr - r.spinT > 1) { const want = Math.max(-0.9, Math.min(0.9, Math.atan2(r.vy, Math.max(1, r.vx)))); let d = want - r.ang; d = Math.atan2(Math.sin(d), Math.cos(d)); r.ang += d * Math.min(1, dtReal * 4); } }
       r.ang += r.spin * dtReal; r.rotAcc += r.spin * dtReal;
-      if (st.double && !r.doubled && r.vy < 0 && r.tr > 0.3) { r.doubled = true; const add = 0.25 * r.v0; r.vx += add * 0.92; r.vy += add * 0.4 + Math.max(0, -r.vy) * 0.5; r.ev.push({ k: 'double', x: r.x, y: r.y }); } }
+      if (st.double && !r.doubled && !r.slam && r.vy < 0 && r.tr > 0.3) { r.doubled = true; const add = 0.25 * r.v0; r.vx += add * 0.92; r.vy += add * 0.4 + Math.max(0, -r.vy) * 0.5; r.ev.push({ k: 'double', x: r.x, y: r.y }); } }
     // phoenix: for a moment after rising the cart is thrown forward with what three seconds of holding the boost would give
     // (a cart without a rocket gets 25% of its launch speed instead)
     if (r.phx > 0) { const k = Math.min(dtReal, r.phx) / PHX_T, dv = (st.thrust ? 3 * 1.15 * st.thrust * (1 + st.nozzle) : 0.25 * r.v0) * k; r.phx -= dtReal; r.vx += dv; r.vy += dv * 0.16; }
     if (r.boosting) { r.usedBoost = true; r.fuel -= dtReal * st.burnK; const dv = st.thrust * dtReal * 1.15; r.vx += dv * (1 + st.nozzle); r.vy += dv * (grounded0 ? 0.45 : 0.16) + (r.vy < 0 ? Math.min(-r.vy, dv * 0.5) : 0); if (grounded0 && r.vy > 0) r.air = true; }
     const xPrev = r.x, dg = 0.1 * U;
     for (let i = 0; i < n; i++) {
-      const g = gZ * (r.air ? 1 - st.glide * Math.min(1, Math.abs(r.vx) / (0.05 * r.v0 + 1)) : 1), dk = (st.drag * lerpZ(r.x, 'drag') * Math.min(1, 300 / r.tw) + WEAR * st.wear * (1 + (r.tr - (r.fresh || 0)) * (r.tr - (r.fresh || 0)) / 1600) * 9.8 / (r.v0 + 20)) * (st.draft && r.tr - r.comboT < st.comboT ? 1 - st.draft * Math.min(r.combo, 10) / 10 : 1);
+      const g = gZ * (r.air && !r.slam ? 1 - st.glide * Math.min(1, Math.abs(r.vx) / (0.05 * r.v0 + 1)) : 1), dk = (st.drag * lerpZ(r.x, 'drag') * Math.min(1, 300 / r.tw) + WEAR * st.wear * (1 + (r.tr - (r.fresh || 0)) * (r.tr - (r.fresh || 0)) / 1600) * 9.8 / (r.v0 + 20)) * (st.draft && r.tr - r.comboT < st.comboT ? 1 - st.draft * Math.min(r.combo, 10) / 10 : 1);
       r.vy -= g * h; const d = Math.exp(-dk * h); r.vx *= d; r.vy *= d;
-      { const s2 = Math.hypot(r.vx, r.vy), cap = vcap(r); if (s2 > cap) { r.vx *= cap / s2; r.vy *= cap / s2; r.capT = r.tr; } }
-      if (st.convert && r.air && r.vy < 0) { const f = 1 - Math.exp(-st.convert * h * gZ / (r.v0 + 1)), vy0 = r.vy; r.vy *= 1 - f; r.vx = Math.sqrt(Math.max(0, r.vx) * Math.max(0, r.vx) + (vy0 * vy0 - r.vy * r.vy) * 0.8); }
+      // a dive keeps its fall speed: the fatigue cap only trims forward speed then, and the wing's lift and the altitude converter wait until the slam lands
+      { const s2 = Math.hypot(r.vx, r.vy), cap = vcap(r); if (r.slam && r.vy < 0) { if (Math.abs(r.vx) > cap) { r.vx = Math.sign(r.vx) * cap; r.capT = r.tr; } } else if (s2 > cap) { r.vx *= cap / s2; r.vy *= cap / s2; r.capT = r.tr; } }
+      if (st.convert && r.air && r.vy < 0 && !r.slam) { const f = 1 - Math.exp(-st.convert * h * gZ / (r.v0 + 1)), vy0 = r.vy; r.vy *= 1 - f; r.vx = Math.sqrt(Math.max(0, r.vx) * Math.max(0, r.vx) + (vy0 * vy0 - r.vy * r.vy) * 0.8); }
       r.x += r.vx * h; r.y += r.vy * h;
       const gy = ground(r.x, U);
       if (r.y <= gy) {
