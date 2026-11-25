@@ -25,6 +25,7 @@ body { background: #0d1a2b; color: var(--paper); font-family: var(--body); overf
 .hud { position: fixed; pointer-events: none; z-index: 2; }
 #tl { top: calc(10px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 2px; }
 #dist { font: 40px/1 var(--display); color: #fff; -webkit-text-stroke: 1.5px var(--ink); paint-order: stroke fill; text-shadow: 0 3px 0 rgba(29,22,38,.55); font-variant-numeric: tabular-nums; }
+#combo { font: 34px/1 var(--display); color: #ff5a8a; -webkit-text-stroke: 1.4px var(--ink); paint-order: stroke fill; margin-top: 8px; font-variant-numeric: tabular-nums; transform-origin: left center; }
 #sub { font: 700 13px var(--body); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.7); font-variant-numeric: tabular-nums; }
 #tc { top: calc(10px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); text-align: center; }
 #zone { font: 22px var(--display); color: #fff; -webkit-text-stroke: 1px var(--ink); paint-order: stroke fill; letter-spacing: .02em; }
@@ -77,7 +78,7 @@ body { background: #0d1a2b; color: var(--paper); font-family: var(--body); overf
 </style>
 
 <div id="stage"></div>
-<div class="hud" id="tl"><div id="dist">0m</div><div id="sub"></div></div>
+<div class="hud" id="tl"><div id="dist">0m</div><div id="sub"></div><div id="combo"></div></div>
 <div class="hud" id="tc"><div id="zone"></div><div id="gold"></div></div>
 <div class="hud" id="tr"><button class="pill" id="snd" type="button">소리 켬</button><button class="pill" id="menu" type="button">시작 설정</button></div>
 <div id="flash"></div>
@@ -140,7 +141,20 @@ const hemi = new THREE.HemisphereLight(0xdfefff, 0x5a4630, 0.9); scene.add(hemi)
   scene.environment = pm.fromScene(es, 0.04).texture; }
 const sun = new THREE.DirectionalLight(0xfff1d6, 2.2); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02; scene.add(sun, sun.target);
 scene.fog = new THREE.Fog(0xcfe6ff, 200, 900);
-function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+const rt = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples: 4 });
+const postMat = new THREE.ShaderMaterial({ uniforms: { tD: { value: rt.texture }, uC: { value: new THREE.Vector2(0.4, 0.5) }, uS: { value: 0 }, uAb: { value: 0 }, uVig: { value: 0.25 }, uTA: { value: 0 }, uTint: { value: new THREE.Color(0x5af0ff) }, uT: { value: 0 } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+  fragmentShader: `uniform sampler2D tD; uniform vec2 uC; uniform float uS, uAb, uVig, uTA, uT; uniform vec3 uTint; varying vec2 vUv;
+    void main(){ vec2 d = vUv - uC; float r = length(d * vec2(1.0, 0.75)); float k = smoothstep(0.08, 0.6, r); vec3 acc = vec3(0.0); float ws = 0.0;
+      for (int i = 0; i < 14; i++) { float t = float(i) / 13.0; float s = 1.0 - uS * k * t; float w = 1.0 - t * 0.55;
+        acc.r += texture2D(tD, uC + d * (s - uAb * k * t)).r * w; acc.g += texture2D(tD, uC + d * s).g * w; acc.b += texture2D(tD, uC + d * (s + uAb * k * t)).b * w; ws += w; }
+      vec3 col = acc / ws; col *= 1.0 - uVig * smoothstep(0.35, 0.95, r); col = mix(col, uTint * 1.4, uTA * smoothstep(0.3, 0.9, r) * (0.75 + 0.25 * sin(uT * 18.0 + r * 30.0)));
+      gl_FragColor = vec4(col, 1.0);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }`, depthTest: false, depthWrite: false });
+const postScene = new THREE.Scene(), postCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1), postQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), postMat); postQuad.frustumCulled = false; postScene.add(postQuad);
+function resize() { const w = innerWidth, h = innerHeight, pr = renderer.getPixelRatio(); renderer.setSize(w, h, false); rt.setSize(Math.floor(w * pr), Math.floor(h * pr)); camera.aspect = w / h; camera.updateProjectionMatrix(); }
 addEventListener('resize', resize); resize();
 
 /* sky: a vertical gradient per zone, faded between neighbouring zones; stars come out where the sky is dark */
@@ -223,6 +237,9 @@ function makeCart() {
   return { cart, body, wheels, flame, wings, tail };
 }
 const CART = makeCart(); scene.add(CART.cart);
+const cartAura = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,.4)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = gr; x.fillRect(0, 0, 64, 64);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), color: 0xff8a2a, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })); scene.add(sp); return sp; })();
+const flameGlow = cartAura.clone(); flameGlow.material = cartAura.material.clone(); scene.add(flameGlow);
 
 /* ---------- ground: a strip of terrain sampled across the view, extruded deep into the scene, coloured by zone,
    with a far plain behind it that fades into the fog ---------- */
@@ -331,17 +348,17 @@ const THEME = {
 };
 const FLOAT = { astS: [1, 6], ast: [3, 14], astBig: [10, 50], puffS: [0.5, 3], puff: [3, 10], puffBig: [8, 30], floatIsland: [8, 25], debris: [1, 8], starCluster: [10, 40], beacon: [1, 6], ember: [0, 2], ringPortal: [0, 4] };
 // layer: z range, slot spacing (cart units), scale range, chance a slot holds a prop
-const LAYERS = [{ z: [4.6, 7.4], sp: 6, s: [0.3, 0.55], p: 0.5 }, { z: [-3, -12], sp: 5, s: [0.9, 1.7], p: 0.7 }, { z: [-22, -70], sp: 13, s: [2.5, 6], p: 0.75 }, { z: [-150, -330], sp: 60, s: [3, 6.5], p: 0.8 }];
+const LAYERS = [{ z: [4.6, 7.4], sp: 3.2, s: [0.3, 0.55], p: 0.6 }, { z: [-3, -12], sp: 3.6, s: [0.9, 1.7], p: 0.75 }, { z: [-22, -70], sp: 13, s: [2.5, 6], p: 0.75 }, { z: [-150, -330], sp: 60, s: [3, 6.5], p: 0.8 }];
 const BPOOL = {};
 function bget(kind) { const p = BPOOL[kind] || (BPOOL[kind] = { list: [], used: 0 }); if (p.used < p.list.length) return p.list[p.used++]; const o = PROPS[kind](); o.traverse(c => { if (c.isMesh) c.receiveShadow = true; }); scene.add(o); p.list.push(o); p.used++; return o; }
 const hash2 = (k, l) => { let t = (Math.imul((k % 2147483647) | 0, 2654435761) ^ Math.imul(l + 7, 40503)) >>> 0; t ^= t >>> 15; t = Math.imul(t, 2246822519) >>> 0; t ^= t >>> 13; return (t >>> 0) / 4294967296; };
 function scenery(px, py, U, cu, t) {
   for (const k in BPOOL) BPOOL[k].used = 0;
   const pxu = px / cu, tanH = Math.tan(camera.fov * Math.PI / 360) * camera.aspect;
-  LAYERS.forEach((L, li) => { const zMid = (L.z[0] + L.z[1]) / 2, half = (camera.position.z - zMid) * tanH + L.sp * 2, cx = camera.position.x, k0 = Math.floor((pxu + cx - half) / L.sp), k1 = Math.ceil((pxu + cx + half) / L.sp);
+  LAYERS.forEach((L, li) => { const pm = li === 0 ? 2.6 : li === 1 ? 1.4 : 1, zMid = (L.z[0] + L.z[1]) / 2, half = (camera.position.z - zMid) * tanH + L.sp * 2, cx = camera.position.x, k0 = Math.floor((pxu * pm + cx - half) / L.sp), k1 = Math.ceil((pxu * pm + cx + half) / L.sp);
     if (!(Math.abs(k0) < 1e14)) return;
     for (let k = k0; k <= Math.min(k1, k0 + 400); k++) { const h1 = hash2(k, li * 11 + 1); if (h1 > L.p) continue; const wx = k * L.sp * cu, zi = li >= 2 ? C.zoneAt(Math.max(0, px)) : C.zoneAt(Math.max(0, wx)), zn = Z[zi], th = THEME[zn.deco] || THEME.void, set = th[li], kind = set[Math.floor(hash2(k, li * 11 + 2) * set.length)];
-      const o = bget(kind), lx = k * L.sp - pxu + (hash2(k, li * 11 + 3) - 0.5) * L.sp * 0.6, gy = (C.ground(Math.max(0, wx), U) - py) / cu, sc = L.s[0] + (L.s[1] - L.s[0]) * hash2(k, li * 11 + 4), fl = FLOAT[kind];
+      const o = bget(kind), lx = k * L.sp - pxu * pm + (hash2(k, li * 11 + 3) - 0.5) * L.sp * 0.6, gy = (C.ground(Math.max(0, px + lx * cu), U) - py) / cu, sc = L.s[0] + (L.s[1] - L.s[0]) * hash2(k, li * 11 + 4), fl = FLOAT[kind];
       o.visible = true; o.scale.setScalar(sc); o.position.set(lx, gy + (fl ? (fl[0] + (fl[1] - fl[0]) * hash2(k, li * 11 + 5)) * (li >= 2 ? 1 : li === 1 ? 0.6 : 0) : 0), L.z[0] + (L.z[1] - L.z[0]) * hash2(k, li * 11 + 6)); o.rotation.y = (hash2(k, li * 11 + 7) - 0.5) * 1.2;
       if (fl) o.rotation.z = t * 0.2 * (hash2(k, 9) - 0.5); } });
   for (const k in BPOOL) { const p = BPOOL[k]; for (let i = p.used; i < p.list.length; i++) p.list[i].visible = false; }
@@ -373,8 +390,8 @@ function placeSky(zi) { if (zi !== skyZone) { skyZone = zi; if (skyCur) { skyHol
 /* ---------- pooled scene objects for coins, crates, rings, pads and the rest ---------- */
 const POOL = {};
 function poolGet(type) { const p = POOL[type] || (POOL[type] = { list: [], used: 0 }); if (p.used < p.list.length) return p.list[p.used++]; const o = makeObj(type); scene.add(o); p.list.push(o); p.used++; return o; }
-function makeObj(type) { const g = new THREE.Group();
-  if (type === 'coin') { const c = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.12, 24), M.gold); c.rotation.x = Math.PI / 2; g.add(c); }
+function makeObj(type) { const g = new THREE.Group(), halo = (col, s, op) => { const sp = cartAura.clone(); sp.material = cartAura.material.clone(); sp.material.color.set(col); sp.material.opacity = op; sp.scale.set(s, s, 1); return sp; };
+  if (type === 'coin') { const c = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.12, 24), M.gold); c.rotation.x = Math.PI / 2; g.add(c); const h = halo(0xffc93a, 2.4, 0.45); g.add(h); }
   else if (type === 'crate') { const b = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), M.crate), ba = new THREE.Mesh(new THREE.SphereGeometry(0.55, 20, 16), M.balloon), st = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.7, 4), M.chrome); ba.position.y = 1.55; ba.scale.y = 1.15; st.position.y = 0.8; g.add(b, ba, st); }
   else if (type === 'ring') { const t = new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.12, 12, 32), M.ring); t.rotation.y = Math.PI / 2; g.add(t); }
   else if (type === 'pad') { const p = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.25, 1.4), M.pad); p.position.y = 0.12; g.add(p); for (let k = -1; k <= 1; k++) { const a = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.4, 3), new THREE.MeshBasicMaterial({ color: 0xffffff })); a.rotation.z = -Math.PI / 2; a.position.set(k * 0.6, 0.3, 0); g.add(a); } }
@@ -398,7 +415,7 @@ $('#snd').addEventListener('click', e => { e.stopPropagation(); sndOn = !sndOn; 
 
 /* ---------- speed and impact effects, carried over from the 2D game ---------- */
 // speed lines: thin additive streaks that rush past the camera; white in plain flight, cyan in a dash, violet and vertical in a dive, orange for the phoenix
-const NSL = 90, slGeo = new THREE.PlaneGeometry(1, 1), slMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+const NSL = 160, slGeo = new THREE.PlaneGeometry(1, 1), slMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
 const speedLines = new THREE.InstancedMesh(slGeo, slMat, NSL); speedLines.instanceMatrix.setUsage(THREE.DynamicDrawUsage); speedLines.frustumCulled = false; scene.add(speedLines);
 speedLines.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(NSL * 3), 3);
 const SL = Array.from({ length: NSL }, () => ({ x: 0, y: 0, z: 0, v: 0, len: 0, life: 0, t: 1 })), slM = new THREE.Matrix4(), slQ = new THREE.Quaternion(), slS = new THREE.Vector3(), slP = new THREE.Vector3(), slCol = new THREE.Color();
@@ -409,7 +426,7 @@ function speedLinesTick(dt, q, mode, camD) { const vert = mode === 'dive', col =
       if (vert) { s.x = (Math.random() - 0.5) * W; s.y = -spread * 0.9 - Math.random() * spread * 0.3; } else { s.x = W * 0.7 + Math.random() * W * 0.3; s.y = (Math.random() - 0.5) * spread * 1.2; }
       s.v = (vert ? 1 : -1) * camD * (2.2 + q * 4 + Math.random() * 2); s.len = camD * (0.08 + q * 0.35 + Math.random() * 0.12); }
     if (vert) s.y += s.v * dt; else s.x += s.v * dt;
-    const f = Math.sin(Math.min(1, s.t / s.life) * Math.PI), th = camD * 0.004 * (0.6 + Math.random() * 0.4);
+    const f = Math.sin(Math.min(1, s.t / s.life) * Math.PI), th = camD * 0.006 * (0.6 + Math.random() * 0.6);
     slP.set(s.x, s.y, s.z); if (vert) slS.set(th, s.len, 1); else slS.set(s.len, th, 1); slM.compose(slP, slQ, slS); speedLines.setMatrixAt(i, slM);
     speedLines.instanceColor.setXYZ(i, slCol.r * f * 0.8, slCol.g * f * 0.8, slCol.b * f * 0.8); }
   speedLines.instanceMatrix.needsUpdate = true; speedLines.instanceColor.needsUpdate = true; }
@@ -485,7 +502,7 @@ function frame(now) { requestAnimationFrame(frame); const dt = Math.min(0.05, (n
     C.step(run, dt, { boost: boostHeld, spring: tap.spring, dash: tap.dash, dive: tap.dive, sphx: tap.sphx, spin: spinDir }); tap = {};
     const U = run.U, cu = Math.max(34 / 22, U), cs = cartScale();
     for (const e of run.ev) { const ex = e.x, ey = e.y, lx = 0, ly = cs * 0.6;
-      if (e.k === 'coin' || e.k === 'pull') { burstW(ex, ey, 6, 0xffd24a, 0.9, 0.4); tone(1200 + Math.random() * 300, 1800, 0.06, 0.03); }
+      if (e.k === 'coin' || e.k === 'pull') { burstW(ex, ey, 10, [0xffd24a, 0xffffff], 1.1, 0.45); ringFx(ex, ey, 0xffd24a, cs * 1.2, 0.25); tone(1200 + Math.random() * 300, 1800, 0.06, 0.03); }
       else if (e.k === 'crate') { burstW(ex, ey, 26, [0xff6a3a, 0xffd24a, 0x5af0ff, 0xff8ab3, 0xffffff], 1.4, 0.8); ringFx(ex, ey, 0xffffff, cs * 2.2, 0.45); ringFx(ex, ey, 0xffd24a, cs * 3.2, 0.6, false, 0.06); tone(500, 1500, 0.12, 0.05); punch = Math.max(punch, 0.03); }
       else if (e.k === 'ring') { burstW(ex, ey, 16, 0x14e4c4, 1.1, 0.5); ringFx(ex, ey, 0x14e4c4, cs * 2.4, 0.4); tone(700, 1400, 0.12, 0.05); }
       else if (e.k === 'pad' || e.k === 'tramp' || e.k === 'geyser') { burstW(ex, ey, 16, 0xff8a1f, 1.2, 0.5); ringFx(ex, ey, 0xff8a1f, cs * 2.6, 0.45, true); shake = Math.max(shake, 0.25); sqzV -= 6; tone(220, 880, 0.18, 0.06); }
@@ -546,6 +563,12 @@ function frame(now) { requestAnimationFrame(frame); const dt = Math.min(0.05, (n
     for (const w of CART.wheels) w.rotation.z -= sp / (r.v0 + 1) * dt * 40; }
   else { CART.cart.position.set(-1.2, 0.85, 0.6); CART.cart.rotation.z = 0.34; CART.cart.scale.setScalar(1.6); CART.body.scale.set(1, 1, 1); ramp.position.set(-0.5, 0, 0.6); CART.flame.visible = false; CART.wings.visible = false; }
   dashT = Math.max(0, dashT - dt);
+  if (r && state === 'fly') { const fire = r.sphxT > 0 || r.pdc > 0, ca = Math.cos(r.ang), sa = Math.sin(r.ang);
+    cartAura.position.set(-sa * cs * 0.6, ca * cs * 0.6, 0.7); cartAura.scale.setScalar(cs * (fire ? 4.2 + Math.sin(t * 14) * 0.4 : 3)); cartAura.material.color.set(fire ? 0xff8a2a : r.golden ? 0xffd24a : 0x9fd8ff); cartAura.material.opacity = fire ? 0.75 : 0.18 + q * 0.25;
+    flameGlow.visible = r.boosting; flameGlow.position.set((-0.95 * ca - 0.2 * sa) * cs, (-0.95 * sa + 0.2 * ca) * cs, 0.7); flameGlow.scale.setScalar(cs * (1.6 + Math.random() * 0.6)); flameGlow.material.color.set(r.pfuel > 0 ? 0xff7a1a : 0xffb347); flameGlow.material.opacity = 0.85;
+    if (fire && Math.random() < 0.9) burstW(r.x - r.vx / (sp + 1) * cs * cu * 0.5, r.y, 3, [0xff6a2a, 0xffd24a, 0xfff3b0], 0.5, 0.6);
+    if (q > 0.5 && Math.random() < q) burstW(r.x, r.y, 1, 0xffffff, 0.3, 0.3); }
+  else { cartAura.material.opacity = 0; flameGlow.visible = false; }
   ghosts.forEach((g, k) => { const on = r && state === 'fly' && dashT > 0; g.visible = !!on; if (!on) return; const back = (k + 1) * 0.55 * cs, vx = r.vx / (sp + 1), vy = r.vy / (sp + 1); g.position.set(-vx * back, -vy * back, 0.6); g.rotation.z = r.ang; g.scale.setScalar(cs); });
   ghostMat.opacity = 0.35 * dashT / 0.4;
   { const w = r ? Math.abs(r.spin || 0) : 0, a = r && r.air && state === 'fly' ? clamp((w - 2.5) / 12, 0, 1) : 0; for (const [m, ph] of [[spinRing, 0], [spinRing2, Math.PI]]) { m.visible = a > 0.01; m.material.opacity = a * 0.55; m.position.set(0, cs * 0.55, 0.6); m.scale.setScalar(cs * 0.95); m.rotation.z += (r ? -Math.sign(r.spin || 0) : 0) * dt * (6 + w); if (ph && m.visible) m.rotation.z = spinRing.rotation.z + Math.PI; } }
@@ -566,10 +589,18 @@ function frame(now) { requestAnimationFrame(frame); const dt = Math.min(0.05, (n
     $('#bLeap small').textContent = cnt(r.spring, r.pspring); $('#bDash small').textContent = cnt(r.dash, r.pdash); $('#bDive small').textContent = cnt(r.dive, r.pdive);
     $('#bLeap').classList.toggle('fire', r.pspring > 0); $('#bDash').classList.toggle('fire', r.pdash > 0); $('#bDive').classList.toggle('fire', r.pdive > 0); $('#bBoost').classList.toggle('fire', r.pfuel > 0);
     $('#bLeap').disabled = !(r.spring + r.pspring > 0); $('#bDash').disabled = !(r.dash + r.pdash > 0); $('#bDive').disabled = !(r.dive + r.pdive > 0) || !r.air; $('#bSphx').hidden = !C.canSphx(r);
+    { const cb = r.combo > 1 && r.tr - r.comboT < st.comboT ? r.combo : 0, el = $('#combo'); if (cb) { el.textContent = cb + ' 콤보'; el.style.transform = `scale(${1 + Math.max(0, 0.35 - (r.tr - r.comboT)) })`; } else el.textContent = ''; }
     if (st.fuel) { $('#fuelR').style.width = clamp(r.fuel / st.fuel * 100, 0, 100) + '%'; $('#fuelP').style.width = clamp(r.pfuel / st.fuel * 100, 0, 100) + '%'; } }
-  else if (state === 'aim' || state === 'charge') { $('#dist').textContent = S && S.best ? '최고 ' + fmtD(S.best) : '0m'; $('#sub').textContent = ''; $('#zone').textContent = '마트 주차장'; $('#gold').textContent = '● ' + fmt(S ? S.gold : 0); }
+  else if (state === 'aim' || state === 'charge') { $('#combo').textContent = ''; $('#dist').textContent = S && S.best ? '최고 ' + fmtD(S.best) : '0m'; $('#sub').textContent = ''; $('#zone').textContent = '마트 주차장'; $('#gold').textContent = '● ' + fmt(S ? S.gold : 0); }
 
-  renderer.render(scene, camera);
+  // post: strength from speed and from what the cart is doing
+  { const v = new THREE.Vector3(0, cs * 0.6, 0.6).project(camera), dive = r && r.slam && r.air && state === 'fly' ? 1 : 0, fire = r && r.sphxT > 0 ? 1 : 0;
+    postMat.uniforms.uC.value.set(clamp(v.x * 0.5 + 0.5, 0.15, 0.85), clamp(v.y * 0.5 + 0.5, 0.15, 0.85));
+    const S0 = state === 'fly' ? clamp(q * 0.09 + dashT * 0.28 + dive * 0.12 + fire * 0.1 + punch * 0.6, 0, 0.3) : 0; postMat.uniforms.uS.value += (S0 - postMat.uniforms.uS.value) * Math.min(1, dt * 10);
+    postMat.uniforms.uAb.value = postMat.uniforms.uS.value * 0.12; postMat.uniforms.uVig.value = 0.25 + postMat.uniforms.uS.value * 1.5;
+    const ta = state === 'fly' ? (dashT > 0 ? dashT / 0.4 * 0.45 : dive ? 0.35 : fire ? 0.3 : 0) : 0; postMat.uniforms.uTA.value += (ta - postMat.uniforms.uTA.value) * Math.min(1, dt * 8);
+    if (dashT > 0) postMat.uniforms.uTint.value.set(ghostCol); else if (dive) postMat.uniforms.uTint.value.set(fdiveOn ? 0xff7a1a : 0xa070ff); else if (fire) postMat.uniforms.uTint.value.set(0xff8a2a); postMat.uniforms.uT.value = t; }
+  renderer.setRenderTarget(rt); renderer.render(scene, camera); renderer.setRenderTarget(null); renderer.render(postScene, postCam);
 }
 // the cart stays readable: never smaller than a set share of the view, so the world grows around it as the camera pulls back
 function cartScale() { const r = run; if (!r) return 1.6; const cu = Math.max(34 / 22, r.U); return Math.max(1.6, r.S / cu * 1.6, camD * 0.085); }
