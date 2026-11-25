@@ -17,6 +17,8 @@ const { chromium } = require('playwright'); const fs = require('fs');
       if (mode === 'key') await pg.keyboard.press('KeyQ'); else { const bb = await pg.locator('#sphxBtn').boundingBox(); await pg.touchscreen.tap(bb.x + bb.width / 2, bb.y + bb.height / 2); }
       await pg.waitForTimeout(120); await pg.screenshot({ path: `${OUT}/sphx_${mode}_on.png` }); const on = await look(pg);
       check(mode + ': 변신 → 질주, 도약 11→4+5, 대시 9→5+5, 급강하 2→1+5, 버튼 숨김', on.hidden && on.sprint > 0 && on.risen && on.spring === 0 && on.dash === 0 && on.dive === 0 && on.pspring === 9 && on.pdash === 10 && on.pdive === 6 && /슈퍼 불사조 변신/.test(on.toast), on);
+      const lbl = await pg.evaluate(() => ['#skillBtn', '#dashBtn', '#diveBtn'].map(q => document.querySelector(q + ' small').textContent));
+      check(mode + ': 일반 0개일 때 버튼은 불꽃 숫자만 (· 0회 없음)', lbl[0] === '🔥9' && lbl[1] === '🔥10' && lbl[2] === '🔥6', lbl);
       await pg.keyboard.press('KeyQ'); await pg.waitForTimeout(100); const again = await look(pg); check(mode + ': 두 번째 Q는 무시', again.pspring === 9 && again.pdash === 10, again);
       // stopping after a transformation: no phoenix rise, the run ends
       await pg.waitForTimeout(4500); await stop(pg); await pg.waitForFunction(() => window.__cart.state === 'result', null, { timeout: 6000 }).catch(() => {}); const end = await look(pg);

@@ -317,7 +317,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 113, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 114, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -518,7 +518,7 @@ let aim = C.scaleOf(st, st.power * st.perfect);
 const CU = () => run ? run.U : aim.U, G = x => C.ground(x, CU());
 const boostBtn = $('#boostBtn'), skillBtn = $('#skillBtn'), dashBtn = $('#dashBtn'), diveBtn = $('#diveBtn'), sphxBtn = $('#sphxBtn'), endBtn = $('#endBtn');
 // a skill count, with the phoenix charges (used first) after a flame
-const cnt = (n, p) => p ? `🔥${p} · ${n}회` : n + '회';
+const cnt = (n, p) => p ? (n ? `🔥${p} · ${n}회` : `🔥${p}`) : n + '회';
 const flyUI = on => { boostBtn.hidden = !(on && st.thrust); skillBtn.hidden = !(on && (st.springN || (run && run.spring + run.pspring > 0))); dashBtn.hidden = !(on && (st.dashN || (run && run.dash + run.pdash > 0))); diveBtn.hidden = !(on && (st.diveN || (run && run.pdive > 0))); sphxBtn.hidden = !(on && C.canSphx(run)); endBtn.hidden = !on; $('#topbar').hidden = on; };
 // the tune of a zone: its own if it has one, else the one of its sky, else the one of its scenery
 const tuneOf = zn => [zn.mus, zn.id, zn.fx, zn.deco].find(k => k && MUS.T[k]) || 'lot';
