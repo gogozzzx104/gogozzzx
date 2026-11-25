@@ -280,7 +280,7 @@ const CORE = (() => {
     A('a_gate', '문을 연 자', '태초의 문 도달', (s, r) => s.zone >= LAST + 71), A('a_throne', '옥좌 앞에서', '무한의 옥좌 도달', (s, r) => s.zone >= LAST + 72), A('a_last', '마지막 손님', '최후의 계산대 도달', (s, r) => s.zone >= LAST + 73),
     A('a_tr10', '차원 방랑자', '초월 10회', (s, r) => (s.trans || 0) >= 10), A('a_tr50', '윤회의 끝', '초월 50회', (s, r) => (s.trans || 0) >= 50), A('a_re50', '쉰 번의 생', '환생 50회', (s, r) => s.rebirths >= 50),
     A('a_push', '한계 없는 근력', '근력 훈련 최대 레벨', (s, r) => lvl(s, 'push') >= UP.push.max), A('a_engine', '엔진 완성', '차원 엔진 최대 레벨', (s, r) => tl(s, 't_speed') >= TP.t_speed.max), A('a_vault', '금고 완성', '차원 금고 최대 레벨', (s, r) => tl(s, 't_gold') >= TP.t_gold.max),
-    A('a_stars', '별의 바다', '지금까지 받은 별 3,000만 개', (s, r) => starsEver(s) >= 3e7), A('a_combo1k', '천 번의 박자', '한 판에 1,000콤보', (s, r) => r && r.maxCombo >= 1000), A('a_perf50', '빈틈없는 착지', '한 판에 완벽 착지 50회', (s, r) => r && r.perfLands >= 50),
+    A('a_stars', '별의 바다', '지금까지 받은 별 3,000만 개', (s, r) => starsEver(s) >= 3e7), A('a_combo1k', '천 번의 박자', '한 판에 1,000콤보', (s, r) => r && r.maxCombo >= 1000), A('a_perf50', '빈틈없는 착지', '한 판에 완벽 착지 30회', (s, r) => r && r.perfLands >= 30),
     A('a_fin', '계산 완료', '최후의 계산대에서 빛에 닿아 엔딩을 보기', (s, r) => (s.ended || 0) >= 1), A('a_fin5', '단골의 귀환', '엔딩 5번 보기', (s, r) => (s.ended || 0) >= 5),
     A('a_re1', '새 출발', '첫 환생', (s, r) => s.rebirths >= 1), A('a_re5', '윤회', '환생 5회', (s, r) => s.rebirths >= 5),
   ];
