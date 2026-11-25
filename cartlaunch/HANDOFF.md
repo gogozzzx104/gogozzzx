@@ -1,6 +1,6 @@
 # 카트 대발사 — 인계 메모
 
-마지막 갱신: 2026-11-25 · 게시 버전 95 (`index.html`의 `VER`, 설정·기록 탭 맨 아래에 표시)
+마지막 갱신: 2026-11-25 · 게시 버전 96 (`index.html`의 `VER`, 설정·기록 탭 맨 아래에 표시)
 
 ## 한눈에
 
@@ -102,6 +102,8 @@
 - 목도리: 턱 밑 매듭(`doll.knot`) + 등 뒤에서 나오는 리본 꼬리(`scarfTail`, 8마디, 끝 술). 꼬리는 바닥(카트 -7, 차 -5) 아래로 내려가지 않는다.
 - 확인용: `window.__cart.drawSkin(ctx, skin, x, y, sc, ride, wind)`.
 - 버전 95: 스킨 탭 미리보기는 `PVB`(스킨별 x0,y0,x1,y1 범위)로 칸에 맞춰 크기·위치를 정한다. 스킨을 새로 그리면 `PVB`도 고칠 것.
+- 버전 96: 장비 그림을 새로 그리고 차종마다 장착 위치를 `MOUNT[스킨 id]`(wing, spring, float, bump, mag, rocket)에 둔다. 그리는 함수는 `gearWing · gearSpring · gearFloat · gearBumper(Lv6+ 가시) · gearMagnet · gearRocket(jet이면 은색 터빈) · hoverGlow`.
+  스킨 탭 미리보기는 장비 없이 스킨만 그린다(`pvSkin`이 있으면 `L()`이 0, 확인용 `drawSkin(…, gear=true)`는 예외). 부스트 불꽃 위치는 `MOUNT.rocket`에서 계산한다.
 
 ## 버전 82에서 바뀐 화면 구조 (2026-11-24)
 

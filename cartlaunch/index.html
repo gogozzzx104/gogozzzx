@@ -304,7 +304,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 95, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 96, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -1329,8 +1329,8 @@ function drawObj(o) {
     else if (d === 'forest') { g.fillStyle = '#6b4a2f'; g.beginPath(); g.roundRect(x - r * 0.9, y - r * 0.55, r * 1.8, r * 0.55, 4); g.fill(); g.stroke(); g.fillStyle = '#c9a36b'; g.beginPath(); g.ellipse(x + r * 0.9, y - r * 0.28, r * 0.16, r * 0.27, 0, 0, 7); g.fill(); g.stroke(); }
     else { g.fillStyle = d === 'ice' ? '#b9d6ee' : d === 'hill' ? '#8a8f80' : d === 'canyon' ? '#8a3f22' : d === 'rock' ? '#8c8073' : d === 'cloud' ? '#9aa7c7' : '#5a5560'; g.beginPath(); g.moveTo(x - r * 0.8, y); g.lineTo(x - r * 0.4, y - r * 0.8); g.lineTo(x + r * 0.3, y - r); g.lineTo(x + r * 0.8, y); g.closePath(); g.fill(); g.stroke(); } }
 }
-const SKINS = [{ id: 'cart', name: '쇼핑카트', z: 0 }, { id: 'car', name: '스포츠카', z: 1, car: 1, col: '#f0452f', col2: '#ffffff', seat: { pel: [-1, -3], grip: [9, -14], rest: [6, -12] }, bx: 28.5, by: -12, my: -1 }, { id: 'taxi', name: '택시', z: 4, car: 1, col: '#f5b014', col2: '#2b2233', seat: { pel: [3, -5], grip: [12, -17], rest: [9, -16] }, bx: 28, by: -13, my: -2 },
-  { id: 'truck', name: '몬스터 트럭', z: 7, car: 1, col: '#3f8cff', col2: '#ffd24a', seat: { pel: [2, -15], grip: [11, -25], rest: [8, -24] }, bx: 28.5, by: -23, my: -14, fy: -19 }, { id: 'rocket', name: '로켓카', z: 10, car: 1, col: '#e9edf2', col2: '#f0452f', seat: { pel: [1, -4], grip: [9, -14], rest: [6, -14] }, bx: 33, by: -12, my: -3, fy: -8 }, { id: 'gold', name: '황금 카트', z: 26, tint: 'rgba(245,176,20,.8)' },
+const SKINS = [{ id: 'cart', name: '쇼핑카트', z: 0 }, { id: 'car', name: '스포츠카', z: 1, car: 1, col: '#f0452f', col2: '#ffffff', seat: { pel: [-1, -3], grip: [9, -14], rest: [6, -12] } }, { id: 'taxi', name: '택시', z: 4, car: 1, col: '#f5b014', col2: '#2b2233', seat: { pel: [3, -5], grip: [12, -17], rest: [9, -16] } },
+  { id: 'truck', name: '몬스터 트럭', z: 7, car: 1, col: '#3f8cff', col2: '#ffd24a', seat: { pel: [2, -15], grip: [11, -25], rest: [8, -24] } }, { id: 'rocket', name: '로켓카', z: 10, car: 1, col: '#e9edf2', col2: '#f0452f', seat: { pel: [1, -4], grip: [9, -14], rest: [6, -14] } }, { id: 'gold', name: '황금 카트', z: 26, tint: 'rgba(245,176,20,.8)' },
   // late carts: two for transcending from the far layers, one for those who have seen the ending
   { id: 'astral', name: '영원의 카트', tint: 'rgba(96,56,180,.78)', glow: '#c9a6ff', fx: 'astral', need: q => (q.farT || 0) >= 51, seen: () => C.LAST + 51, how: '영원의 회랑 이후에서 초월 시' },
   { id: 'genesis', name: '창세의 카트', tint: 'rgba(40,190,150,.74)', glow: '#9dffd0', fx: 'genesis', need: q => (q.farT || 0) >= 61, seen: () => C.LAST + 61, how: '창세의 정원 이후에서 초월 시' },
@@ -1341,9 +1341,9 @@ const skinHint = k => C.reached(S) >= (k.need ? k.seen() : k.z) ? k.how || Z[k.z
 const PVB = { cart: [-28, -32, 22, 4], gold: [-28, -32, 22, 4], car: [-32, -21, 31, 4], taxi: [-28, -44, 30, 4], truck: [-28, -51, 30, 4], rocket: [-32, -31, 38, 4], astral: [-29, -32, 28, 4], genesis: [-30, -38, 22, 4], light: [-32, -42, 32, 4] };
 let pvSkin = null; const skinOpen = k => k.need ? k.need(S) : C.zoneAt(S.best) >= k.z, skinNow = () => { if (pvSkin) return pvSkin; const k = SKINS.find(q => q.id === S.skin); return k && skinOpen(k) ? k : SKINS[0]; };
 // each car is its own drawing; the rag-doll driver is drawn before (body) and after (hands) this, so cockpits stay open or glazed
-function carTire(x, r, rim, tread) { const y = 3.6 - r; g.fillStyle = '#2b2233'; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+function carTire(x, r, rim, tread) { const y = 3.6 - r; if (hoverLit) hoverGlow(x, 3.6); g.fillStyle = '#2b2233'; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
   if (tread) { g.save(); g.strokeStyle = '#4a4058'; g.lineWidth = 1.6; g.setLineDash([1.8, 1.8]); g.beginPath(); g.arc(x, y, r - 1, 0, 7); g.stroke(); g.restore(); }
-  g.fillStyle = C.lvl(S, 'hover') ? '#3f8cff' : rim; g.beginPath(); g.arc(x, y, r * 0.48, 0, 7); g.fill(); g.lineWidth = 1; g.strokeStyle = '#2b2233'; g.stroke();
+  g.fillStyle = hoverLit ? '#3f8cff' : rim; g.beginPath(); g.arc(x, y, r * 0.48, 0, 7); g.fill(); g.lineWidth = 1; g.strokeStyle = '#2b2233'; g.stroke();
   g.beginPath(); for (let a = 0; a < 5; a++) { const q = a * 1.2566 - 1.57; g.moveTo(x, y); g.lineTo(x + Math.cos(q) * r * 0.45, y + Math.sin(q) * r * 0.45); } g.stroke(); g.lineWidth = 2.5; }
 const GLASS = 'rgba(190,230,255,.38)';
 function glare(x1, y1, x2, y2) { g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); g.strokeStyle = '#2b2233'; g.lineWidth = 2.5; }
@@ -1393,25 +1393,77 @@ function skinFx(fx) { const t = performance.now() / 1000; g.save();
     g.shadowColor = '#ffe27a'; g.shadowBlur = 10; g.strokeStyle = '#ffd24a'; g.lineWidth = 2.4; g.beginPath(); g.ellipse(0, -37 - Math.sin(t * 2) * 1.2, 11, 3.2, 0, 0, 7); g.stroke(); g.shadowBlur = 0;
     g.fillStyle = '#fff'; for (let k = 0; k < 4; k++) { const a = t * 1.3 + k * 1.5708, sx = Math.cos(a) * 26, sy = -15 + Math.sin(a) * 15, z = 1.4 + 1.2 * Math.abs(Math.sin(t * 4 + k)); g.beginPath(); g.moveTo(sx, sy - z * 2); g.lineTo(sx + z * 0.5, sy - z * 0.5); g.lineTo(sx + z * 2, sy); g.lineTo(sx + z * 0.5, sy + z * 0.5); g.lineTo(sx, sy + z * 2); g.lineTo(sx - z * 0.5, sy + z * 0.5); g.lineTo(sx - z * 2, sy); g.lineTo(sx - z * 0.5, sy - z * 0.5); g.fill(); } }
   g.restore(); g.strokeStyle = '#2b2233'; g.lineWidth = 2.5; }
+// where each piece of gear is bolted on, per vehicle, in cart-local units:
+// wing root, spring mount (top of the coil), float [x0, x1, centre y, height], bumper [x, top, height], magnet post foot, rocket pylon origin
+const MOUNT = {
+  cart: { wing: [-6, -15], spring: [0, -6], float: [-14, 14, -7.5, 5.5], bump: [17, -22, 15], mag: [15, -24], rocket: [-26, -8] },
+  car: { wing: [-6, -7], spring: [1, -2], float: [-21, 24, -3, 5], bump: [28.5, -12, 9.5], mag: [19, -10.6], rocket: [-32, -1] },
+  taxi: { wing: [-6, -9], spring: [0, -3], float: [-23, 25, -3.4, 5.4], bump: [28, -13, 10], mag: [21, -12.4], rocket: [-32, -2] },
+  truck: { wing: [-6, -19], spring: [0.5, -16.5], float: [-21, 23, -15.5, 6], bump: [28.5, -23, 9], mag: [20, -22], rocket: [-32, -14] },
+  rocket: { wing: [-4, -8], spring: [2, -2.5], float: [-20, 27, -2.6, 5], bump: [34, -12, 9], mag: [22, -12.4], rocket: [-33, -3] } };
+MOUNT.gold = MOUNT.astral = MOUNT.genesis = MOUNT.light = MOUNT.cart;
+let hoverLit = false, pvGear = false;
+const INK = '#2b2233', STEEL = '#cfd3da';
+// glider wing: a swept wing from the side of the body, reaching back and slightly up, with an aileron line and an upturned red winglet; drawn behind the body so its root tucks in
+function gearWing(x, y) { g.save(); g.translate(x, y); g.lineWidth = 2.2;
+  const wp = () => { g.beginPath(); g.moveTo(8, -1); g.quadraticCurveTo(-4, -4.5, -17, -9.5); g.lineTo(-24, -10); g.quadraticCurveTo(-25, -6.5, -21, -5); g.lineTo(-9, 3); g.closePath(); };
+  wp(); g.fillStyle = '#f4f6fb'; g.fill(); g.save(); g.clip(); g.fillStyle = 'rgba(110,130,180,.3)'; g.beginPath(); g.moveTo(-21, -5); g.lineTo(-9, 3); g.lineTo(-6, -1); g.lineTo(-18, -8.5); g.closePath(); g.fill(); g.restore(); wp(); g.stroke();
+  g.lineWidth = 1; g.beginPath(); g.moveTo(-6.5, -0.5); g.lineTo(-18.5, -7.6); g.stroke();
+  g.fillStyle = '#f0452f'; g.lineWidth = 2; g.beginPath(); g.moveTo(-17, -9.5); g.lineTo(-21, -17); g.lineTo(-25, -16.5); g.lineTo(-24, -10); g.closePath(); g.fill(); g.stroke();
+  g.restore(); g.lineWidth = 2.5; g.strokeStyle = INK; }
+// pogo coil from the chassis to a rubber foot pad
+function gearSpring(x, y) { const bot = 6.2, n = 5, h = (bot - y) / n, pts = [[x, y]]; for (let i = 0; i < n; i++) pts.push([x + (i % 2 ? -4.2 : 4.2), y + h * (i + 0.5)]); pts.push([x, bot]);
+  g.fillStyle = '#7a6f80'; g.beginPath(); g.roundRect(x - 4.5, y - 1.2, 9, 2.4, 1); g.fill(); g.lineWidth = 1.2; g.stroke();
+  for (const [w, c] of [[3.6, INK], [1.6, STEEL]]) { g.strokeStyle = c; g.lineWidth = w; g.lineJoin = 'round'; g.beginPath(); g.moveTo(...pts[0]); for (const q of pts) g.lineTo(...q); g.stroke(); }
+  g.fillStyle = INK; g.beginPath(); g.roundRect(x - 6, bot, 12, 2.8, 1.4); g.fill(); g.strokeStyle = INK; g.lineWidth = 2.5; }
+// inflatable pontoon strapped along the lower side: orange, white bands, valve, shine
+function gearFloat(x0, x1, y, h) { g.fillStyle = '#ff8a1f'; g.beginPath(); g.roundRect(x0, y - h / 2, x1 - x0, h, h / 2); g.fill(); g.lineWidth = 2; g.stroke();
+  g.fillStyle = '#fff'; for (const f of [0.22, 0.5, 0.78]) { const bx = x0 + (x1 - x0) * f; g.fillRect(bx - 1.3, y - h / 2 + 1, 2.6, h - 2); }
+  g.strokeStyle = 'rgba(255,255,255,.75)'; g.lineWidth = 1.1; g.beginPath(); g.moveTo(x0 + h * 0.6, y - h * 0.22); g.lineTo(x1 - h * 0.6, y - h * 0.22); g.stroke();
+  g.strokeStyle = INK; g.fillStyle = INK; g.fillRect(x0 + h * 0.55, y - h / 2 - 1.6, 1.8, 1.8); g.lineWidth = 2.5; }
+// steel bumper on brackets with hazard stripes and bolts; spiked once it smashes things for gold (Lv6+)
+function gearBumper(x, y, h, spiked) { g.lineWidth = 2; g.beginPath(); g.moveTo(x - 2.5, y + 2.5); g.lineTo(x + 0.5, y + 2.5); g.moveTo(x - 2.5, y + h - 2.5); g.lineTo(x + 0.5, y + h - 2.5); g.stroke();
+  if (spiked) { g.fillStyle = STEEL; g.lineWidth = 1.2; for (let k = 0; k < 3; k++) { const yy = y + h * (0.2 + 0.3 * k); g.beginPath(); g.moveTo(x + 4, yy - 1.6); g.lineTo(x + 7.5, yy); g.lineTo(x + 4, yy + 1.6); g.closePath(); g.fill(); g.stroke(); } }
+  g.fillStyle = '#8d8496'; g.beginPath(); g.roundRect(x, y, 4.4, h, 1.4); g.fill(); g.save(); g.clip(); g.fillStyle = '#ffd24a'; for (let k = -1; k < h / 2.6 + 1; k++) { g.beginPath(); g.moveTo(x, y + k * 5.2); g.lineTo(x + 4.4, y + k * 5.2 - 2.6); g.lineTo(x + 4.4, y + k * 5.2); g.lineTo(x, y + k * 5.2 + 2.6); g.closePath(); g.fill(); } g.restore();
+  g.lineWidth = 2; g.beginPath(); g.roundRect(x, y, 4.4, h, 1.4); g.stroke(); g.fillStyle = STEEL; for (const yy of [y + 1.8, y + h - 1.8]) { g.beginPath(); g.arc(x + 2.2, yy, 0.9, 0, 7); g.fill(); } g.lineWidth = 2.5; }
+// horseshoe magnet on a post raked forward, poles facing the way the cart flies, with a faint pulsing field
+function gearMagnet(x, y) { const cx = x + 6, cy = y - 7.5, t = performance.now() / 1000; g.lineWidth = 2; g.beginPath(); g.moveTo(x, y); g.lineTo(cx - 3.4, cy + 2.4); g.stroke();
+  const U = () => { g.beginPath(); g.moveTo(cx + 4.5, cy - 4); g.lineTo(cx, cy - 4); g.arc(cx, cy, 4, -Math.PI / 2, Math.PI / 2, true); g.lineTo(cx + 4.5, cy + 4); };
+  g.lineCap = 'butt'; U(); g.strokeStyle = INK; g.lineWidth = 5.2; g.stroke(); U(); g.strokeStyle = '#f0452f'; g.lineWidth = 3; g.stroke();
+  g.strokeStyle = STEEL; g.beginPath(); g.moveTo(cx + 2.6, cy - 4); g.lineTo(cx + 4.4, cy - 4); g.moveTo(cx + 2.6, cy + 4); g.lineTo(cx + 4.4, cy + 4); g.stroke();
+  g.strokeStyle = `rgba(90,190,255,${0.35 + 0.25 * Math.sin(t * 6)})`; g.lineWidth = 1.1; for (const r of [3, 5.5]) { g.beginPath(); g.arc(cx + 6, cy, r, -0.9, 0.9); g.stroke(); } g.strokeStyle = INK; g.lineWidth = 2.5; }
+// rear booster on a pylon: red rocket with nose cone and fins, or (with the jet engine) a silver turbine with a blue intake
+function gearRocket(x, y, jet) { g.save(); g.translate(x, y); g.scale(0.62, 0.62); g.lineWidth = 3.2;
+  g.fillStyle = '#7a6f80'; g.fillRect(4, -12.6, 12, 3.2); g.strokeRect(4, -12.6, 12, 3.2);
+  g.fillStyle = '#4a4058'; g.beginPath(); g.moveTo(-18, -14); g.lineTo(-24, -17.5); g.lineTo(-24, -4.5); g.lineTo(-18, -8); g.closePath(); g.fill(); g.stroke();
+  if (!jet) { g.fillStyle = '#c8321f'; for (const sy of [1, -1]) { g.beginPath(); g.moveTo(-16, -11 - 5 * sy); g.lineTo(-21, -11 - 10.5 * sy); g.lineTo(-10, -11 - 5 * sy); g.closePath(); g.fill(); g.stroke(); } }
+  g.fillStyle = jet ? STEEL : '#f0452f'; g.beginPath(); g.roundRect(-19, -16, 24, 10, 3); g.fill(); g.stroke();
+  if (jet) { g.fillStyle = '#3f8cff'; g.fillRect(-15, -12.4, 18, 2.8); g.fillStyle = '#ff8a1f'; g.beginPath(); g.ellipse(-24, -11, 1.4, 5.5, 0, 0, 7); g.fill();
+    g.fillStyle = '#3f8cff'; g.beginPath(); g.ellipse(5.5, -11, 2.6, 5.4, 0, 0, 7); g.fill(); g.stroke(); g.fillStyle = INK; g.beginPath(); g.ellipse(5.5, -11, 1.2, 3.4, 0, 0, 7); g.fill(); }
+  else { g.beginPath(); g.moveTo(5, -16); g.quadraticCurveTo(12, -14.5, 14, -11); g.quadraticCurveTo(12, -7.5, 5, -6); g.closePath(); g.fill(); g.stroke(); g.fillStyle = '#fff'; g.fillRect(-7, -16, 3.4, 10); g.lineWidth = 1.6; g.strokeRect(-7, -16, 3.4, 10); }
+  g.restore(); g.lineWidth = 2.5; g.strokeStyle = INK; }
+// hover skirt: a soft blue cushion of light under each wheel
+function hoverGlow(x, y) { g.save(); g.fillStyle = 'rgba(90,200,255,.45)'; g.shadowColor = '#5ac8ff'; g.shadowBlur = 8; g.beginPath(); g.ellipse(x, y + 0.8, 6, 1.6, 0, 0, 7); g.fill(); g.restore(); }
 function drawCart(x, y, ang, sc, k = 0) {
   g.save(); g.translate(x, y); g.rotate(ang); g.scale(sc * (1 - k * 0.55), sc * (1 + k)); g.lineWidth = 2.5; g.strokeStyle = '#2b2233'; g.lineJoin = 'round';
-  const L = id => C.lvl(S, id);
-  if (L('wing')) { g.fillStyle = '#fff'; g.beginPath(); g.moveTo(-6, -20); g.lineTo(-30, -34); g.lineTo(4, -26); g.closePath(); g.fill(); g.stroke(); }
-  if (L('spring')) { g.beginPath(); g.moveTo(-4, 0); for (let i = 0; i < 4; i++) g.lineTo(-4 + (i % 2 ? -5 : 5), 2 + i * 2.2); g.stroke(); }
-  if (L('float')) { g.fillStyle = '#ff8a1f'; g.beginPath(); g.ellipse(0, -3, 21, 5, 0, 0, 7); g.fill(); g.stroke(); }
-  const sk = skinNow(); if (sk.car) carBody(sk); else {
+  // previews (skin tab) show the skin alone; in play the gear is drawn on top
+  const L = id => pvSkin && !pvGear ? 0 : C.lvl(S, id), sk = skinNow();
+  const M = MOUNT[sk.id] || MOUNT.cart, lit = L('hover') > 0; hoverLit = lit;
+  if (L('wing')) gearWing(...M.wing);
+  if (L('spring')) gearSpring(...M.spring);
+  if (sk.car) carBody(sk); else {
   // basket
   if (sk.glow) { g.shadowColor = sk.glow; g.shadowBlur = 14; } g.fillStyle = sk.tint || 'rgba(233,237,242,.5)'; g.beginPath(); g.moveTo(-17, -24); g.lineTo(17, -24); g.lineTo(13, -6); g.lineTo(-13, -6); g.closePath(); g.fill(); g.stroke(); g.shadowBlur = 0; if (sk.fx) skinFx(sk.fx);
   g.lineWidth = 1.2; for (let i = -10; i <= 10; i += 5) { g.beginPath(); g.moveTo(i * 1.25, -24); g.lineTo(i, -6); g.stroke(); } g.beginPath(); g.moveTo(-15.5, -17); g.lineTo(15.5, -17); g.moveTo(-14, -11); g.lineTo(14, -11); g.stroke(); g.lineWidth = 2.5;
   g.beginPath(); g.moveTo(-17, -24); g.lineTo(-24, -31); g.stroke(); g.strokeStyle = '#f0452f'; g.lineWidth = 4; g.beginPath(); g.moveTo(-27, -31); g.lineTo(-21, -31); g.stroke(); g.strokeStyle = '#2b2233'; g.lineWidth = 2.5;
   g.beginPath(); g.moveTo(-12, -6); g.lineTo(-11, -1); g.moveTo(12, -6); g.lineTo(11, -1); g.stroke();
-  g.fillStyle = L('hover') ? '#3f8cff' : '#2b2233'; g.beginPath(); g.arc(-11, 0, 3.6, 0, 7); g.arc(11, 0, 3.6, 0, 7); g.fill();
+  if (lit) { hoverGlow(-11, 3.6); hoverGlow(11, 3.6); }
+  g.fillStyle = lit ? '#3f8cff' : '#2b2233'; g.beginPath(); g.arc(-11, 0, 3.6, 0, 7); g.arc(11, 0, 3.6, 0, 7); g.fill();
   }
-  if (L('bumper')) { g.fillStyle = '#7a6f80'; if (sk.car) { g.beginPath(); g.rect(sk.bx || 26.5, sk.by || -13, 3, 9); g.fill(); g.stroke(); } else { g.fillRect(17, -22, 4, 15); g.strokeRect(17, -22, 4, 15); } }
-  if (L('magnet')) { g.strokeStyle = '#f0452f'; g.lineWidth = 3.5; g.beginPath(); g.arc(0, -28, 5, Math.PI, 0); g.stroke(); g.strokeStyle = '#2b2233'; g.lineWidth = 2.5; }
-  if (L('rocket')) { g.save(); if (sk.car) g.translate(-32, sk.my || -2); else g.translate(-30, -8); g.scale(0.6, 0.8);   // rear-mounted, so the body stays in view
-    g.fillStyle = L('jet') ? '#3f8cff' : '#f0452f'; g.beginPath(); g.roundRect(-20, -15, 26, 8, 3); g.fill(); g.stroke(); g.beginPath(); g.moveTo(6, -15); g.lineTo(12, -11); g.lineTo(6, -7); g.fill(); g.stroke();
-    if (0) { const f = 14 + Math.random() * 12; g.fillStyle = '#ffd24a'; g.beginPath(); g.moveTo(-20, -14); g.lineTo(-20 - f, -11); g.lineTo(-20, -8); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.moveTo(-20, -13); g.lineTo(-20 - f * 0.5, -11); g.lineTo(-20, -9); g.fill(); } g.restore(); }
+  if (L('float')) gearFloat(...M.float);
+  if (L('bumper')) gearBumper(...M.bump, L('bumper') >= 6);
+  if (L('magnet')) gearMagnet(...M.mag);
+  if (L('rocket')) gearRocket(...M.rocket, L('jet') > 0);
   g.restore();
 }
 function hud(r) {
@@ -1572,7 +1624,7 @@ function draw(now) {
   if (r && state === 'fly') { const ca = Math.cos(rot), sa = Math.sin(rot);
     // ribbon behind the cart
     g.lineCap = 'round'; for (const gp of Q.trail ? [1, 0] : [0]) { if (gp) g.globalCompositeOperation = 'lighter'; for (let i = 1; i < trail.length; i++) { const a = trail[i - 1], b = trail[i], f = i / trail.length; g.globalAlpha = f * (gp ? 0.14 : 0.55); g.strokeStyle = b.c; g.lineWidth = (2 + f * 10 * csc) * (gp ? 2.8 : 1); g.beginPath(); g.moveTo(Math.max(-50, SX(a.x)), SY(a.y) - 14 * csc); g.lineTo(SX(b.x), SY(b.y) - 14 * csc); g.stroke(); } g.globalCompositeOperation = 'source-over'; } g.globalAlpha = 1; g.lineCap = 'butt';
-    if (r.boosting) { const nz = 43, ny = skinNow().fy || (skinNow().car ? -11 : -17), bx2 = cxp - ca * nz * csc - sa * ny * csc, by2 = cyp - sa * nz * csc + ca * ny * csc;
+    if (r.boosting) { const rm = (MOUNT[skinNow().id] || MOUNT.cart).rocket, nz = -(rm[0] - 24 * 0.62), ny = rm[1] - 11 * 0.62, bx2 = cxp - ca * nz * csc - sa * ny * csc, by2 = cyp - sa * nz * csc + ca * ny * csc;
       { const ux = -r.vx / (sp + 1), uy = r.vy / (sp + 1), f = (22 + Math.random() * 16) * csc, w = 5 * csc;   // the flame streams behind the direction of travel, like the dash trail
         g.fillStyle = '#ffd24a'; g.beginPath(); g.moveTo(bx2 - uy * w, by2 + ux * w); g.lineTo(bx2 + ux * f, by2 + uy * f); g.lineTo(bx2 + uy * w, by2 - ux * w); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.moveTo(bx2 - uy * w * 0.5, by2 + ux * w * 0.5); g.lineTo(bx2 + ux * f * 0.55, by2 + uy * f * 0.55); g.lineTo(bx2 + uy * w * 0.5, by2 - ux * w * 0.5); g.fill(); } burst(bx2, by2, 3, ['#ffd24a', '#ff8a1f', '#ffffff'], 520, 0.35, { a0: Math.atan2(r.vy, -r.vx), spread: 0.5, g: 0, z: 6 }); if (Math.random() < 0.5) fxs.push({ k: 's', x: bx2, y: by2, vx: -260, vy: -30, t: 0, life: 0.7, c: 'rgba(120,110,130,.5)', g: -60, z: 9 }); }
     if (r.golden && Math.random() < 0.5) burst(cxp + (Math.random() - 0.5) * 40, cyp - 20 + (Math.random() - 0.5) * 30, 1, ['#ffd24a', '#fff3b0'], 60, 0.6, { g: -80, z: 3 });
@@ -1672,6 +1724,6 @@ const liveLS = LS.get('cart.live');   // read before the first toAim clears it
 toAim(); requestAnimationFrame(frame);
 { let booted = false; const boot = d => { if (booted) return; booted = true; try { if (d && d.v === 1 && Date.now() - d.at < 300000) { liveRestore(d, true); return; } const j = JSON.parse(liveLS || 'null'); if (j && Date.now() - j.at < 90000) liveRestore(j, false); } catch (e) {} };
   try { if (HOT && HOT.ready) { HOT.ready(boot); setTimeout(() => boot(HOT.data), 1500); } else boot(HOT && HOT.data); } catch (e) { boot(null); } }
-window.__cart = { C, SKINS, drawSkin(cx, k, x, y, sc, ride, wind = 0) { const g0 = g; g = cx; pvSkin = k; try { if (ride) { resetDoll(); doll.mood = 0; doll.wx = -wind; doll.wy = 0; let pins; for (let i = 0; i < 90; i++) pins = dollStep(0.016, 0, 0, 0, wind, 0); drawDoll(x, y, sc, pins, false); drawCart(x, y, 0, sc); drawDoll(x, y, sc, pins, true); } else drawCart(x, y, 0, sc); } finally { pvSkin = null; g = g0; resetDoll(); } }, get S() { return S; }, set S(v) { S = v; }, get run() { return run; }, get state() { return state; }, launch, toAim, openShop, save, set peek(v) { peekZ = v; }, CLOUD, get slot() { return slot; }, startCharge, release, tryKick, get charge() { return charge; }, get audio() { return actx ? actx.state : 'none'; }, MUS, EFF, PEFF, OPT, PERF, AUD, liveSnap, liveStore, MAP, get Q() { return Q; }, get updated() { return updated; } };
+window.__cart = { C, SKINS, drawSkin(cx, k, x, y, sc, ride, wind = 0, gear = false) { const g0 = g; g = cx; pvSkin = k; pvGear = gear; try { if (ride) { resetDoll(); doll.mood = 0; doll.wx = -wind; doll.wy = 0; let pins; for (let i = 0; i < 90; i++) pins = dollStep(0.016, 0, 0, 0, wind, 0); drawDoll(x, y, sc, pins, false); drawCart(x, y, 0, sc); drawDoll(x, y, sc, pins, true); } else drawCart(x, y, 0, sc); } finally { pvSkin = null; pvGear = false; g = g0; resetDoll(); } }, get S() { return S; }, set S(v) { S = v; }, get run() { return run; }, get state() { return state; }, launch, toAim, openShop, save, set peek(v) { peekZ = v; }, CLOUD, get slot() { return slot; }, startCharge, release, tryKick, get charge() { return charge; }, get audio() { return actx ? actx.state : 'none'; }, MUS, EFF, PEFF, OPT, PERF, AUD, liveSnap, liveStore, MAP, get Q() { return Q; }, get updated() { return updated; } };
 })();
 </script>
