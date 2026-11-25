@@ -112,10 +112,11 @@ button{font-family:var(--disp);touch-action:manipulation}
 .dx{margin-left:auto;align-self:flex-start;width:28px;height:28px;border-radius:8px;border:2px solid #53468f;background:#1b1538;color:#cfc6f5;font:700 13px/1 var(--body);padding:0;flex:none}
 .lvbar{height:6px;border-radius:3px;background:#120e28;overflow:hidden}
 .lvbar i{display:block;height:100%;border-radius:3px;background:var(--bc,#7df3da)}
-.dp p{margin:0;font-size:12px;line-height:1.45;color:#cfc6f5}
+.dp p,.pop p{margin:0;font-size:12px;line-height:1.45;color:#cfc6f5}
+.pop{position:absolute;width:244px;z-index:5;border:2px solid var(--bc);border-radius:14px;background:linear-gradient(160deg,#322867,#1c1640);box-shadow:0 8px 0 rgba(0,0,0,.45),0 0 22px rgba(0,0,0,.55);padding:10px;display:flex;flex-direction:column;gap:7px;box-sizing:border-box;touch-action:auto}
 .eff{background:rgba(255,255,255,.07);border-radius:9px;padding:6px 9px;font-variant-numeric:tabular-nums}
-.dp .eff p{color:#fff;font-weight:700}
-.dp .eff .nx{color:#7df3da;margin-top:2px}
+.dp .eff p,.pop .eff p{color:#fff;font-weight:700}
+.dp .eff .nx,.pop .eff .nx{color:#7df3da;margin-top:2px}
 .eff .nx i{font:700 10px var(--body);font-style:normal;color:#9d92d6;margin-right:6px}
 .dr{display:flex;flex-direction:column;gap:3px;margin:0;padding:0;list-style:none}
 .dr li{display:flex;align-items:center;gap:6px;font:700 11px var(--body);color:#ff9d9d}
@@ -123,7 +124,7 @@ button{font-family:var(--disp);touch-action:manipulation}
 .dr li .ic{width:13px;height:13px;stroke-width:3;flex:none}
 .dp .brow{margin-top:auto}
 .rbar{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin:8px 10px 0;padding:7px 9px;border:2px solid #9a66ff;border-radius:12px;background:rgba(154,102,255,.13);position:sticky;left:10px;z-index:3}
-.sbody.det .rbar{margin-right:254px}
+
 .chips{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:5px}
 .chip{display:flex;flex-direction:column;justify-content:center;padding:3px 10px;border-radius:9px;background:rgba(13,10,28,.55);font:15px/1.15 var(--disp);color:#fff;white-space:nowrap;font-variant-numeric:tabular-nums}
 .chip i{font:700 9.5px/1.25 var(--body);font-style:normal;color:#b3a9dd}
@@ -306,7 +307,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 102, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 103, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -778,7 +779,7 @@ function treeHTML(items, perk) {
   const aw = $('#sList').clientWidth || 700, T = layoutTree(items), sm = root.classList.contains('sm'), lbl = sm ? 42 : TREE.lbl, gap = sm ? 28 : TREE.gap, top = perk ? 34 : 14;
   // flip: depth runs left to right and siblings stack downward (the launch tree is one long chain)
   const flip = !perk && T.rows > T.cols + 2, across = flip ? T.rows : T.cols, cw = flip ? Math.max(sm ? 58 : 76, Math.min(112, Math.floor((aw - 20) / across))) : Math.max(sm ? 44 : 60, Math.min(108, Math.floor((aw - 20) / across))), n = sm ? Math.max(38, Math.min(46, cw - 6)) : TREE.n, rh = flip ? n + lbl + 14 : n + lbl + gap;
-  const open = !!sel[tab] && items.some(u => u.id === sel[tab]), inner = Math.max(aw, across * cw + 20), px = (inner - cw * across) / 2, X = (c, r) => Math.round(px + (flip ? r : c) * cw + cw / 2), Y = (c, r) => top + (flip ? c : r) * rh;
+  const inner = Math.max(aw, across * cw + 20), px = (inner - cw * across) / 2, X = (c, r) => Math.round(px + (flip ? r : c) * cw + cw / 2), Y = (c, r) => top + (flip ? c : r) * rh;
   const have = id => perk ? (S.perks[id] || 0) : C.lvl(S, id); let off = '', on = '', tags = '', h = '';
   for (const u of items) { const [c, r] = T.pos[u.id], col = BCOL[u.br], l = have(u.id), lock = perk ? C.perkLock(S, u.id) : C.lockReason(S, u.id), mx = l >= u.max, can = perk ? perkCan(u) : C.canBuy(S, u.id);
     const rq = u.req.filter(q => T.pos[q[0]]);
@@ -789,9 +790,16 @@ function treeHTML(items, perk) {
     if (perk && !u.req.length) h += `<span class="bl" style="left:${X(c, r)}px;top:8px;--bc:${col}">${C.PBRANCH.find(b => b[0] === u.br)[1]}</span>`;
     const gz = perk && !mx ? C.perkGate(u.id, l) : 0, gated = !!gz && l > 0 && C.reached(S) < gz, price = mx ? '' : gated ? `<u class="poor">${Z[gz].name}</u>` : lock ? '' : `<u class="${can ? '' : 'poor'}">${perk ? '★ ' + fmt(C.perkCost(u, l)) : fmt(C.cost(S, u.id))}</u>`, pct = mx ? 100 : Math.round(100 * l / u.max), cls = gated ? 'gate' : lock ? 'lock' : mx ? 'max' : can ? 'can' : '', bd = lock ? 't_lock' : mx ? 't_check' : can ? 't_up' : '';
     h += `<button type="button" class="nd ${cls}${sel[tab] === u.id ? ' sel' : ''}" data-id="${u.id}" style="left:${X(c, r) - n / 2}px;top:${Y(c, r)}px;--bc:${col}"><svg class="ring" viewBox="0 0 54 54"><rect class="rt" x="1.5" y="1.5" width="51" height="51" rx="14.5"/>${pct && (!lock || gated) ? `<rect class="rf" x="1.5" y="1.5" width="51" height="51" rx="14.5" pathLength="100" stroke-dasharray="${pct} 100"/>` : ''}</svg>${icon(u.id)}${bd ? `<i class="bd">${icon(bd)}</i>` : ''}<b>${u.cap ? (l ? '완료' : '궁극') : mx ? 'MAX' : l + '/' + u.max}</b><span><em>${u.name}</em>${price}</span></button>`; }
-  const ht = top + (flip ? T.cols : T.rows) * rh, wd = inner + (open ? TREE.det + 10 : 0);
-  return `<div class="tw" style="height:${ht}px;width:${wd}px;--cw:${cw - 6}px;--n:${n}px"><svg class="edges" width="${wd}" height="${ht}">${off}${on}${tags}</svg>${h}</div>`;
+  let ht = top + (flip ? T.cols : T.rows) * rh, pop = ''; const wd = inner, sid = sel[tab];
+  if (sid && T.pos[sid] && (!perk || starOpen())) { const u = items.find(q => q.id === sid), [c, r] = T.pos[sid], P = popAt(X(c, r) - n / 2, X(c, r) + n / 2, Y(c, r), BCOL[u.br], perk ? perkDetail(u) : upDetail(u), inner); pop = P.html; ht = Math.max(ht, P.y + 330); }
+  return `<div class="tw" style="height:${ht}px;width:${wd}px;--cw:${cw - 6}px;--n:${n}px"><svg class="edges" width="${wd}" height="${ht}">${off}${on}${tags}</svg>${h}${pop}</div>`;
 }
+// ---- detail card ----
+// The player asked (11-23, again 11-25) that details open right beside the tapped tile, never in a panel docked at the right edge:
+// the card goes to the right of the tile when it fits in view, otherwise to its left.
+function popAt(nl, nr, ty, col, body, inner) { const el = $('#sList'), PW = TREE.det, vl = el ? el.scrollLeft : 0, vr = vl + (el ? el.clientWidth : inner);
+  const x = nr + 12 + PW <= Math.min(inner, vr) - 4 ? nr + 12 : nl - 12 - PW >= vl + 4 ? nl - 12 - PW : Math.max(4, Math.min(nr + 12, inner - PW - 4));
+  return { y: Math.max(4, ty - 8), html: `<div class="pop" style="left:${x}px;top:${Math.max(4, ty - 8)}px;--bc:${col}">${body}</div>` }; }
 // ---- detail panel ----
 const reqLi = (ok, t) => `<li class="${ok ? 'ok' : ''}">${icon(ok ? 't_check' : 't_lock')}${t}</li>`;
 function detHead(u, l, sub) { return `<div class="dh"><div class="di">${icon(u.id)}</div><div><h3>${u.name}</h3><span>${sub}</span></div><button type="button" class="dx" data-x="1" aria-label="닫기">✕</button></div><div class="lvbar"><i style="width:${Math.round(100 * Math.min(1, l / u.max))}%"></i></div>`; }
@@ -801,10 +809,11 @@ function upDetail(u) { const l = C.lvl(S, u.id), lock = C.lockReason(S, u.id), m
   return detHead(u, l, mx ? '최대 레벨' : `Lv ${l} / ${u.max}`) + `<p>${u.desc}</p>${eff ? `<div class="eff">${eff}</div>` : ''}${reqs ? `<ul class="dr">${reqs}</ul>` : ''}<div class="brow"><button class="buy" data-up="${u.id}" ${can ? '' : 'disabled'}>${mx ? '최대 레벨' : lock ? '잠김' : fmt(C.cost(S, u.id)) + '<small>골드</small>'}</button><button class="buy sm" data-max="${u.id}" ${can ? '' : 'disabled'}>최대로</button></div>`; }
 function perkDetail(q) { const l = S.perks[q.id] || 0, mx = l >= q.max, lock = C.perkLock(S, q.id), c = C.perkCost(q, l), gz = mx ? 0 : C.perkGate(q.id, l), reqs = q.req.map(([r, n]) => reqLi((S.perks[r] || 0) >= n, `${C.PK[r].name} Lv${n}${(S.perks[r] || 0) >= n ? '' : ` · 지금 Lv${S.perks[r] || 0}`}`)).concat(gz ? [reqLi(C.reached(S) >= gz, `Lv${l + 1}: ${Z[gz].name} 도달`)] : []).join('');
   return detHead(q, l, q.cap ? '궁극 능력' : mx ? '최대 레벨' : `Lv ${l} / ${q.max}`) + `<p>${q.desc}</p>${PEFF[q.id] ? `<div class="eff">${mx ? `<p>${PEFF[q.id](l)}</p>` : arrow(PEFF[q.id](l), PEFF[q.id](l + 1))}</div>` : ''}${reqs ? `<ul class="dr">${reqs}</ul>` : ''}<div class="brow" style="grid-template-columns:1fr"><button class="buy star" data-perk="${q.id}" ${perkCan(q) ? '' : 'disabled'}>${mx ? '완료' : lock ? (l > 0 ? '조건 필요' : '잠김') : '★ ' + fmt(c)}</button></div>`; }
-// the panel slides in beside the tree; the tree gets extra room on that side and scrolls so the chosen tile stays in view
-function showDetail() { const id = sel[tab], isUp = C.BRANCH.some(b => b[0] === tab), u = id && (isUp ? C.UP[id] : tab === 'star' && starOpen() ? C.PK[id] : tab === 'trans' ? C.TP[id] : null), det = $('#sDet'), body = $('.sbody');
-  body.classList.toggle('det', !!u); if (!u) return; det.style.setProperty('--bc', tab === 'trans' ? tGroupOf(u.id)[2] : BCOL[u.br]); det.innerHTML = isUp ? upDetail(u) : tab === 'trans' ? transDetail(u) : perkDetail(u);
-  const el = $('#sList'), nd = el.querySelector('.nd.sel'); if (!nd) return; const vis = el.clientWidth - TREE.det - 14, l = nd.offsetLeft - 12, r = nd.offsetLeft + nd.offsetWidth + 12; if (r > el.scrollLeft + vis) el.scrollLeft = r - vis; else if (l < el.scrollLeft) el.scrollLeft = Math.max(0, l); }
+// the card is part of the tree now; the docked panel never opens.  After a render, scroll so the whole card is in view.
+function showDetail() { $('.sbody').classList.remove('det'); const el = $('#sList'), pc = el && el.querySelector('.pop'); if (!pc) return;
+  const l = pc.offsetLeft - 8, r = pc.offsetLeft + pc.offsetWidth + 8, t = pc.offsetTop - 8, b = pc.offsetTop + pc.offsetHeight + 8;
+  if (r > el.scrollLeft + el.clientWidth) el.scrollLeft = r - el.clientWidth; if (l < el.scrollLeft) el.scrollLeft = Math.max(0, l);
+  if (b > el.scrollTop + el.clientHeight) el.scrollTop = b - el.clientHeight; if (t < el.scrollTop) el.scrollTop = Math.max(0, t); }
 // ---- transcendence: the sixteen abilities as four paths of tiles (speed · currency · control · convenience), each tile opening the
 // same docked detail panel as the other trees ----
 const TGROUP = [['speed', '속도의 길', '#ff8a66', ['t_speed', 't_cap', 't_time', 't_starpow', 't_rekindle']], ['wealth', '재화의 길', '#ffcf4a', ['t_gold', 't_star', 't_deep', 't_land', 't_multi', 't_beam']],
@@ -818,16 +827,17 @@ function transGridHTML() {
   const aw = $('#sList').clientWidth || 700, sm = root.classList.contains('sm'), n = sm ? 44 : TREE.n, lbl = sm ? 42 : TREE.lbl, gap = sm ? 20 : 26, top = 40, gut = sm ? 14 : 26, rh = n + lbl + gap;
   // each path is a block up to two tiles wide; the blocks sit side by side
   const cols = TGROUP.map(g => Math.min(2, g[3].length)), tc = cols.reduce((a, b) => a + b, 0), cw = Math.max(sm ? 56 : 70, Math.min(104, Math.floor((aw - 24 - gut * (TGROUP.length - 1)) / tc)));
-  const used = tc * cw + gut * (TGROUP.length - 1), inner = Math.max(aw, used + 24), open = !!sel.trans && !!C.TP[sel.trans]; let x0 = (inner - used) / 2, h = '', rmax = 0;
+  const used = tc * cw + gut * (TGROUP.length - 1), inner = Math.max(aw, used + 24); let x0 = (inner - used) / 2, h = '', rmax = 0, pop = '', popY = 0;
   TGROUP.forEach(([, name, col, ids], gi) => { const c = cols[gi], rows = Math.ceil(ids.length / c), bw = c * cw; rmax = Math.max(rmax, rows);
     h += `<div class="tgrp" style="left:${x0 - 6}px;top:${top - 34}px;width:${bw + 12}px;height:${rows * rh + 30}px;--bc:${col}"></div><span class="bl" style="left:${x0 + bw / 2}px;top:10px;--bc:${col}">${name}</span>`;
     ids.forEach((id, k) => { const q = C.TP[id], l = C.tl(S, id), b = tBase(id), mx = l >= q.max, lk = C.tLock(S, id), cost = C.tCost(q, l), can = !mx && !lk && (S.shards || 0) >= cost;
       const pct = mx ? 100 : Math.round(100 * (l + b) / (q.max + b)), cls = lk ? 'lock' : mx ? 'max' : can ? 'can' : '', bd = lk ? 't_lock' : mx ? 't_check' : can ? 't_up' : '', cx = x0 + (k % c) * cw + cw / 2, y = top + Math.floor(k / c) * rh;
       const price = mx ? '' : lk ? `<u class="poor">미지 ${q.gate}</u>` : `<u class="${can ? '' : 'poor'}">◆ ${fmt(cost)}</u>`;
+      if (sel.trans === id) { const P = popAt(cx - n / 2, cx + n / 2, y, col, transDetail(q), inner); pop = P.html; popY = P.y; }
       h += `<button type="button" class="nd ${cls}${sel.trans === id ? ' sel' : ''}" data-id="${id}" style="left:${cx - n / 2}px;top:${y}px;--bc:${col}"><svg class="ring" viewBox="0 0 54 54"><rect class="rt" x="1.5" y="1.5" width="51" height="51" rx="14.5"/>${pct && !lk ? `<rect class="rf" x="1.5" y="1.5" width="51" height="51" rx="14.5" pathLength="100" stroke-dasharray="${pct} 100"/>` : ''}</svg>${icon(TIC[id])}${bd ? `<i class="bd">${icon(bd)}</i>` : ''}<b>${mx ? 'MAX' : (l + b) + '/' + (q.max + b)}</b><span><em>${q.name}</em>${price}</span></button>`; });
     x0 += bw + gut; });
-  const ht = top + rmax * rh, wd = inner + (open ? TREE.det + 10 : 0);
-  return `<div class="tw" style="height:${ht}px;width:${wd}px;--cw:${cw - 6}px;--n:${n}px">${h}</div>`; }
+  const ht = Math.max(top + rmax * rh, pop ? popY + 330 : 0), wd = inner;
+  return `<div class="tw" style="height:${ht}px;width:${wd}px;--cw:${cw - 6}px;--n:${n}px">${h}${pop}</div>`; }
 function transDetail(q) { const l = C.tl(S, q.id), b = tBase(q.id), mx = l >= q.max, lk = C.tLock(S, q.id), c = C.tCost(q, l), can = !mx && !lk && (S.shards || 0) >= c, fx = TEFX[q.id];
   return detHead({ id: TIC[q.id], name: q.name, max: q.max + b }, l + b, `${tGroupOf(q.id)[1]} · ${mx ? '최대 레벨' : `Lv ${l + b} / ${q.max + b}`}`) + `<p>${b ? '초월 때 환생 트리를 레벨당 10% 유지 · Lv5(50%)까지는 처음부터 찍혀 있음' : q.desc}</p><p class="tv" style="margin:0">초월해도 남음</p>`
     + (fx ? `<div class="eff">${mx ? `<p>${fx(l)}</p>` : arrow(fx(l), fx(l + 1))}</div>` : '') + (lk ? `<ul class="dr">${reqLi(false, lk)}</ul>` : '')
@@ -967,7 +977,7 @@ const shopClick = e => { const nd = e.target.closest('.nd'), sk = e.target.close
     else if (b.dataset.zero) { if (confirmKey !== 'zero') confirmKey = 'zero'; else { S.gold = 0; confirmKey = ''; toast('골드를 비웠어요', 1500); } }
     else if (b.dataset.wipe) { if (confirmKey !== 'wipe') confirmKey = 'wipe'; else { S = C.newSave(); LS.set('cart.force.' + slot, '1'); confirmKey = ''; } }
     else if (b.dataset.slot) { switchSlot(+b.dataset.slot); return; } }
-  else if (sel[tab] && e.target.closest('#sList')) sel[tab] = null;   // tap on empty space closes the panel
+  else if (sel[tab] && !e.target.closest('.pop') && e.target.closest('#sList')) sel[tab] = null;   // tap on empty space closes the card
   else return;
   save(); renderShop(); };
 addEventListener('resize', () => { if (state === 'shop') renderShop(); });
