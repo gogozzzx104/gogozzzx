@@ -5,6 +5,6 @@ const { chromium } = require('playwright'); const fs = require('fs');
   await pg.keyboard.down('Space'); await pg.waitForFunction(() => window.__cart.charge > 0.93 || window.__cart.state !== 'charge'); await pg.keyboard.up('Space'); await pg.waitForTimeout(480); await pg.keyboard.press('Space'); await pg.waitForFunction(() => window.__cart.state === 'fly'); await pg.waitForTimeout(1500);
   await pg.evaluate(() => { const c = window.__cart, r = c.run; r.vx = 0; r.vy = 0; r.y = c.C.ground(r.x, r.U); r.air = false; });
   await pg.waitForFunction(() => window.__cart.run.risen, null, { timeout: 5000 }); const v0 = await pg.evaluate(() => window.__cart.run.vx / window.__cart.run.v0);
-  for (const [n, ms] of [['a', 140], ['b', 300], ['c', 450]]) { await pg.waitForTimeout(ms - (n === 'a' ? 0 : n === 'b' ? 140 : 300)); await pg.screenshot({ path: `${OUT}/phoenix_${n}.png` }); }
-  const q = await pg.evaluate(() => { const r = window.__cart.run; return { vx: +(r.vx / r.v0).toFixed(2), state: window.__cart.state, phx: +(r.phx || 0).toFixed(2) }; });
+  for (const [n, ms] of [['a', 250], ['b', 700], ['c', 1600], ['d', 3200]]) { await pg.waitForTimeout(ms - ({ a: 0, b: 250, c: 700, d: 1600 })[n]); await pg.screenshot({ path: `${OUT}/phoenix_${n}.png` }); }
+  const q = await pg.evaluate(() => { const r = window.__cart.run; return { vx: +(r.vx / r.v0).toFixed(2), state: window.__cart.state, spring: r.spring, dash: r.dash, skill: !document.querySelector('#skillBtn').hidden, dashBtn: !document.querySelector('#dashBtn').hidden }; }); console.log(JSON.stringify(q));
   console.log('forward speed / launch speed: at rise', v0.toFixed(2), '-> after the burst', q.vx, '| state', q.state, '| errors', errs.length ? errs : 'none'); await b.close(); })();

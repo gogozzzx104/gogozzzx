@@ -189,7 +189,7 @@ const CORE = (() => {
     K('r_spring', 'flight', '여분 스프링', 3, '도약 +1회', [['r_trick', 2]]),
     K('r_dash', 'flight', '여분 추진기', 3, '대시 +1회', [['r_spring', 1]]),
     K('r_feather', 'flight', '깃털 몸', 5, '공기 저항 -6%', [['p_fuel', 3]]),
-    K('r_phoenix', 'flight', '불사조', 1, '멈추면 한 번 다시 날아오름', [['r_trick', 5], ['r_feather', 2]], 12),
+    K('r_phoenix', 'flight', '불사조', 1, '멈추면 한 번 힘차게 다시 날아오름 · 지친 속도 회복 · 도약·대시 +1', [['r_trick', 5], ['r_feather', 2]], 12),
     K('r_land', 'flight', '고양이 착지', 10, '착지·슬램 보너스가 50% 커짐', [['r_trick', 2]]),
     K('r_time', 'flight', '끈기', 5, '한 판 제한 시간 +10초', [['p_fuel', 2]]),
     K('p_gold', 'wealth', '프랜차이즈 본사', 30, '모든 골드 +25%'),
@@ -309,9 +309,9 @@ const CORE = (() => {
 
   // ---- one run ------------------------------------------------------------------------------------
   const hash = n => { let t = (n + 0x6D2B79F5) | 0; t = Math.imul(t ^ (t >>> 15), 1 | t); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-  const RAMP = 4, WEAR = 0.12, VCAP = 3, PHX_T = 0.45; let TIRE = 30;
+  const RAMP = 4, WEAR = 0.12, VCAP = 3, PHX_T = 0.7; let TIRE = 30;
   // top speed allowed at a moment of the run: three times launch speed at first, tiring as the run goes on, so even a maxed cart's run winds down
-  const vcap = r => r.st.vcap * r.v0 * Math.max(0.085, (1 + (r.rew || 0)) * Math.exp(-r.tr / r.st.tire));
+  const vcap = r => r.st.vcap * r.v0 * Math.max(0.085, (1 + (r.rew || 0)) * Math.exp(-(r.tr - (r.fresh || 0)) / r.st.tire));
   // scale of a launch at speed v: U (length unit), c (height of the coin stream), S (object size), cw (cell width), tw (time warp)
   function scaleOf(st, v) { const U = Math.max(1, v * v / 588), apex = Math.pow(v * Math.sin(st.angle), 2) / 19.6, c = Math.min(4.5 * U, Math.max(0.6, 0.5 * apex)); return { U, c, S: Math.max(1, 0.7 * U), cw: 5 * U, tw: Math.max(1, 0.03 * v) }; }
   function newRun(st, meter, kick, seed) {   // meter 0..1 from the charge gauge (>= 1-window is perfect); kick = multiplier from the ramp-edge tap
@@ -378,13 +378,13 @@ const CORE = (() => {
       else { r.spinD = 0; r.spinH = 0; r.spin *= Math.pow(0.02, dtReal); if (Math.abs(r.rotAcc) < 0.6 && r.tr - r.spinT > 1) { const want = Math.max(-0.9, Math.min(0.9, Math.atan2(r.vy, Math.max(1, r.vx)))); let d = want - r.ang; d = Math.atan2(Math.sin(d), Math.cos(d)); r.ang += d * Math.min(1, dtReal * 4); } }
       r.ang += r.spin * dtReal; r.rotAcc += r.spin * dtReal;
       if (st.double && !r.doubled && r.vy < 0 && r.tr > 0.3) { r.doubled = true; const add = 0.25 * r.v0; r.vx += add * 0.92; r.vy += add * 0.4 + Math.max(0, -r.vy) * 0.5; r.ev.push({ k: 'double', x: r.x, y: r.y }); } }
-    // phoenix: for a moment after rising the cart is thrown forward with what two seconds of holding the boost would give
-    // (a cart without a rocket gets 15% of its launch speed instead)
-    if (r.phx > 0) { const k = Math.min(dtReal, r.phx) / PHX_T, dv = (st.thrust ? 2 * 1.15 * st.thrust * (1 + st.nozzle) : 0.15 * r.v0) * k; r.phx -= dtReal; r.vx += dv; r.vy += dv * 0.16; }
+    // phoenix: for a moment after rising the cart is thrown forward with what three seconds of holding the boost would give
+    // (a cart without a rocket gets 25% of its launch speed instead)
+    if (r.phx > 0) { const k = Math.min(dtReal, r.phx) / PHX_T, dv = (st.thrust ? 3 * 1.15 * st.thrust * (1 + st.nozzle) : 0.25 * r.v0) * k; r.phx -= dtReal; r.vx += dv; r.vy += dv * 0.16; }
     if (r.boosting) { r.usedBoost = true; r.fuel -= dtReal * st.burnK; const dv = st.thrust * dtReal * 1.15; r.vx += dv * (1 + st.nozzle); r.vy += dv * (grounded0 ? 0.45 : 0.16) + (r.vy < 0 ? Math.min(-r.vy, dv * 0.5) : 0); if (grounded0 && r.vy > 0) r.air = true; }
     const xPrev = r.x, dg = 0.1 * U;
     for (let i = 0; i < n; i++) {
-      const g = gZ * (r.air ? 1 - st.glide * Math.min(1, Math.abs(r.vx) / (0.05 * r.v0 + 1)) : 1), dk = (st.drag * lerpZ(r.x, 'drag') * Math.min(1, 300 / r.tw) + WEAR * st.wear * (1 + r.tr * r.tr / 1600) * 9.8 / (r.v0 + 20)) * (st.draft && r.tr - r.comboT < st.comboT ? 1 - st.draft * Math.min(r.combo, 10) / 10 : 1);
+      const g = gZ * (r.air ? 1 - st.glide * Math.min(1, Math.abs(r.vx) / (0.05 * r.v0 + 1)) : 1), dk = (st.drag * lerpZ(r.x, 'drag') * Math.min(1, 300 / r.tw) + WEAR * st.wear * (1 + (r.tr - (r.fresh || 0)) * (r.tr - (r.fresh || 0)) / 1600) * 9.8 / (r.v0 + 20)) * (st.draft && r.tr - r.comboT < st.comboT ? 1 - st.draft * Math.min(r.combo, 10) / 10 : 1);
       r.vy -= g * h; const d = Math.exp(-dk * h); r.vx *= d; r.vy *= d;
       { const s2 = Math.hypot(r.vx, r.vy), cap = vcap(r); if (s2 > cap) { r.vx *= cap / s2; r.vy *= cap / s2; r.capT = r.tr; } }
       if (st.convert && r.air && r.vy < 0) { const f = 1 - Math.exp(-st.convert * h * gZ / (r.v0 + 1)), vy0 = r.vy; r.vy *= 1 - f; r.vx = Math.sqrt(Math.max(0, r.vx) * Math.max(0, r.vx) + (vy0 * vy0 - r.vy * r.vy) * 0.8); }
@@ -440,8 +440,8 @@ const CORE = (() => {
       // the run ends when the cart has lost nearly all of its launch speed on the ground, or starts rolling back down a slope
       if (!r.air && sp < Math.max(0.35, 0.04 * r.v0)) r.rest += dtReal; else r.rest = 0;
       if (!r.air && r.vx < 0) r.back += dtReal; else r.back = 0;
-      if (r.rest > 0.5 || r.back > 0.7) { if (st.phoenix && !r.risen) { r.risen = true; r.rest = r.back = 0; const v = 0.4 * r.v0; r.vx = v * Math.cos(st.angle); r.vy = v * Math.sin(st.angle); r.y += 0.5; r.air = true; r.phx = PHX_T; r.ev.push({ k: 'phoenix', x: r.x, y: r.y }); } else { r.over = true; r.why = r.back > 0.7 ? '언덕을 넘지 못했어요' : '멈췄어요'; } }
-      if (r.tr > 100 + st.time + Math.min(100, 10 * Math.max(0, zoneAt(r.maxX) - 8))) { r.over = true; r.why = '시간 초과'; } }
+      if (r.rest > 0.5 || r.back > 0.7) { if (st.phoenix && !r.risen) { r.risen = true; r.rest = r.back = 0; r.fresh = r.tr; r.vx = 0.75 * r.v0; r.vy = 1.05 * r.v0 * Math.sqrt(gZ * (1 - st.glide) / 9.8); r.y += 0.5; r.air = true; r.phx = PHX_T; r.spring++; r.dash++; r.slam = false; r.ev.push({ k: 'phoenix', x: r.x, y: r.y }); } else { r.over = true; r.why = r.back > 0.7 ? '언덕을 넘지 못했어요' : '멈췄어요'; } }
+      if (r.tr > 100 + st.time + (r.risen ? 30 : 0) + Math.min(100, 10 * Math.max(0, zoneAt(r.maxX) - 8))) { r.over = true; r.why = '시간 초과'; } }
   }
   function payout(r, s) {
     const st = r.st, D = r.maxX, z = zoneAt(D), dist = gd(D, z) * st.rate * st.haul, coins = r.coinGold * st.rate;
