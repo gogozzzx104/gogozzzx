@@ -224,12 +224,12 @@ const CORE = (() => {
     TK('t_cap', '한계 돌파', 50, '최고 속도 한도 증가 · 레벨이 오를수록 더 크게'), TK('t_time', '지구력', 10, '최고 속도가 10% 더 천천히 줄어듦'), TK('t_keep', '전생 각인', 5, '초월 때 환생 트리 유지 +10% (기본 50%)'), TK('t_auto', '자동 구매', 1, '판이 끝날 때마다 살 수 있는 업그레이드 자동 구매'),
     TK('t_land', '완벽주의', 20, '착지·슬램 골드 보너스 +50%', 3), TK('t_multi', '다중 광선', 20, '견인 광선이 한 번에 상자·코인을 1개 더 끌어옴', 5), TK('t_beam', '견인 강화', 25, '견인 광선 주기 -8%', 8),
     TK('t_starpow', '별의 힘', 50, '지금까지 받은 별이 많을수록 발사 속도 증가 · 초월해도 유지 · 레벨이 오를수록 더 크게', 10), TK('t_rekindle', '재점화', 10, '깔끔한 착지마다 최고 속도 한도가 올라가고 그만큼 바로 가속 (완벽 착지는 3배)', 12), TK('t_deep', '심연 개척', 50, '미지의 영역에서 받는 차원석 +10%', 15),
-    TK('t_gauge', '급속 충전', 20, '발사 게이지가 빨리 참 (Lv20에 3배) · Lv10부터 퍼펙트 구간에서 자동 발사'), TK('t_spin', '초회전', 50, '2초 넘게 계속 돌리면 회전 속도 증가 · 레벨이 오를수록 더 크게', 16), TK('t_judge', '수호 보호막', 50, '착지 판정이 넓어짐 · 판정 범위가 보호막으로 보임 · Lv50은 어느 방향이든 완벽 착지', 18),
+    TK('t_gauge', '급속 충전', 20, '발사 게이지가 빨리 참 (Lv20에 3배) · Lv10부터 퍼펙트 구간에서 자동 발사'), TK('t_spin', '초회전', 50, '2초 넘게 계속 돌리면 회전 속도 증가 · 레벨이 오를수록 더 크게', 16), TK('t_sphx', '슈퍼 불사조', 3, '멈추면 불사조보다 강하게 부활 · 발사 직후 최고 속도 한도의 1.1/1.3/1.5배로 2/3/4초 질주 · 불사조 도약·대시·급강하 2회씩과 불사조 부스터 50%', 30), TK('t_judge', '수호 보호막', 50, '착지 판정이 넓어짐 · 판정 범위가 보호막으로 보임 · Lv50은 어느 방향이든 완벽 착지', 18),
   ];
   // TW: the strongest abilities cost a multiple of the base price; the 50-level ones climb faster in each band of ten levels (10, 20, 30, 40)
   // TV: what each level of the growing abilities is worth (every level adds more than the one before)
   const TS = { t_cap: 1, t_deep: 1, t_starpow: 1, t_star: 1, t_spin: 1, t_judge: 1 }, TV = { cap: l => 3 + 0.2 * l + 0.004 * l * l, star: l => 0.5 * l * (1 + 0.02 * l), spin: l => 0.04 * l + 0.0016 * l * l, starpow: l => 0.034181 * l * (1 + 0.02 * l) };
-  const TP = Object.fromEntries(TPERKS.map(q => [q.id, q])), TW = { t_starpow: 3, t_deep: 3, t_cap: 1.45, t_beam: 2, t_judge: 2 }, tStep = l => Math.pow(1.03, Math.max(0, Math.min(10, l - 10))) * Math.pow(1.06, Math.max(0, Math.min(10, l - 20))) * Math.pow(1.09, Math.max(0, Math.min(10, l - 30))) * Math.pow(1.12, Math.max(0, Math.min(10, l - 40))), tCost = (q, l) => q.id === 't_auto' ? 3 : q.id === 't_multi' ? Math.ceil(30 * Math.pow(1.3, l) * Math.pow(1.1, Math.max(0, l - 10))) : Math.ceil((TW[q.id] || 1) * (l + 1) * Math.pow(1.05, l) * (TS[q.id] ? tStep(l) : TW[q.id] ? Math.pow(1.15, Math.max(0, l - 10)) : 1)), deepEver = s => Math.max(s.deepEver || 0, zoneAt(s.best || 0) - LAST, 0), tLock = (s, id) => deepEver(s) < TP[id].gate ? `미지의 영역 ${TP[id].gate} 도달 시 열림` : '', tl = (s, id) => (s.tperks || {})[id] || 0;
+  const TP = Object.fromEntries(TPERKS.map(q => [q.id, q])), TW = { t_starpow: 3, t_deep: 3, t_cap: 1.45, t_beam: 2, t_judge: 2 }, tStep = l => Math.pow(1.03, Math.max(0, Math.min(10, l - 10))) * Math.pow(1.06, Math.max(0, Math.min(10, l - 20))) * Math.pow(1.09, Math.max(0, Math.min(10, l - 30))) * Math.pow(1.12, Math.max(0, Math.min(10, l - 40))), tCost = (q, l) => q.id === 't_auto' ? 3 : q.id === 't_sphx' ? [200, 5000, 100000][l] : q.id === 't_multi' ? Math.ceil(30 * Math.pow(1.3, l) * Math.pow(1.1, Math.max(0, l - 10))) : Math.ceil((TW[q.id] || 1) * (l + 1) * Math.pow(1.05, l) * (TS[q.id] ? tStep(l) : TW[q.id] ? Math.pow(1.15, Math.max(0, l - 10)) : 1)), deepEver = s => Math.max(s.deepEver || 0, zoneAt(s.best || 0) - LAST, 0), tLock = (s, id) => deepEver(s) < TP[id].gate ? `미지의 영역 ${TP[id].gate} 도달 시 열림` : '', tl = (s, id) => (s.tperks || {})[id] || 0;
   const starsEver = s => Math.max(s.starsEver || 0, s.starsTotal || 0);   // every star ever earned; transcending does not reset it
   const cycleBest = s => Math.max(s.bestT || 0, s.bestLife || 0);
   // shards for a transcendence: 5 for reaching the end of time, more for every uncharted zone beyond it
@@ -300,7 +300,7 @@ const CORE = (() => {
       spring: L('spring'), springN: L('spring') ? 1 + Math.floor(L('spring') / 4) + P('r_spring') + Math.floor(L('over') / 5) : 0, airjump: L('airjump') ? Math.min(1, 0.4 + 0.06 * L('airjump')) : 0,
       dash: L('dash'), dashN: L('dash') ? 1 + Math.floor(L('dash') / 5) + P('r_dash') + Math.floor(L('over') / 5) : 0, dashpow: (1 + 0.12 * L('dashpow')) * (1 + 0.04 * L('amp')),
       dive: L('dive'), diveN: L('dive') ? 1 + Math.floor(L('dive') / 3) + Math.floor(L('over') / 5) : 0, glide: Math.min(0.35, 0.035 * L('wing')), convert: 0.08 * L('convert'), grav: Math.max(0.4, 1 - 0.03 * L('grav')), haul: 1 + 0.25 * L('haul'),
-      pioneer: 1 + 0.5 * P('r_skip'), double: P('r_double'), phoenix: P('r_phoenix'), encore: 1 + 0.05 * L('encore'), refuel: (0.1 + 0.02 * L('refuel')), tractor: L('tractor') ? (8 - 0.5 * L('tractor')) * Math.pow(0.92, tl(s, 't_beam')) : 0, ampP: 4 * L('amp'), burnP: 5 * L('burn'), turbine: 0.02 * L('turbine'), pit: L('pit'), pslam: 0.012 * L('pslam'), jspring: L('jspring'), draft: 0.02 * L('draft'), streakB: 0.006 * L('streak'), burnK: 1 + 0.04 * L('burn'), comboT: 3 + 0.15 * L('ctime'), beamN: 1 + tl(s, 't_multi'), multi: 0.15 * L('multi'), allB: 0.012 * L('allr'),
+      pioneer: 1 + 0.5 * P('r_skip'), double: P('r_double'), phoenix: P('r_phoenix'), sphx: tl(s, 't_sphx'), encore: 1 + 0.05 * L('encore'), refuel: (0.1 + 0.02 * L('refuel')), tractor: L('tractor') ? (8 - 0.5 * L('tractor')) * Math.pow(0.92, tl(s, 't_beam')) : 0, ampP: 4 * L('amp'), burnP: 5 * L('burn'), turbine: 0.02 * L('turbine'), pit: L('pit'), pslam: 0.012 * L('pslam'), jspring: L('jspring'), draft: 0.02 * L('draft'), streakB: 0.006 * L('streak'), burnK: 1 + 0.04 * L('burn'), comboT: 3 + 0.15 * L('ctime'), beamN: 1 + tl(s, 't_multi'), multi: 0.15 * L('multi'), allB: 0.012 * L('allr'),
       leap: 0.02 + 0.01 * L('leap'), crater: 0.02 + 0.008 * L('crater'), time: 10 * P('r_time'),
       perfB: 0.3 * (1 + 0.5 * P('r_perf')), landG: 0.03 * (1 + 0.5 * P('r_land')) * (1 + 0.5 * tl(s, 't_land')), landP: 0.08 * (1 + 0.5 * P('r_land')) * (1 + 0.5 * tl(s, 't_land')), slamB: 0.08 * (1 + 0.5 * P('r_land')) * (1 + 0.5 * tl(s, 't_land')),
       vcap: TV.cap(tl(s, 't_cap')), tire: 30 * (1 + 0.1 * tl(s, 't_time')), rekindle: 0.005 * tl(s, 't_rekindle'), spinK: 1 + 0.08 * L('gyro'), spinUp: TV.spin(tl(s, 't_spin')), judgeG: 0.26 + 0.01 * L('gyro') + 0.0606 * tl(s, 't_judge'), judgeP: 0.11 + 0.004 * L('gyro') + 0.0606 * tl(s, 't_judge'), judgeT: 0.7 + 0.04 * L('gyro') + 0.0606 * tl(s, 't_judge'),
@@ -312,12 +312,18 @@ const CORE = (() => {
 
   // ---- one run ------------------------------------------------------------------------------------
   const hash = n => { let t = (n + 0x6D2B79F5) | 0; t = Math.imul(t ^ (t >>> 15), 1 | t); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-  const RAMP = 4, WEAR = 0.12, VCAP = 3, PHX_T = 0.7; let TIRE = 30;
+  const RAMP = 4, WEAR = 0.12, VCAP = 3, PHX_T = 0.7, PDIVE_T = 0.38; let TIRE = 30;
   // top speed allowed at a moment of the run: three times launch speed at first, tiring as the run goes on, so even a maxed cart's run winds down
   // the top-speed cap fades with time since launch (r.fresh); holding the boost winds that fatigue back by BOOST_REST seconds per second
   // (so the cap slowly comes back), and every dash wins back DASH_REST of the fatigue built up so far
   const BOOST_REST = 0.5, DASH_REST = 0.05;
-  const vcap = r => r.st.vcap * r.v0 * Math.max(0.085, (1 + (r.rew || 0)) * Math.exp(-(r.tr - (r.fresh || 0)) / r.st.tire));
+  const vcap = r => { const c = r.st.vcap * r.v0 * Math.max(0.085, (1 + (r.rew || 0)) * Math.exp(-(r.tr - (r.fresh || 0)) / r.st.tire)); return r.sphxT > 0 ? Math.max(c, sphxSpeed(r) * 1.02) : c; };
+  // super phoenix: the sprint speed is a multiple of the cap right after launch
+  const sphxSpeed = r => r.sphxM * r.st.vcap * r.v0 * (1 + (r.rew || 0));
+  // super phoenix by level: sprint multiple, sprint seconds, and phoenix dashes, springs, booster share and dives granted on rising
+  const SPHX = [null, { m: 1.1, t: 2, n: 2, f: 0.5 }, { m: 1.3, t: 3, n: 3, f: 0.7 }, { m: 1.5, t: 4, n: 5, f: 1 }];
+  // fatigue won back: a phoenix dash and the phoenix booster 2.5x the plain ones, a phoenix spring 10% of the built-up fatigue
+  const PHX_REST = 2.5, PSPRING_REST = 0.1;
   // scale of a launch at speed v: U (length unit), c (height of the coin stream), S (object size), cw (cell width), tw (time warp)
   function scaleOf(st, v) { const U = Math.max(1, v * v / 588), apex = Math.pow(v * Math.sin(st.angle), 2) / 19.6, c = Math.min(4.5 * U, Math.max(0.6, 0.5 * apex)); return { U, c, S: Math.max(1, 0.7 * U), cw: 5 * U, tw: Math.max(1, 0.03 * v) }; }
   function newRun(st, meter, kick, seed) {   // meter 0..1 from the charge gauge (>= 1-window is perfect); kick = multiplier from the ramp-edge tap
@@ -325,7 +331,7 @@ const CORE = (() => {
     return Object.assign({ st, kick: kick || 1, seed: sd, x: 0, y: RAMP * Math.tan(st.angle) + 0.3, vx: v * Math.cos(st.angle), vy: v * Math.sin(st.angle), v0: v, perfect, dbl, airT: 0, fuel: st.fuel, spring: st.springN, dash: st.dashN, dive: st.diveN,
       t: 0, tr: 0, air: true, rest: 0, back: 0, maxX: 0, maxAlt: 0, maxV: v, bounces: 0, coins: 0, crates: 0, coinGold: 0, broke: 0, used: new Set(), over: false, why: '', ev: [], boosting: false,
       tops: 0, capT: -9, mag: [], tracT: 2, zc: 0, slam: false, slams: 0, combo: 0, comboT: -9, maxCombo: 0, golden: hash(sd * 13 + 5) < st.lucky, ph: hash(sd) * 6.283, ph2: hash(sd + 1) * 6.283,
-      ang: st.angle, spin: 0, rotAcc: 0, tricks: 0, crashes: 0, refills: 0, cleans: 0, perfLands: 0, landStreak: 0, maxStreak: 0, spinT: -9, usedBoost: false, doubled: false, risen: false, lastBounce: -9 }, sc);
+      ang: st.angle, spin: 0, rotAcc: 0, tricks: 0, crashes: 0, refills: 0, cleans: 0, perfLands: 0, landStreak: 0, maxStreak: 0, spinT: -9, usedBoost: false, doubled: false, risen: false, lastBounce: -9, pspring: 0, pdash: 0, pdive: 0, pfuel: 0, sphxT: 0, sphxM: 1, pdc: 0, fdive: false }, sc);
   }
   // height of the coin stream above the ground at x
   const river = (r, x) => Math.max(0.6 * r.S, r.c * (1 + 0.45 * Math.sin(x / (9 * r.U) + r.ph) + 0.18 * Math.sin(x / (3.7 * r.U) + r.ph2)));
@@ -368,15 +374,21 @@ const CORE = (() => {
     // one time warp for the whole run (set by the launch speed); only gravity changes stretch it, and rolling is hurried along
     const dt = dtReal * r.tw * Math.sqrt(9.8 / (gZ * (1 - st.glide))) * (r.air ? 1 : 1.4) * Math.min(2, Math.max(1, 0.2 * r.v0 / (sp0 + 0.01 * r.v0)));
     const n = Math.min(80, Math.max(1, Math.ceil(Math.max(sp0 * dt / (0.25 * U), dtReal * 120)))), h = dt / n;
-    r.boosting = !!(inp.boost && r.fuel > 0);
+    r.boosting = !!(inp.boost && r.fuel + r.pfuel > 0);
     const gk = Math.sqrt(gZ * (1 - st.glide) / 9.8), alt0 = r.y - ground(r.x, U), grounded0 = alt0 < Math.max(1.2, 0.5 * r.S), vRef = Math.min(1.2 * r.v0, Math.max(sp0, 0.5 * r.v0));
-    const doSpring = k => { const pf = k === 1 && r.tr - r.lastBounce < 0.22 + 0.008 * st.jspring ? 1.35 : 1; if (pf > 1 && st.jspring) r.vx += 0.008 * st.jspring * r.v0 * Math.pow(0.94, r.tops++); r.spring--; let up = (5 + 0.5 * st.spring + Math.min(1.2 * r.v0, Math.max(sp0, 0.8 * r.v0)) * (0.26 + 0.012 * st.spring)) * pf * k; if (k === 1) up = Math.max(up, Math.sqrt(2.3 * gZ * river(r, r.x + 0.5 * r.cw)) * pf); r.vy = Math.min(0.85 * r.v0 * gk + 8, Math.max(r.vy, 0) + up); r.vx *= 1.03; if (k < 1) r.vx += st.leap * r.v0; r.air = true; if (k === 1) r.rotAcc = 0; r.ev.push({ k: k < 1 ? 'airspring' : pf > 1 ? 'pspring' : 'spring', x: r.x, y: r.y }); };
-    const doDash = () => { r.dash--; r.fresh = (r.fresh || 0) + (r.tr - (r.fresh || 0)) * DASH_REST; const add = (6 + st.dash + Math.min(1.2 * r.v0, Math.max(sp0, 0.8 * r.v0)) * (0.08 + 0.006 * st.dash)) * st.dashpow; r.vx += add; r.vy = grounded0 ? Math.max(r.vy, 0.18 * r.v0 + 3) : Math.max(r.vy, -0.12 * sp0); if (grounded0) r.air = true; r.ev.push({ k: 'dash', x: r.x, y: r.y }); };
-    if (inp.skill) { if (grounded0 && r.spring > 0) doSpring(1); else if (r.dash > 0 && !grounded0) doDash(); else if (!grounded0 && st.airjump && r.spring > 0) doSpring(st.airjump); }
-    if (inp.spring && r.spring > 0) { if (grounded0) doSpring(1); else if (st.airjump) doSpring(st.airjump); }
-    if (inp.dash && r.dash > 0) doDash();
+    const dashAdd = () => (6 + st.dash + Math.min(1.2 * r.v0, Math.max(sp0, 0.8 * r.v0)) * (0.08 + 0.006 * st.dash)) * (st.dashpow || 1);
+    const doSpring = k => { const pf = k === 1 && r.tr - r.lastBounce < 0.22 + 0.008 * st.jspring ? 1.35 : 1; if (pf > 1 && st.jspring) r.vx += 0.008 * st.jspring * r.v0 * Math.pow(0.94, r.tops++); const fire = r.pspring > 0; if (fire) r.pspring--; else r.spring--; let up = (5 + 0.5 * st.spring + Math.min(1.2 * r.v0, Math.max(sp0, 0.8 * r.v0)) * (0.26 + 0.012 * st.spring)) * pf * k; if (k === 1) up = Math.max(up, Math.sqrt(2.3 * gZ * river(r, r.x + 0.5 * r.cw)) * pf); r.vy = Math.min(0.85 * r.v0 * gk + 8, Math.max(r.vy, 0) + up); r.vx *= 1.03; if (k < 1) r.vx += st.leap * r.v0; if (fire) { r.vx += 0.8 * dashAdd(); r.fresh = (r.fresh || 0) + (r.tr - (r.fresh || 0)) * PSPRING_REST; } r.air = true; if (k === 1) r.rotAcc = 0; r.ev.push({ k: k < 1 ? 'airspring' : pf > 1 ? 'pspring' : 'spring', x: r.x, y: r.y }); if (fire) r.ev.push({ k: 'fspring', x: r.x, y: r.y }); };
+    const doDash = () => { const fire = r.pdash > 0; if (fire) r.pdash--; else r.dash--; r.fresh = (r.fresh || 0) + (r.tr - (r.fresh || 0)) * DASH_REST * (fire ? PHX_REST : 1); const add = dashAdd(); r.vx += add; r.vy = grounded0 ? Math.max(r.vy, 0.18 * r.v0 + 3) : Math.max(r.vy, -0.12 * sp0); if (grounded0) r.air = true; r.ev.push({ k: fire ? 'fdash' : 'dash', x: r.x, y: r.y }); };
+    const nSpring = r.spring + r.pspring, nDash = r.dash + r.pdash;
+    if (inp.skill) { if (grounded0 && nSpring > 0) doSpring(1); else if (nDash > 0 && !grounded0) doDash(); else if (!grounded0 && st.airjump && nSpring > 0) doSpring(st.airjump); }
+    if (inp.spring && nSpring > 0) { if (grounded0) doSpring(1); else if (st.airjump) doSpring(st.airjump); }
+    if (inp.dash && r.dash + r.pdash > 0) doDash();
     // dive: a hard push straight down plus some forward speed; from very high it starts fast enough to cover the drop in about 1.2 real seconds
-    if (inp.dive && r.dive > 0 && !grounded0) { r.dive--; r.slam = true; r.vy = -Math.max(Math.abs(r.vy), 0.9 * r.v0, alt0 / (1.1 * r.tw * Math.sqrt(9.8 / (gZ * (1 - st.glide))))); r.vx += vRef * (0.05 + 0.02 * st.dive) + 4; r.spin = 0; r.ev.push({ k: 'dive', x: r.x, y: r.y }); }
+    if (inp.dive && r.pdive > 0 && !grounded0 && r.pdc <= 0 && !r.fdive) { r.pdive--; r.pdc = PDIVE_T; r.ev.push({ k: 'fdivecharge', x: r.x, y: r.y }); }
+    else if (inp.dive && r.dive > 0 && !grounded0 && r.pdc <= 0) { r.dive--; r.slam = true; r.vy = -Math.max(Math.abs(r.vy), 0.9 * r.v0, alt0 / (1.1 * r.tw * Math.sqrt(9.8 / (gZ * (1 - st.glide))))); r.vx += vRef * (0.05 + 0.02 * st.dive) + 4; r.spin = 0; r.ev.push({ k: 'dive', x: r.x, y: r.y }); }
+    if (r.pdc > 0) { r.pdc -= dtReal; const h2 = Math.exp(-dtReal * 9); r.vx *= h2; r.vy *= h2; r.spin = 0;
+      if (r.pdc <= 0) { r.pdc = 0; r.slam = true; r.fdive = true; r.vy = -Math.max(1.2 * r.v0, alt0 / (0.55 * r.tw * Math.sqrt(9.8 / (gZ * (1 - st.glide))))); r.vx += vRef * (0.08 + 0.02 * st.dive) + 4; r.ev.push({ k: 'fdive', x: r.x, y: r.y }); } }
+    if (!r.slam) r.fdive = false;
     if (r.air) r.airT += dtReal; else r.airT = 0;
     if (r.air) { const sd = inp.spin || 0;
       // hyper spin only kicks in after the stick has been held one way for 2 s, so short taps stay easy to aim
@@ -386,8 +398,10 @@ const CORE = (() => {
       if (st.double && !r.doubled && !r.slam && r.vy < 0 && r.tr > 0.3) { r.doubled = true; const add = 0.25 * r.v0; r.vx += add * 0.92; r.vy += add * 0.4 + Math.max(0, -r.vy) * 0.5; r.ev.push({ k: 'double', x: r.x, y: r.y }); } }
     // phoenix: for a moment after rising the cart is thrown forward with what three seconds of holding the boost would give
     // (a cart without a rocket gets 25% of its launch speed instead)
+    if (r.sphxT > 0) { r.sphxT -= dtReal; const sp = Math.hypot(r.vx, r.vy), T = sphxSpeed(r), k = Math.min(1, dtReal * 10), ns = sp + (T - sp) * k; if (sp > 1e-9) { r.vx *= ns / sp; r.vy *= ns / sp; } else r.vx = ns;
+      if (r.sphxT <= 0) { r.sphxT = 0; r.fresh = r.tr; r.ev.push({ k: 'sphxend', x: r.x, y: r.y }); } }
     if (r.phx > 0) { const k = Math.min(dtReal, r.phx) / PHX_T, dv = (st.thrust ? 3 * 1.15 * st.thrust * (1 + st.nozzle) : 0.25 * r.v0) * k; r.phx -= dtReal; r.vx += dv; r.vy += dv * 0.16; }
-    if (r.boosting) { r.usedBoost = true; r.fresh = Math.min(r.tr, (r.fresh || 0) + dtReal * (1 + BOOST_REST)); r.fuel -= dtReal * st.burnK; const dv = st.thrust * dtReal * 1.15; r.vx += dv * (1 + st.nozzle); r.vy += dv * (grounded0 ? 0.45 : 0.16) + (r.vy < 0 ? Math.min(-r.vy, dv * 0.5) : 0); if (grounded0 && r.vy > 0) r.air = true; }
+    if (r.boosting) { r.usedBoost = true; const fireB = r.pfuel > 0; r.fresh = Math.min(r.tr, (r.fresh || 0) + dtReal * (1 + BOOST_REST * (fireB ? PHX_REST : 1))); let burn = dtReal * st.burnK; if (fireB) { const u = Math.min(r.pfuel, burn); r.pfuel -= u; burn -= u; } r.fuel = Math.max(0, r.fuel - burn); const dv = st.thrust * dtReal * 1.15; r.vx += dv * (1 + st.nozzle); r.vy += dv * (grounded0 ? 0.45 : 0.16) + (r.vy < 0 ? Math.min(-r.vy, dv * 0.5) : 0); if (grounded0 && r.vy > 0) r.air = true; }
     const xPrev = r.x, dg = 0.1 * U;
     for (let i = 0; i < n; i++) {
       const g = gZ * (r.air && !r.slam ? 1 - st.glide * Math.min(1, Math.abs(r.vx) / (0.05 * r.v0 + 1)) : 1), dk = (st.drag * lerpZ(r.x, 'drag') * Math.min(1, 300 / r.tw) + WEAR * st.wear * (1 + (r.tr - (r.fresh || 0)) * (r.tr - (r.fresh || 0)) / 1600) * 9.8 / (r.v0 + 20)) * (st.draft && r.tr - r.comboT < st.comboT ? 1 - st.draft * Math.min(r.combo, 10) / 10 : 1);
@@ -447,7 +461,12 @@ const CORE = (() => {
       // the run ends when the cart has lost nearly all of its launch speed on the ground, or starts rolling back down a slope
       if (!r.air && sp < Math.max(0.35, 0.04 * r.v0)) r.rest += dtReal; else r.rest = 0;
       if (!r.air && r.vx < 0) r.back += dtReal; else r.back = 0;
-      if (r.rest > 0.5 || r.back > 0.7) { if (st.phoenix && !r.risen) { r.risen = true; r.rest = r.back = 0; r.fresh = r.tr; r.vx = 0.75 * r.v0; r.vy = 1.05 * r.v0 * Math.sqrt(gZ * (1 - st.glide) / 9.8); r.y += 0.5; r.air = true; r.phx = PHX_T; r.spring++; r.dash++; r.slam = false; r.ev.push({ k: 'phoenix', x: r.x, y: r.y }); } else { r.over = true; r.why = r.back > 0.7 ? '언덕을 넘지 못했어요' : '멈췄어요'; } }
+      if (r.rest > 0.5 || r.back > 0.7) { if ((st.phoenix || st.sphx) && !r.risen) { r.risen = true; r.rest = r.back = 0; r.fresh = Math.max(r.fresh || 0, r.tr - st.tire * Math.log(1 / 0.7)); r.vx = 0.75 * r.v0; r.vy = 1.05 * r.v0 * Math.sqrt(gZ * (1 - st.glide) / 9.8); r.y += 0.5; r.air = true; r.phx = PHX_T; r.slam = false; r.fdive = false; r.pdc = 0;
+        if (st.sphx) { const L = SPHX[Math.min(3, st.sphx)]; r.sphxM = L.m; r.sphxT = L.t; r.fresh = r.tr;
+          // leftovers turn into phoenix skills (3 springs, 2 dives or 2 dashes make one), then the level's own phoenix skills and booster share
+          r.pspring += Math.floor(r.spring / 3) + L.n; r.spring %= 3; r.pdive += Math.floor(r.dive / 2) + L.n; r.dive %= 2; r.pdash += Math.floor(r.dash / 2) + L.n; r.dash %= 2; if (st.fuel) r.pfuel += L.f * st.fuel; }
+        else { r.spring++; r.dash++; }
+        r.ev.push({ k: 'phoenix', x: r.x, y: r.y, sup: st.sphx || 0 }); } else { r.over = true; r.why = r.back > 0.7 ? '언덕을 넘지 못했어요' : '멈췄어요'; } }
       if (r.tr > 100 + st.time + (r.risen ? 30 : 0) + Math.min(100, 10 * Math.max(0, zoneAt(r.maxX) - 8))) { r.over = true; r.why = '시간 초과'; } }
   }
   function payout(r, s) {
@@ -465,6 +484,6 @@ const CORE = (() => {
   function buyAllPerks(s) { let n = 0; for (; n < 2000;) { let best = null, bc = Infinity; for (const q of PERKS) { const l = s.perks[q.id] || 0, c = perkCost(q, l); if (l < q.max && !perkLock(s, q.id) && c <= s.stars && c < bc) { bc = c; best = q.id; } } if (!best) break; buyPerk(s, best); n++; } return n; }
   function buyPerk(s, id) { const p = PK[id], l = s.perks[id] || 0; if (!p || l >= p.max || perkLock(s, id) || s.stars < perkCost(p, l)) return false; s.stars -= perkCost(p, l); s.perks[id] = l + 1; return true; }
   return { ZONES, ZI, zoneAt, zoneProg, lerpZ, ground, isWater, UPS, UP, BRANCH, PERKS, PK, PBRANCH, perkCost, perkLock, perkGate, reached, SEED, STAR_GOLD, starsFor, nextStarAt, ACH, checkAch, achCount, FIN_T,
-    setTire: v => { TIRE = v; }, vcap, newSave, migrate, lvl, total, cost, lockReason, canBuy, buy, stats, RAMP, scaleOf, newRun, river, cellObjs, step, payout, finish, rebirth, buyPerk, buyAll, buyAllPerks, gateZone, LAST, TPERKS, TP, tCost, tl, TV, shardsFor, shardMult, SHARD_M, buyT, tLock, deepEver, starsEver, transcend, starGain, cycleBest, gd, gref };
+    setTire: v => { TIRE = v; }, vcap, newSave, migrate, lvl, total, cost, lockReason, canBuy, buy, stats, RAMP, scaleOf, newRun, PDIVE_T, river, cellObjs, step, payout, finish, rebirth, buyPerk, buyAll, buyAllPerks, gateZone, LAST, TPERKS, TP, tCost, tl, TV, shardsFor, shardMult, SHARD_M, buyT, tLock, deepEver, starsEver, transcend, starGain, cycleBest, gd, gref };
 })();
 if (typeof module !== 'undefined') module.exports = CORE;
