@@ -233,8 +233,11 @@ const CORE = (() => {
   const starsEver = s => Math.max(s.starsEver || 0, s.starsTotal || 0);   // every star ever earned; transcending does not reset it
   const cycleBest = s => Math.max(s.bestT || 0, s.bestLife || 0);
   // shards for a transcendence: 5 for reaching the end of time, more for every uncharted zone beyond it
-  // past uncharted zone 20 every further zone pays a growing extra; reaching 30, 35, 40 … 60 each raises a multiplier on the lot
-  const shardsFor = s => { const d = cycleBest(s); if (d < ZONES[LAST].at) return 0; const z = zoneProg(d) - LAST, m = z >= 67 ? 10 : z >= 65 ? 9 : z >= 63 ? 8 : z >= 60 ? 7 : z >= 58 ? 6 : z >= 56 ? 5 : z >= 53 ? 4 : z >= 50 ? 3 : z >= 45 ? 2 : z >= 40 ? 1.8 : z >= 35 ? 1.5 : z >= 30 ? 1.3 : 1;
+  // past uncharted zone 20 every further zone pays a growing extra; the whole amount is then multiplied by the step of the deepest zone
+  // reached (SHARD_M: [first zone of the step, multiplier]).  Set by the player: uncharted 1-50 in steps of five, then steps of three.
+  const SHARD_M = [[6, 1.2], [11, 1.4], [16, 1.6], [21, 1.8], [26, 2], [31, 2.2], [36, 2.5], [41, 2.8], [46, 3.5], [51, 5], [54, 6], [57, 7], [60, 8], [63, 9], [66, 10], [69, 12]];
+  const shardMult = z => { let m = 1; for (const [k, v] of SHARD_M) if (z >= k) m = v; return m; };
+  const shardsFor = s => { const d = cycleBest(s); if (d < ZONES[LAST].at) return 0; const z = zoneProg(d) - LAST, m = shardMult(z);
     return Math.floor(5 + (3 * Math.pow(z, 1.2) + 6 * Math.pow(Math.max(0, z - 20), 1.5)) * (1 + 0.1 * tl(s, 't_deep')) * m); };
   function buyT(s, id) { const q = TP[id], l = tl(s, id); if (!q || l >= q.max || tLock(s, id) || (s.shards || 0) < tCost(q, l)) return false; s.shards -= tCost(q, l); s.tperks = s.tperks || {}; s.tperks[id] = l + 1; return true; }
   // farT: the deepest zone a transcendence was ever made from (opens the late carts)
@@ -458,6 +461,6 @@ const CORE = (() => {
   function buyAllPerks(s) { let n = 0; for (; n < 2000;) { let best = null, bc = Infinity; for (const q of PERKS) { const l = s.perks[q.id] || 0, c = perkCost(q, l); if (l < q.max && !perkLock(s, q.id) && c <= s.stars && c < bc) { bc = c; best = q.id; } } if (!best) break; buyPerk(s, best); n++; } return n; }
   function buyPerk(s, id) { const p = PK[id], l = s.perks[id] || 0; if (!p || l >= p.max || perkLock(s, id) || s.stars < perkCost(p, l)) return false; s.stars -= perkCost(p, l); s.perks[id] = l + 1; return true; }
   return { ZONES, ZI, zoneAt, zoneProg, lerpZ, ground, isWater, UPS, UP, BRANCH, PERKS, PK, PBRANCH, perkCost, perkLock, perkGate, reached, SEED, STAR_GOLD, starsFor, nextStarAt, ACH, checkAch, achCount, FIN_T,
-    setTire: v => { TIRE = v; }, vcap, newSave, migrate, lvl, total, cost, lockReason, canBuy, buy, stats, RAMP, scaleOf, newRun, river, cellObjs, step, payout, finish, rebirth, buyPerk, buyAll, buyAllPerks, gateZone, LAST, TPERKS, TP, tCost, tl, TV, shardsFor, buyT, tLock, deepEver, starsEver, transcend, starGain, cycleBest, gd, gref };
+    setTire: v => { TIRE = v; }, vcap, newSave, migrate, lvl, total, cost, lockReason, canBuy, buy, stats, RAMP, scaleOf, newRun, river, cellObjs, step, payout, finish, rebirth, buyPerk, buyAll, buyAllPerks, gateZone, LAST, TPERKS, TP, tCost, tl, TV, shardsFor, shardMult, SHARD_M, buyT, tLock, deepEver, starsEver, transcend, starGain, cycleBest, gd, gref };
 })();
 if (typeof module !== 'undefined') module.exports = CORE;
