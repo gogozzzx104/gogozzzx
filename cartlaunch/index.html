@@ -317,7 +317,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 114, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 115, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -359,7 +359,7 @@ const fmtD = m => m < 1000 ? m.toFixed(1) + 'm' : m < 1e6 ? (m / 1000).toFixed(2
 /* ---------------- options ---------------- */
 // Kept on this device only.  gfx: auto | low | mid | high · fps: 0 (no limit) | 30 | 60 · shake / flash: strength 0..1
 const RM = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
-const OPT = Object.assign({ gfx: 'auto', fx: RM ? 1 : 2, fps: 0, shake: RM ? 0.4 : 1, flash: RM ? 0.35 : 1, vib: 1, sfx: 1, mus: 1, meter: 0, pops: 1 }, (() => { try { return JSON.parse(LS.get('cart.opt') || '{}') || {}; } catch (e) { return {}; } })());
+const OPT = Object.assign({ gfx: 'auto', fx: RM ? 1 : 2, fps: 0, shake: RM ? 0.4 : 1, flash: RM ? 0.35 : 1, vib: 1, sfx: 1, mus: 1, wind: 1, meter: 0, pops: 1 }, (() => { try { return JSON.parse(LS.get('cart.opt') || '{}') || {}; } catch (e) { return {}; } })());
 const saveOpt = () => LS.set('cart.opt', JSON.stringify(OPT));
 // What each graphics mode draws.  dpr: pixel-ratio ceiling · part: particle amount · cap: live particles · cnt: sky object amount
 // glow: blurred glows · haze, far, shade, shadow, rays, vig, trail: the extra scenery passes
@@ -404,7 +404,7 @@ function perfTick(dtMs, workMs, flying) { PERF.dt += (dtMs - PERF.dt) * 0.05; PE
 // (A wind noise that followed the cart's speed was removed at the player's request.)
 let actx = null, sndMode = 0, sndOn = true, musOn = true; try { sndMode = +(localStorage.getItem('cart.snd2') || (localStorage.getItem('cart.snd') === '0' ? 2 : 0)); } catch (e) {} sndOn = sndMode < 2; musOn = sndMode === 0;   // 0 sound+music · 1 effects only · 2 off
 const snd = () => { if (!sndOn) return null; if (!actx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null; actx = new AC(); } if (actx.state === 'suspended') actx.resume(); AUD.build(actx); return actx; };
-const AUD = { a: null, sfxG: null, musG: null, lp: null, rev: null, lpF: 18000,
+const AUD = { a: null, sfxG: null, musG: null, lp: null, rev: null, lpF: 18000, wind: null, windG: null, windF: null,
   build(a) { if (this.a === a) return; this.a = a;
     const c = a.createDynamicsCompressor(); c.threshold.value = -11; c.knee.value = 9; c.ratio.value = 14; c.attack.value = 0.003; c.release.value = 0.2; c.connect(a.destination);
     this.sfxG = a.createGain(); this.sfxG.gain.value = OPT.sfx; this.sfxG.connect(c);
@@ -416,7 +416,19 @@ const AUD = { a: null, sfxG: null, musG: null, lp: null, rev: null, lpF: 18000,
   // the music dips for a moment so a big hit reads clearly, then comes back
   duck(k = 0.5, hold = 0.35) { const a = this.a; if (!a || a.state !== 'running') return; const t = a.currentTime, gn = this.musG.gain; gn.cancelScheduledValues(t); gn.setTargetAtTime(OPT.mus * (1 - k), t, 0.015); gn.setTargetAtTime(OPT.mus, t + hold, 0.22); },
   // every frame: music is muffled behind the result card and the shop
-  tick() { const a = this.a; if (!a || a.state !== 'running') return; const f = state === 'result' ? 1300 : state === 'shop' && tab !== 'map' ? 3200 : 18000; if (f !== this.lpF) { this.lpF = f; this.lp.frequency.setTargetAtTime(f, a.currentTime, 0.12); } } };
+  tick() { const a = this.a; if (!a || a.state !== 'running') return; const f = state === 'result' ? 1300 : state === 'shop' && tab !== 'map' ? 3200 : 18000; if (f !== this.lpF) { this.lpF = f; this.lp.frequency.setTargetAtTime(f, a.currentTime, 0.12); }
+    // wind: very faint on purpose (a louder version was removed in v83); a narrow band of noise whose pitch and level drift slowly, so it whistles "휘이잉"
+    const fly = state === 'fly' && run && !run.over && OPT.wind;
+    if (!this.wind) { if (!fly) return; const len = a.sampleRate * 3, b = a.createBuffer(1, len, a.sampleRate), d = b.getChannelData(0); let l = 0; for (let i = 0; i < len; i++) { l = l * 0.9 + (Math.random() * 2 - 1) * 0.3; d[i] = l; }
+      const n = a.createBufferSource(); n.buffer = b; n.loop = true; this.windF = a.createBiquadFilter(); this.windF.type = 'bandpass'; this.windF.Q.value = 2.4; this.windG = a.createGain(); this.windG.gain.value = 0; n.connect(this.windF); this.windF.connect(this.windG); this.windG.connect(this.sfxG); n.start(); this.wind = n; }
+    const tt = a.currentTime, k = fly ? Math.min(1, Math.hypot(run.vx, run.vy) / (run.v0 + 1)) : 0, sw = 0.55 + 0.45 * Math.sin(tt * 0.83) * Math.sin(tt * 0.31 + 1);
+    this.windG.gain.setTargetAtTime(fly ? (run.air ? 0.03 : 0.012) * (0.3 + 0.7 * k) * sw : 0, tt, 0.25); this.windF.frequency.setTargetAtTime(420 + 520 * k + 160 * Math.sin(tt * 0.57), tt, 0.3); } };
+// spin whoosh: a soft swish of filtered noise, one every half turn in the air, so faster spins swish more often
+let whBuf = null;
+function whoosh(w) { const a = snd(); if (!a || a.state !== 'running' || !AUD.sfxG) return; if (!whBuf || whBuf.sampleRate !== a.sampleRate) { const n = Math.floor(a.sampleRate * 0.5); whBuf = a.createBuffer(1, n, a.sampleRate); const d = whBuf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; }
+  const t = a.currentTime, q = Math.min(1, w / 25), dur = 0.2 - 0.08 * q, f0 = 420 + 380 * q, vol = 0.035 + 0.035 * q, sr = a.createBufferSource(), f = a.createBiquadFilter(), v = a.createGain();
+  sr.buffer = whBuf; f.type = 'bandpass'; f.Q.value = 1.3; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f0 * 2.3, t + dur * 0.55); f.frequency.exponentialRampToValueAtTime(f0 * 0.9, t + dur);
+  v.gain.setValueAtTime(0.0001, t); v.gain.exponentialRampToValueAtTime(vol, t + dur * 0.4); v.gain.exponentialRampToValueAtTime(0.0001, t + dur); sr.connect(f); f.connect(v); v.connect(AUD.sfxG); sr.start(t, Math.random() * 0.25); sr.stop(t + dur + 0.02); }
 let toneT = 0, toneN = 0;   // at most six blips per 60 ms
 const jit = (c = 0.04) => 1 + (Math.random() * 2 - 1) * c;   // small pitch variation so a repeated sound never plays twice the same
 // o: { rev: reverb send 0..1, pan: -1..1 }
@@ -430,7 +442,7 @@ const COIN_DEG = [0, 2, 4, 7, 9, 11, 14, 16, 18];
 function coinHz(combo) { const k = MUS.key(), M = k[1], d = COIN_DEG[Math.min(COIN_DEG.length - 1, Math.max(0, combo - 1))], m = k[0] + 24 + M[d % 7] + 12 * Math.floor(d / 7); return 440 * Math.pow(2, (m - 69) / 12); }
 const SFX = { launch: () => { noise(0.5, 0.5, 900); tone(120, 500, 0.35, 0.2, 'sawtooth'); tone(95, 36, 0.5, 0.3, 'sine'); AUD.duck(0.45, 0.3); },
   bounce: v => { const j = jit(0.08); noise(0.12, Math.min(0.5, 0.15 + v), 500 * j); tone(110 * j, 60 * j, 0.12, 0.25, 'sine'); },
-  coin: (combo, pan) => { const f = coinHz(combo || 1) * jit(0.006); tone(f, f * 1.335, 0.09, 0.1, 'triangle', 0, { pan }); if (combo > 6) tone(f * 2, f * 2.67, 0.07, 0.03, 'sine', 0.02, { pan }); },
+  coin: (combo, pan) => { const f = coinHz(combo || 1) * jit(0.006); tone(f, f * 1.335, 0.09, 0.07, 'triangle', 0, { pan }); if (combo > 6) tone(f * 2, f * 2.67, 0.07, 0.02, 'sine', 0.02, { pan }); },
   crate: pan => { const f = coinHz(1); [1, 1.335, 2].forEach((m, i) => tone(f * m, f * m, 0.12, 0.12, 'triangle', i * 0.07, { rev: 0.5, pan })); },
   pad: () => tone(300 * jit(), 900, 0.2, 0.15, 'sawtooth'), tramp: () => tone(200 * jit(), 700, 0.22, 0.2, 'sine'), ring: () => tone(700 * jit(), 1400, 0.18, 0.12, 'triangle', 0, { rev: 0.3 }), bonk: () => { noise(0.15, 0.4, 300); tone(160 * jit(0.08), 80, 0.15, 0.2, 'square'); }, spring: () => tone(250 * jit(), 1000, 0.25, 0.2, 'square'),
   dash: () => { noise(0.25, 0.3, 2500); tone(500 * jit(), 1500, 0.2, 0.12, 'sawtooth'); }, zone: () => { [523, 659, 784, 1047].forEach((f, i) => tone(f, f, 0.2, 0.14, 'triangle', i * 0.09, { rev: 0.6 })); AUD.duck(0.4, 0.45); }, buy: () => tone(880 * jit(0.02), 1320, 0.1, 0.12), splash: () => noise(0.6, 0.5, 700, { rev: 0.4 }), perfect: () => [784, 1175].forEach((f, i) => tone(f, f, 0.15, 0.14, 'triangle', i * 0.06, { rev: 0.5 })),
@@ -523,7 +535,7 @@ const flyUI = on => { boostBtn.hidden = !(on && st.thrust); skillBtn.hidden = !(
 // the tune of a zone: its own if it has one, else the one of its sky, else the one of its scenery
 const tuneOf = zn => [zn.mus, zn.id, zn.fx, zn.deco].find(k => k && MUS.T[k]) || 'lot';
 function toast(t, ms = 1600) { const el = $('#toast'); el.innerHTML = t; el.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(() => el.classList.remove('show'), ms); }
-function toAim() { LS.del('cart.live'); MUS.want('lot'); st = C.stats(S); aim = C.scaleOf(st, st.power * st.perfect); run = null; state = 'aim'; meterT = 0; parts = []; pops = []; spinDir = 0; bgScroll = 0; resetDoll(); humStop(); charge = 0; rampU = 0.5; cam.x = 0; cam.y = 0; cam.vw = 34; rot = -st.angle; $('#result').hidden = true; $('#shop').hidden = true; flyUI(false); fxs = []; trail = []; }
+function toAim() { spinPrev = null; spinAcc = 0; LS.del('cart.live'); MUS.want('lot'); st = C.stats(S); aim = C.scaleOf(st, st.power * st.perfect); run = null; state = 'aim'; meterT = 0; parts = []; pops = []; spinDir = 0; bgScroll = 0; resetDoll(); humStop(); charge = 0; rampU = 0.5; cam.x = 0; cam.y = 0; cam.vw = 34; rot = -st.angle; $('#result').hidden = true; $('#shop').hidden = true; flyUI(false); fxs = []; trail = []; }
 // Launch = hold to stretch the band (the gauge slows as tension builds and slips if you over-pull), let go inside the
 // white band for a perfect, then tap once more as the cart reaches the ramp edge for a kick.
 let charge = 0, slipT = 0, pushT = 0, pushFrom = 0.5, pushM = 0, kick = 1, kicked = false, kickMsg = '', rampU = 0.5, hum = null, lastTick = 0;
@@ -940,7 +952,7 @@ const OPTS = [
   ['flash', '번쩍임', () => '발사·슬램 때 화면이 밝아지는 정도', [[0.35, '줄임'], [1, '보통']]],
   ['pops', '글자 효과', () => OPT.pops ? '착지·코인마다 글자가 뜹니다' : '중요한 글자만 뜹니다', [[0, '적게'], [1, '보통']]],
   ['vib', '진동', () => '지원하는 휴대폰에서만 울립니다', [[0, '끔'], [1, '켬']]],
-  ['sfx', '효과음 크기', () => '', VOL], ['mus', '음악 크기', () => '', VOL],
+  ['sfx', '효과음 크기', () => '', VOL], ['mus', '음악 크기', () => '', VOL], ['wind', '바람 소리', () => '날아가는 동안 아주 작게 나는 바람 소리', [[0, '끔'], [1, '켬']]],
   ['meter', '성능 표시', () => '화면 아래에 fps와 프레임 처리 시간을 표시', [[0, '끔'], [1, '켬']]] ];
 function optHTML() { return `<div class="bh">설정 · 이 기기에만 저장</div>` + OPTS.map(([k, name, note, ch]) => `<div class="ac oc"><h3>${name}</h3>${note() ? `<p>${note()}</p>` : ''}<div class="seg">${ch.map(([v, lb]) => `<button type="button" class="${OPT[k] === v ? 'on' : ''}" data-opt="${k}" data-v="${v}">${lb}</button>`).join('')}</div></div>`).join(''); }
 function setOpt(k, v) { OPT[k] = isNaN(+v) ? v : +v; saveOpt(); if (k === 'gfx') { if (v === 'auto') { PERF.fail = 0; PERF.up = null; LS.del('cart.autofail'); } setQ(); } if (k === 'sfx' || k === 'mus') { snd(); AUD.vol(); } SFX.ui(); }
@@ -1053,7 +1065,7 @@ let ppm = 20, ox = 0, oy = 0, dollJolt = 0, camV = 0, camPy = 0;
 let zoneIn = 0, zoneSaid = true, jingleT = -9e9, landT = -9e9, fuelShown = 1, fuelUpT = -9e9, liveG = 0, liveT = -9e9, launchFx = null;
 let fxs = [], trail = [], flash = 0, flashCol = '#fff', goldPopT = 0, dashT = 0, sonicLv = 0, cartX = 200, cartY = 200;
 // hit-stop (a few frozen frames on a heavy impact), squash and stretch of the cart, a short zoom punch, and the rider's expression
-let hitT = 0, sqz = 0, sqzV = 0, zoomP = 0, moodK = 0, moodT = 0, phxT = -9e9, phxTail = [];
+let objK = 1, spinAcc = 0, spinPrev = null, whooshT = 0, hitT = 0, sqz = 0, sqzV = 0, zoomP = 0, moodK = 0, moodT = 0, phxT = -9e9, phxTail = [];
 const PHX_WING = 2.2, PHX_TAIL = 6;   // seconds the fire wings and the fire tail last
 const hitStop = t => { if (OPT.shake > 0) hitT = Math.max(hitT, t); }, punch = k => { zoomP = Math.max(zoomP, k * OPT.shake); }, mood = (k, t = 0.8) => { moodK = k; moodT = t; };
 // floating texts: a repeat of the same line within half a second becomes one line with a count, and the cart never carries more than five
@@ -1190,10 +1202,14 @@ function drawWorld(cx, cy, dt) {
   for (let z = 1, lastG = -1e9; z < Z.length; z++) { const m = Z[z].at; if (m < x0 || m > x1) continue; const x = SX(m); if (x - lastG < 70) continue; lastG = x; const y = SY(G(m)); g.fillStyle = '#f0452f'; g.fillRect(x - 3, y - 120, 6, 120); g.fillStyle = '#fff'; g.font = `17px ${FONT}`; g.strokeStyle = '#2b2233'; g.lineWidth = 4; g.strokeText(Z[z].name, x, y - 128); g.fillText(Z[z].name, x, y - 128); }
   if (S.best > 3 && S.best > x0 && S.best < x1) { const x = SX(S.best), y = SY(G(S.best)); g.fillStyle = '#2b2233'; g.fillRect(x - 1.5, y - 64, 3, 64); g.fillStyle = '#f5b014'; g.beginPath(); g.moveTo(x, y - 64); g.lineTo(x + 30, y - 55); g.lineTo(x, y - 46); g.fill(); g.fillStyle = '#2b2233'; g.font = '700 10px sans-serif'; g.textAlign = 'left'; g.fillText('BEST', x + 4, y - 51); g.textAlign = 'center'; }
   // objects
-  // objects: at most 40 cells, counted from a little behind the cart (in a very wide view the left edge is far behind it)
-  if (run) { const i0 = Math.max(0, Math.floor(x0 / run.cw - 1.2), Math.floor(run.x / run.cw) - 20), i1 = Math.min(i0 + 40, Math.floor(x1 / run.cw - 1.2));
-    for (let i = i0; i <= i1; i++) for (const o of C.cellObjs(run, i)) if (!run.used.has(o.id)) drawObj(o);
-    for (const m of run.mag) { const f = Math.min(1, (run.tr - m.t0) / (m.d || 0.3)), e = f * f, o = m.o, tx = o.x + (run.x - o.x) * e, ty = o.y + (run.y + 0.5 * run.S - o.y) * e; g.strokeStyle = m.beam ? `rgba(255,226,122,${0.85 * (1 - f * 0.5)})` : `rgba(255,90,90,${0.5 * (1 - f)})`; g.lineWidth = m.beam ? 4 : 2; g.beginPath(); g.moveTo(SX(tx), SY(ty)); g.lineTo(SX(run.x), SY(run.y + 0.5 * run.S)); g.stroke(); drawObj(Object.assign({}, o, { x: tx, y: ty })); } }
+  // objects: across the whole screen; in a wide view only a stable, hash-picked share of the cells is drawn (about 44 cells' worth),
+  // so the ground reads as naturally scattered rather than a packed strip, and the far-out view draws them smaller (objK)
+  objK = Math.max(0.5, Math.min(1, 320 * Math.max(34 / 22, CU()) / cam.vw));
+  if (run) { const i0 = Math.max(0, Math.floor(x0 / run.cw - 1.2)), i1 = Math.min(i0 + 4000, Math.floor(x1 / run.cw - 1.2) + 1), keep = Math.min(1, 44 / Math.max(1, i1 - i0 + 1));
+    for (let i = i0; i <= i1; i++) { if (keep < 1 && hsh(i * 13 + 7) > keep) continue; for (const o of C.cellObjs(run, i)) if (!run.used.has(o.id)) drawObj(o); }
+    for (const m of run.mag) { const f = Math.min(1, (run.tr - m.t0) / (m.d || 0.3)), e = f * f, o = m.o, tx = o.x + (run.x - o.x) * e, ty = o.y + (run.y + 0.5 * run.S - o.y) * e; g.strokeStyle = m.beam ? `rgba(255,226,122,${0.68 * (1 - f * 0.5)})` : `rgba(255,90,90,${0.4 * (1 - f)})`; g.lineWidth = m.beam ? 4 : 2; g.beginPath(); g.moveTo(SX(tx), SY(ty)); g.lineTo(SX(run.x), SY(run.y + 0.5 * run.S)); g.stroke();
+      // a pulled coin or crate shrinks and fades as it is drawn in, so a burst of pickups reads as being swallowed rather than piling up
+      g.globalAlpha = 1 - 0.55 * e; drawObj(Object.assign({}, o, { x: tx, y: ty }), 1 - 0.45 * e); g.globalAlpha = 1; } }
 }
 // --- scenery: sky bodies, clouds and two parallax layers per zone, all placed by hash so they never flicker ---
 // animated sky layers of the five far zones, drawn over the base backdrop
@@ -1516,9 +1532,9 @@ function drawDoll(x, y, sc, pins, front) {
     const [mx, my] = P(2.3, -2.3); g.beginPath(); if (m === 1) { g.arc(mx, my, 1.1 * sc, 0, 7); g.fill(); } else if (m === 3) { g.arc(mx, my - 0.6 * sc, 1.6 * sc, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke(); } else if (m === 2) { g.arc(mx, my + 1.2 * sc, 1.4 * sc, 1.15 * Math.PI, 1.85 * Math.PI); g.stroke(); } }
   g.lineCap = 'butt';
 }
-function drawObj(o) {
-  const x = SX(o.x), y = SY(o.y), r = (o.grounded ? 1.4 : 1) * Math.max(14, Math.min(34, run.S * ppm)), t = performance.now() / 1000;
-  g.lineWidth = 2.5; g.strokeStyle = '#2b2233';
+function drawObj(o, sk = 1) {
+  const x = SX(o.x), y = SY(o.y), r = (o.grounded ? 1.4 : 1) * Math.max(14 * objK, Math.min(34, run.S * ppm)) * sk, t = performance.now() / 1000;
+  g.lineWidth = 2.5 * Math.max(0.6, objK * sk); g.strokeStyle = '#2b2233';
   if (o.type === 'coin') { const cy = y + Math.sin(t * 4 + o.id) * 2, cw = r * 0.55 * Math.abs(Math.cos(t * 3 + o.id * 0.7)) + 1.5; g.fillStyle = '#f5b014'; g.beginPath(); g.ellipse(x, cy, cw, r * 0.55, 0, 0, 7); g.fill(); g.stroke(); g.fillStyle = '#ffe27a'; g.beginPath(); g.ellipse(x - cw * 0.12, cy - r * 0.1, cw * 0.55, r * 0.33, 0, 0, 7); g.fill(); if (cw > r * 0.3) { g.fillStyle = 'rgba(255,255,255,.85)'; g.beginPath(); g.ellipse(x - cw * 0.3, cy - r * 0.22, cw * 0.16, r * 0.1, -0.6, 0, 7); g.fill(); } }
   else if (o.type === 'crate') { g.fillStyle = '#f0452f'; g.beginPath(); g.arc(x, y - r * 1.5, r * 0.8, 0, 7); g.fill(); g.stroke(); g.beginPath(); g.moveTo(x, y - r * 0.7); g.lineTo(x, y - r * 0.4); g.stroke(); g.fillStyle = '#c98b3c'; g.fillRect(x - r * 0.6, y - r * 0.4, r * 1.2, r); g.strokeRect(x - r * 0.6, y - r * 0.4, r * 1.2, r); g.fillStyle = '#f5b014'; g.fillRect(x - r * 0.12, y - r * 0.4, r * 0.24, r); }
   else if (o.type === 'ring') { g.strokeStyle = '#12a594'; g.lineWidth = Math.max(3, r * 0.22); g.beginPath(); g.ellipse(x, y, r * 0.55, r * 1.25, 0, 0, 7); g.stroke(); g.strokeStyle = '#d3fff7'; g.lineWidth = 1.5; g.beginPath(); g.ellipse(x, y, r * 0.55, r * 1.25, 0, 0, 7); g.stroke(); }
@@ -1687,13 +1703,14 @@ function hud(r) {
     if (st.fuel) { const nowT = performance.now(), f = Math.max(0, Math.min(1, r.fuel / st.fuel)), bw = Math.min(300, W * 0.34), bh = 14, bx = W / 2 - bw / 2, by = H - 26; if (r.tr < 0.1) fuelShown = f; if (f > fuelShown + 0.004) fuelUpT = nowT; fuelShown += (f - fuelShown) * 0.16;
       const up = Math.max(0, 1 - (nowT - fuelUpT) / 600), fw = Math.max(0, (bw - 6) * fuelShown);
       g.fillStyle = '#2b2233'; g.beginPath(); g.roundRect(bx - 3 - up * 3, by - 3 - up * 3, bw + 6 + up * 6, bh + 6 + up * 6, 10); g.fill(); g.fillStyle = '#4a4058'; g.beginPath(); g.roundRect(bx, by, bw, bh, 7); g.fill();
-      if (fw > 1) { const gr = g.createLinearGradient(bx, 0, bx + bw, 0); gr.addColorStop(0, '#ff5a2a'); gr.addColorStop(0.6, '#ffb23a'); gr.addColorStop(1, '#fff07a'); g.save(); g.beginPath(); g.roundRect(bx + 3, by + 3, fw, bh - 6, 4); g.clip(); g.fillStyle = gr; g.fillRect(bx, by, bw, bh);
+      if (fw > 1) { const gr = g.createLinearGradient(bx, 0, bx + bw, 0); if (r.pfuel > 0) { gr.addColorStop(0, '#b81f2a'); gr.addColorStop(1, '#ff4a3a'); } else { gr.addColorStop(0, '#ff5a2a'); gr.addColorStop(0.6, '#ffb23a'); gr.addColorStop(1, '#fff07a'); } g.save(); g.beginPath(); g.roundRect(bx + 3, by + 3, fw, bh - 6, 4); g.clip(); g.fillStyle = gr; g.fillRect(bx, by, bw, bh);
         g.fillStyle = 'rgba(255,255,255,.35)'; const sx2 = bx + ((nowT / 6) % (bw + 60)) - 40; g.beginPath(); g.moveTo(sx2, by); g.lineTo(sx2 + 14, by); g.lineTo(sx2 + 4, by + bh); g.lineTo(sx2 - 10, by + bh); g.fill(); if (up > 0) { g.fillStyle = `rgba(255,255,255,${0.7 * up})`; g.fillRect(bx, by, bw, bh); } g.restore();
         if (r.boosting) { g.fillStyle = `rgba(255,240,160,${0.6 + 0.4 * Math.random()})`; g.beginPath(); g.arc(bx + 3 + fw, by + bh / 2, 4 + Math.random() * 3, 0, 7); g.fill(); } }
       if (up > 0) { g.strokeStyle = `rgba(255,226,122,${up})`; g.lineWidth = 3; g.beginPath(); g.roundRect(bx - 5 - (1 - up) * 10, by - 5 - (1 - up) * 8, bw + 10 + (1 - up) * 20, bh + 10 + (1 - up) * 16, 12); g.stroke(); for (let k = 0; k < 5; k++) { const sxx = bx + fw - k * 14 * (1 - up) - 4, syy = by - 6 - (1 - up) * (14 + k * 5); g.fillStyle = `rgba(255,240,160,${up})`; g.fillRect(sxx, syy, 3, 3); } }
       // the phoenix layer: an orange, flickering bar laid over the red one from the left; it burns first, and refuelling never refills it
-      if (r.pfuel > 0) { const pw = Math.max(0, (bw - 6) * Math.min(1, r.pfuel / st.fuel)), gp = g.createLinearGradient(bx, 0, bx + bw, 0); gp.addColorStop(0, '#ff7a1a'); gp.addColorStop(0.5, '#ffb000'); gp.addColorStop(1, '#ffe38a');
-        g.save(); g.beginPath(); g.roundRect(bx + 3, by + 2, pw, bh - 4, 4); g.clip(); g.fillStyle = gp; g.fillRect(bx, by, bw, bh); g.fillStyle = 'rgba(255,255,255,.45)'; for (let k = 0; k < 6; k++) { const fx2 = bx + ((nowT / 4 + k * 47) % (bw + 20)) - 10; g.beginPath(); g.moveTo(fx2, by + bh); g.quadraticCurveTo(fx2 + 4, by + bh / 2, fx2 + 1, by); g.lineTo(fx2 + 5, by + bh); g.fill(); } g.restore();
+      if (r.pfuel > 0) { const pw = Math.max(0, (bw - 6) * Math.min(1, r.pfuel / st.fuel)), gp = g.createLinearGradient(0, by - 3, 0, by + bh + 3); gp.addColorStop(0, '#fff7c2'); gp.addColorStop(0.45, '#ffd21f'); gp.addColorStop(1, '#ff9a00');
+        if (pw > 2) { g.fillStyle = '#2b2233'; g.beginPath(); g.roundRect(bx + 1, by - 4, pw + 4, bh + 8, 7); g.fill(); g.shadowColor = 'rgba(255,200,40,.9)'; g.shadowBlur = Q.glow ? 10 : 0; g.fillStyle = '#ffd21f'; g.beginPath(); g.roundRect(bx + 3, by - 2, pw, bh + 4, 5); g.fill(); g.shadowBlur = 0; }
+        g.save(); g.beginPath(); g.roundRect(bx + 3, by - 2, pw, bh + 4, 5); g.clip(); g.fillStyle = gp; g.fillRect(bx, by - 3, bw, bh + 6); g.fillStyle = 'rgba(255,255,255,.45)'; for (let k = 0; k < 6; k++) { const fx2 = bx + ((nowT / 4 + k * 47) % (bw + 20)) - 10; g.beginPath(); g.moveTo(fx2, by + bh); g.quadraticCurveTo(fx2 + 4, by + bh / 2, fx2 + 1, by); g.lineTo(fx2 + 5, by + bh); g.fill(); } g.restore();
         g.strokeStyle = `rgba(255,170,60,${0.6 + 0.3 * Math.sin(nowT / 120)})`; g.lineWidth = 2; g.beginPath(); g.roundRect(bx - 1, by - 1, bw + 2, bh + 2, 8); g.stroke(); }
       g.textAlign = 'center'; txt(r.pfuel > 0 ? `부스트 ${Math.round((r.fuel + r.pfuel) / st.fuel * 100)}% · 불사조` : '부스트', W / 2, by - 7, 12, r.pfuel > 0 ? '#ffb23a' : r.fuel > 0 ? '#ffe27a' : '#b9ad9a'); g.textAlign = 'left'; }
     const grounded = alt < Math.max(1.2, 0.5 * r.S); skillBtn.firstChild.textContent = grounded || !st.airjump ? '도약' : '공중도약'; skillBtn.querySelector('small').textContent = cnt(r.spring, r.pspring); skillBtn.disabled = !(r.spring + r.pspring > 0 && (grounded || st.airjump)); skillBtn.classList.toggle('fire', r.pspring > 0);
@@ -1743,6 +1760,8 @@ function draw(now) {
   if (state === 'fly' && run) {
     spinDir = keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : keys.has('KeyD') || keys.has('ArrowRight') ? -1 : ptrSide;
     if (hitT > 0) { hitT -= dt; run.ev.length = 0; } else { C.step(run, dt, { boost: boostHeld, spring: skillTap, dash: dashTap, dive: diveTap, sphx: sphxTap, spin: spinDir }); skillTap = dashTap = diveTap = sphxTap = false; }
+    { let da = spinPrev == null ? 0 : run.ang - spinPrev; da = Math.abs(Math.atan2(Math.sin(da), Math.cos(da))); spinPrev = run.ang; const w = dt > 0 ? da / dt : 0;
+      if (run.air && w > 2.5) { spinAcc += da; if (spinAcc >= Math.PI) { spinAcc = Math.min(Math.PI, spinAcc - Math.PI); if (now - whooshT > 85) { whooshT = now; whoosh(w); } } } else spinAcc = 0; }
     for (const e of run.ev) {
       const ex = Math.max(-40, Math.min(W + 40, SX(e.x))), ey = Math.max(-40, Math.min(H + 40, SY(e.y)));
       if (e.k === 'bounce') { const hard = Math.min(1, e.imp / (0.5 * run.v0 + 1)); shake = Math.max(shake, 2 + 6 * hard); SFX.bounce(0.1 + 0.3 * hard); burst(cartX, cartY + 8, 4 + Math.round(6 * hard), ['#ffffff', '#e8dcc0'], 200, 0.45, { a0: -1.57, spread: 2.6, g: 600, z: 4 }); if (hard > 0.5) ringFx(cartX, cartY + 8, '#ffffff', 40 + 40 * hard, 0.35, 3); }

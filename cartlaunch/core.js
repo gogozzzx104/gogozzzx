@@ -314,11 +314,10 @@ const CORE = (() => {
   const hash = n => { let t = (n + 0x6D2B79F5) | 0; t = Math.imul(t ^ (t >>> 15), 1 | t); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   const RAMP = 4, WEAR = 0.12, VCAP = 3, PHX_T = 0.7, PDIVE_T = 0.38; let TIRE = 30;
   // top speed allowed at a moment of the run: three times launch speed at first, tiring as the run goes on, so even a maxed cart's run winds down
-  // the top-speed cap fades with time since launch (r.fresh).  Holding the boost does not win it back, it only slows the fade: fatigue builds
-  // at 1 - BOOST_SLOW of the normal rate (with the endurance perk maxed, -1% of the cap a second instead of -1.65%); the phoenix booster
-  // still winds fatigue back by PBOOST_REST seconds per second.  A dash wins back DASH_REST of the fatigue built up so far, a phoenix
-  // dash PDASH_REST, a phoenix spring PSPRING_REST
-  const BOOST_SLOW = 0.397, PBOOST_REST = 1.25, DASH_REST = 0.01, PDASH_REST = 0.05;
+  // the top-speed cap fades with time since launch (r.fresh).  Holding the boost winds that fatigue back by BOOST_REST seconds per second
+  // (with the endurance perk maxed, +0.1% of the cap a second), the phoenix booster by PBOOST_REST (+2.11%).  A dash wins back DASH_REST
+  // of the fatigue built up so far, a phoenix dash PDASH_REST, a phoenix spring PSPRING_REST
+  const BOOST_REST = 0.06, PBOOST_REST = 1.25, DASH_REST = 0.02, PDASH_REST = 0.05;
   const vcap = r => { const c = r.st.vcap * r.v0 * Math.max(0.085, (1 + (r.rew || 0)) * Math.exp(-(r.tr - (r.fresh || 0)) / r.st.tire)); return r.sphxT > 0 ? Math.max(c, sphxSpeed(r) * 1.02) : c; };
   // super phoenix: the sprint speed is a multiple of the cap right after launch
   const sphxSpeed = r => r.sphxM * r.st.vcap * r.v0 * (1 + (r.rew || 0));
@@ -412,7 +411,7 @@ const CORE = (() => {
     if (r.sphxT > 0) { r.sphxT -= dtReal; const sp = Math.hypot(r.vx, r.vy), T = sphxSpeed(r), k = Math.min(1, dtReal * 10), ns = sp + (T - sp) * k; if (sp > 1e-9) { r.vx *= ns / sp; r.vy *= ns / sp; } else r.vx = ns;
       if (r.sphxT <= 0) { r.sphxT = 0; r.fresh = r.tr; r.ev.push({ k: 'sphxend', x: r.x, y: r.y }); } }
     if (r.phx > 0) { const k = Math.min(dtReal, r.phx) / PHX_T, dv = (st.thrust ? 3 * 1.15 * st.thrust * (1 + st.nozzle) : 0.25 * r.v0) * k; r.phx -= dtReal; r.vx += dv; r.vy += dv * 0.16; }
-    if (r.boosting) { r.usedBoost = true; const fireB = r.pfuel > 0; r.fresh = Math.min(r.tr, (r.fresh || 0) + dtReal * (fireB ? 1 + PBOOST_REST : BOOST_SLOW)); let burn = dtReal * st.burnK; if (fireB) { const u = Math.min(r.pfuel, burn); r.pfuel -= u; burn -= u; } r.fuel = Math.max(0, r.fuel - burn); const dv = st.thrust * dtReal * 1.15; r.vx += dv * (1 + st.nozzle); r.vy += dv * (grounded0 ? 0.45 : 0.16) + (r.vy < 0 ? Math.min(-r.vy, dv * 0.5) : 0); if (grounded0 && r.vy > 0) r.air = true; }
+    if (r.boosting) { r.usedBoost = true; const fireB = r.pfuel > 0; r.fresh = Math.min(r.tr, (r.fresh || 0) + dtReal * (1 + (fireB ? PBOOST_REST : BOOST_REST))); let burn = dtReal * st.burnK; if (fireB) { const u = Math.min(r.pfuel, burn); r.pfuel -= u; burn -= u; } r.fuel = Math.max(0, r.fuel - burn); const dv = st.thrust * dtReal * 1.15; r.vx += dv * (1 + st.nozzle); r.vy += dv * (grounded0 ? 0.45 : 0.16) + (r.vy < 0 ? Math.min(-r.vy, dv * 0.5) : 0); if (grounded0 && r.vy > 0) r.air = true; }
     const xPrev = r.x, dg = 0.1 * U;
     for (let i = 0; i < n; i++) {
       const g = gZ * (r.air && !r.slam ? 1 - st.glide * Math.min(1, Math.abs(r.vx) / (0.05 * r.v0 + 1)) : 1), dk = (st.drag * lerpZ(r.x, 'drag') * Math.min(1, 300 / r.tw) + WEAR * st.wear * (1 + (r.tr - (r.fresh || 0)) * (r.tr - (r.fresh || 0)) / 1600) * 9.8 / (r.v0 + 20)) * (st.draft && r.tr - r.comboT < st.comboT ? 1 - st.draft * Math.min(r.combo, 10) / 10 : 1);
