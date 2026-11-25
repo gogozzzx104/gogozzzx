@@ -184,6 +184,10 @@ button{font-family:var(--disp);touch-action:manipulation}
 .ac .tv{color:#fff;font-weight:700;font-variant-numeric:tabular-nums}
 .ac.tc .buy{margin-top:auto}
 .note{grid-column:1/-1;font-size:11.5px;color:#b3a9dd;line-height:1.5;margin:0}
+.acct,.xcode{grid-column:1/-1}.acct.ok{border-color:#3fe6a0}.acct.warn{border-color:#ffb057;background:rgba(255,176,87,.08)}.acct p{color:#e4dcff}.acct b,.xcode b{color:#fff}
+.how{margin:2px 0 0;padding-left:18px;font-size:12px;line-height:1.55;color:#e4dcff}
+.xbox{width:100%;min-height:74px;box-sizing:border-box;border-radius:8px;border:1.5px solid #53468f;background:#120e28;color:#efeaff;font:11px/1.35 monospace;padding:6px;word-break:break-all;resize:vertical;user-select:text;-webkit-user-select:text;touch-action:auto}
+.xmsg{color:#7df3da !important;font-weight:700}
 .sk{border:2px solid #53468f;border-radius:12px;background:linear-gradient(160deg,#30275e,#221a45);color:#fff;padding:6px;display:flex;flex-direction:column;align-items:center;gap:2px;font:15px var(--disp)}
 .sk canvas{width:110px;height:70px;background:linear-gradient(#8fc4ff,#dff1ff);border-radius:8px}
 .sk small{font:700 10px var(--body);color:#b3a9dd}
@@ -311,7 +315,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 107, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 108, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -321,11 +325,12 @@ const CLOUD = { state: 'off', ref: null, busy: false, dirty: {}, last: 0, timer:
 const ahead = (a, b) => !a ? false : !b ? true : (a.runs || 0) !== (b.runs || 0) ? (a.runs || 0) > (b.runs || 0) : (a.rev || 0) > (b.rev || 0);
 function cloudMark(n) { if (CLOUD.state !== 'on') return; CLOUD.dirty[n] = 1; clearTimeout(CLOUD.timer); CLOUD.timer = setTimeout(cloudPush, Math.max(300, 15000 - (Date.now() - CLOUD.last))); }
 async function cloudPush() { if (CLOUD.state !== 'on' || CLOUD.busy) return; const n = +Object.keys(CLOUD.dirty)[0]; if (!n) return; delete CLOUD.dirty[n]; CLOUD.busy = true; CLOUD.last = Date.now();
-  try { const t = LS.get(skey(n)); if (t) await CLOUD.ref(n).set({ v: 1, json: t, at: Date.now() }); else await CLOUD.ref(n).delete(); LS.del('cart.force.' + n); }
+  try { const t = LS.get(skey(n)); if (t) await CLOUD.ref(n).set({ v: 1, json: t, at: Date.now() }); else await CLOUD.ref(n).delete(); LS.del('cart.force.' + n); CLOUD.okAt = Date.now(); }
   catch (e) { if (e && e.code === 'unavailable') CLOUD.dirty[n] = 1; else { CLOUD.state = 'local'; CLOUD.dirty = {}; } }   // a refused write means this viewer may only read: stay on this device
   CLOUD.busy = false; if (CLOUD.state === 'on' && Object.keys(CLOUD.dirty).length) { clearTimeout(CLOUD.timer); CLOUD.timer = setTimeout(cloudPush, 15000); } }
 const save = () => { S.rev = (S.rev || 0) + 1; LS.set(skey(slot), JSON.stringify(S)); cloudMark(slot); };
-(async () => { try { if (!window.claude || !claude.use) return; const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]); if (!db || !user) return; const uid = await user.id(); if (!uid) return;
+// connect the account copy; runs at start and again from the 기록 tab's '다시 연결' button
+async function cloudInit() { try { CLOUD.tried = true; if (!window.claude || !claude.use) return; const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]); if (!db || !user) return; const uid = await user.id(); if (!uid) return;
     CLOUD.ref = n => db.doc('data/users/' + uid + '/slot' + n); let adopt = false; const got = [];
     for (let n = 1; n <= SLOTS; n++) got[n] = await CLOUD.ref(n).get();
     CLOUD.state = 'on';
@@ -334,7 +339,11 @@ const save = () => { S.rev = (S.rev || 0) + 1; LS.set(skey(slot), JSON.stringify
       else if (ahead(cloud, local)) { if (local) LS.set(skey(n) + '.bak', JSON.stringify(local)); LS.set(skey(n), JSON.stringify(cloud)); if (n === slot) adopt = true; } }   // the account is further along: keep the old local copy as a backup and continue from the account
     if (adopt) { if (state === 'fly' || state === 'ending') adoptLater = true; else { S = loadSlot(slot) || S; toAim(); toast('계정에 저장된 기록을 불러왔어요', 2400); } }
     cloudPush(); if (state === 'shop') renderShop();
-  } catch (e) { CLOUD.state = 'off'; } })();
+  } catch (e) { CLOUD.state = 'off'; } }
+cloudInit();
+// push a dirty slot now instead of waiting for the 15-second batch (after a run, on the '지금 저장' button, when the page is left)
+const cloudNow = () => { if (CLOUD.state !== 'on') return; for (let n = 1; n <= SLOTS; n++) if (LS.get(skey(n))) CLOUD.dirty[n] = CLOUD.dirty[n] || (n === slot ? 1 : 0); for (const k in CLOUD.dirty) if (!CLOUD.dirty[k]) delete CLOUD.dirty[k]; clearTimeout(CLOUD.timer); cloudPush(); };
+addEventListener('pagehide', () => { liveStore(); cloudNow(); });
 addEventListener('visibilitychange', () => { if (document.hidden) liveStore(); if (document.hidden && CLOUD.state === 'on') { clearTimeout(CLOUD.timer); cloudPush(); } });
 function switchSlot(n) { if (n === slot || n < 1 || n > SLOTS) return; save(); slot = n; LS.set('cart.slot', String(n)); S = loadSlot(n) || C.newSave(); toAim(); openShop(); toast('슬롯 ' + n + (S.runs ? ' 불러옴' : ' · 새 게임'), 1600); }
 if (S.migrated != null) { const n = S.migrated; delete S.migrated; save(); setTimeout(() => toast(`밸런스 대개편! 업그레이드·골드는 초기화되고${n ? ' 보상으로 ★ ' + n + '개를 받았어요' : ', 별·환생 트리·업적은 그대로예요'}`, 5000), 800); }
@@ -635,7 +644,7 @@ function endRun() {
   LS.del('cart.live');
   if (adoptLater) { adoptLater = false; S = loadSlot(slot) || S; toAim(); toast('계정에 저장된 기록을 불러왔어요', 2400); return; }
   const veiled = !starOpen(); pay = C.finish(run, S); const unveil = veiled && starOpen(); if (C.tl(S, 't_auto')) C.buyAll(S);
-  let autoN = 0; if (S.autoReb && S.autoRebOn && autoRebOpen() && C.starGain(S) > 0) { autoN = C.rebirth(S); C.buyAll(S); } save(); state = 'result'; flyUI(false);
+  let autoN = 0; if (S.autoReb && S.autoRebOn && autoRebOpen() && C.starGain(S) > 0) { autoN = C.rebirth(S); C.buyAll(S); } save(); cloudNow(); state = 'result'; flyUI(false);
   $('#rWhy').textContent = run.why; $('#rDist').innerHTML = fmtD(run.maxX);
   const tags = []; if (autoN) tags.push('자동 환생 ★ +' + fmt(autoN)); if (unveil) tags.push('환생 해금'); for (const a of pay.ach) tags.push('업적: ' + a.name); if (pay.record) tags.push('신기록'); if (pay.newZone) tags.push(Z[pay.zone].name + ' 첫 도달'); if (run.dbl) tags.push('더블 퍼펙트'); else if (run.perfect) tags.push('퍼펙트 발사'); if (run.kick > 1) tags.push((run.kick > 1.05 ? '퍼펙트 킥 +' : '굿 킥 +') + Math.round((run.kick - 1) * 100) + '%'); if (run.golden) tags.push('황금 판 ×3');
   { const mx = root.classList.contains('sm') ? 4 : 8, more = tags.length - mx; if (more > 0) { tags.length = mx; tags.push('+' + more); } }
@@ -676,7 +685,7 @@ const hold = (el, on, off) => { el.addEventListener('pointerdown', e => { e.prev
 hold(boostBtn, () => boostHeld = true, () => boostHeld = false); hold(skillBtn, () => skillTap = true); hold(dashBtn, () => dashTap = true); hold(diveBtn, () => diveTap = true);
 endBtn.addEventListener('click', () => { if (state === 'fly' && run && !run.over) { run.over = true; run.why = '여기까지!'; endRun(); } });
 const KB = matchMedia('(pointer: fine)').matches; if (KB) root.classList.add('kb');
-addEventListener('keydown', e => { if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); keys.add(e.code); if (e.repeat) return; snd(); root.classList.add('kb'); if (state === 'ending') { if (e.code === 'Space' || e.code === 'Enter') endSkip(); return; } if (state === 'shop' && e.code === 'Escape') toAim(); if (state === 'shop' && tab === 'map' && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) mapHold(e.code === 'ArrowLeft' ? -1 : 1); if (state === 'result' && e.code === 'KeyU') openShop(); if (e.code === 'Space') { if (state === 'aim') startCharge(); else if (state === 'push') tryKick(); else if (state === 'fly') boostHeld = true; else if (state === 'result') toAim(); } if (e.code === 'KeyW' || e.code === 'ArrowUp' || e.code === 'ShiftLeft') skillTap = true; if (e.code === 'KeyE') dashTap = true; if (e.code === 'KeyS' || e.code === 'ArrowDown' || e.code === 'KeyQ') diveTap = true; });
+addEventListener('keydown', e => { if (e.target && e.target.closest && e.target.closest('textarea, input')) return; if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); keys.add(e.code); if (e.repeat) return; snd(); root.classList.add('kb'); if (state === 'ending') { if (e.code === 'Space' || e.code === 'Enter') endSkip(); return; } if (state === 'shop' && e.code === 'Escape') toAim(); if (state === 'shop' && tab === 'map' && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) mapHold(e.code === 'ArrowLeft' ? -1 : 1); if (state === 'result' && e.code === 'KeyU') openShop(); if (e.code === 'Space') { if (state === 'aim') startCharge(); else if (state === 'push') tryKick(); else if (state === 'fly') boostHeld = true; else if (state === 'result') toAim(); } if (e.code === 'KeyW' || e.code === 'ArrowUp' || e.code === 'ShiftLeft') skillTap = true; if (e.code === 'KeyE') dashTap = true; if (e.code === 'KeyS' || e.code === 'ArrowDown' || e.code === 'KeyQ') diveTap = true; });
 addEventListener('keyup', e => { keys.delete(e.code); if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') mapHold(0); if (e.code === 'Space') { boostHeld = false; if (state === 'charge') release(); } });
 document.addEventListener('contextmenu', e => e.preventDefault());
 $('#rAgain').addEventListener('click', toAim); $('#rShop').addEventListener('click', openShop); // Full screen: the browser bar and the site's own header sit outside this page, so the only way past them is to ask for the whole
@@ -939,6 +948,28 @@ function autoRebBtn() { if (!(S.trans > 0)) return '';
   if (!autoRebOpen()) return `<button class="buy auto" disabled>자동 환생<small>자동 구매·전생 각인 만렙 필요</small></button>`;
   if (!S.autoReb) return `<button class="buy auto" data-autoreb="buy" ${(S.shards || 0) >= AUTOREB_COST ? '' : 'disabled'}>자동 환생<small>◆ ${AUTOREB_COST}</small></button>`;
   return `<button class="buy auto${S.autoRebOn ? ' on' : ''}" data-autoreb="t">자동 환생<small>${S.autoRebOn ? '켜짐 · 판마다 환생' : '꺼짐 · 눌러서 켜기'}</small></button>`; }
+// ---- account status and moving a save by hand ----
+// In-app browsers (KakaoTalk, Naver, Instagram...) keep their own sign-in and storage, apart from Chrome or Safari, and claude.ai is
+// usually not signed in there, so the game falls back to saving on that browser only.  The 기록 tab says which case this is, what to do,
+// and offers a save code: copy it where the progress is, paste it where it should go.
+const INAPP = (() => { const u = navigator.userAgent || ''; return /KAKAOTALK/i.test(u) ? '카카오톡' : /NAVER\(inapp/i.test(u) ? '네이버' : /Instagram/i.test(u) ? '인스타그램' : /FBAN|FBAV/i.test(u) ? '페이스북' : /Line\//i.test(u) ? '라인' : ''; })();
+let xcode = { mode: '', text: '', msg: '' };
+const ago = t => { const s = Math.round((Date.now() - t) / 1000); return s < 60 ? `${s}초 전` : s < 3600 ? `${Math.round(s / 60)}분 전` : `${Math.round(s / 3600)}시간 전`; };
+function acctHTML() { const st2 = CLOUD.state;
+  if (st2 === 'on') return `<div class="ac acct ok"><h3>✅ 계정에 저장 중</h3><p>로그인한 claude.ai 계정에 저장돼요. 다른 기기나 브라우저에서 <b>같은 계정으로 로그인해 열면</b> 이어서 할 수 있어요.${CLOUD.okAt ? ` 마지막으로 계정에 저장: ${ago(CLOUD.okAt)}` : ''}</p><button class="buy sm" data-acct="push">지금 계정에 저장</button></div>`;
+  const why = st2 === 'local' ? '이 계정은 이 게임 페이지에 쓸 권한이 없어서' : INAPP ? `${INAPP} 안의 브라우저는 크롬·사파리와 로그인이 따로라서 claude.ai에 로그인되지 않았고,` : 'claude.ai에 로그인되지 않은 상태라서';
+  const how = INAPP ? `<li><b>${INAPP} 화면 오른쪽 위(또는 아래) 메뉴 → '다른 브라우저로 열기'</b>를 눌러 크롬이나 사파리에서 여세요.</li><li>거기서 claude.ai에 로그인한 상태로 열면 계정에 저장돼요.</li><li>${INAPP}에서 하던 기록은 아래 <b>저장 코드 복사</b>로 옮길 수 있어요.</li>`
+    : st2 === 'local' ? `<li>게임을 만든 계정이나 초대받은 계정으로 열면 계정에 저장돼요.</li><li>지금 기록은 아래 <b>저장 코드 복사</b>로 다른 곳에 옮길 수 있어요.</li>`
+    : `<li>claude.ai에 로그인한 뒤 이 페이지를 다시 열면 계정에 저장돼요.</li><li>로그인했는데도 이 표시가 남으면 <b>다시 연결</b>을 눌러 보세요.</li><li>다른 곳에서 하던 기록은 아래 <b>저장 코드 붙여넣기</b>로 가져올 수 있어요.</li>`;
+  return `<div class="ac acct warn"><h3>⚠️ 이 브라우저에만 저장 중</h3><p>${why} 기록이 <b>지금 이 브라우저에만</b> 저장되고 있어요. 다른 브라우저나 기기에서는 보이지 않아요.</p><ul class="how">${how}</ul><div class="brow"><button class="buy sm" data-acct="retry">다시 연결</button></div></div>`; }
+function xcodeHTML() { const m = xcode.mode;
+  return `<div class="ac xcode"><h3>기록 옮기기 · 저장 코드</h3><p>로그인이 안 되는 곳(카카오톡 등)과 크롬 사이에서 기록을 옮길 때 써요. 옮기고 싶은 곳에서 <b>복사</b>하고, 가져올 곳에서 <b>붙여넣기</b> 하세요. 카카오톡 '나와의 채팅'에 붙여 두면 편해요.</p>
+    <div class="brow"><button class="buy sm" data-xcode="copy">저장 코드 복사</button><button class="buy sm" data-xcode="paste">저장 코드 붙여넣기</button></div>
+    ${m === 'copy' ? `<textarea class="xbox" readonly onfocus="this.select()" onclick="this.select()">${xcode.text}</textarea>` : ''}
+    ${m === 'paste' ? `<textarea class="xbox" id="xIn" placeholder="여기에 저장 코드를 붙여 넣으세요">${String(xcode.text).replace(/[&<>"']/g, c => '&#' + c.charCodeAt(0) + ';')}</textarea><button class="buy sm" data-xcode="load">${confirmKey === 'xload' ? '정말요? 지금 슬롯 기록을 바꿔요 · 한 번 더' : `슬롯 ${slot}로 불러오기`}</button>` : ''}
+    ${xcode.msg ? `<p class="xmsg">${xcode.msg}</p>` : ''}</div>`; }
+const toCode = q => 'CART1.' + btoa(unescape(encodeURIComponent(JSON.stringify(q))));
+const fromCode = t => { try { const m = String(t || '').trim().replace(/\s+/g, '').match(/CART1\.([A-Za-z0-9+/=]+)/); if (!m) return null; return parseSave(decodeURIComponent(escape(atob(m[1])))); } catch (e) { return null; } };
 function renderShop() {
   st = C.stats(S); $('#sGold').textContent = fmt(S.gold);
   $('#sZones').innerHTML = `<b>${S.zone + 1}번째 구역 · ${Z[S.zone].name}</b>`;
@@ -964,7 +995,7 @@ function renderShop() {
   else if (tab === 'opt') list.innerHTML = optHTML();
   else { const n = C.achCount(S);
     const slots = []; for (let k = 1; k <= SLOTS; k++) { const q = k === slot ? S : loadSlot(k); slots.push(`<div class="ac${k === slot ? ' done' : ''}"><h3>슬롯 ${k}${k === slot ? ' · 지금 플레이 중' : ''}</h3><p>${q && (q.runs || k === slot) ? `${Z[Math.min(q.zone, Z.length - 1)].name} · 환생 ${q.rebirths}회 · 초월 ${q.trans || 0}회 · ${fmt(q.runs)}판` : '빈 슬롯 · 새 게임'}</p>${k === slot ? '' : `<button class="buy sm" data-slot="${k}">이 슬롯으로</button>`}</div>`); }
-    list.innerHTML = `<div class="bh">계정 · 저장 슬롯 3개</div><p class="note">${CLOUD.state === 'on' ? '로그인한 계정에 저장돼요. 다른 기기에서 같은 계정으로 열면 이어서 할 수 있어요.' : CLOUD.state === 'local' ? '이 계정은 이 페이지에 저장할 권한이 없어서 이 기기에만 저장돼요.' : '지금은 이 기기에만 저장돼요. claude.ai에 로그인한 상태로 열면 계정에 저장됩니다.'}</p>` + slots.join('') + `<div class="bh">기록</div><div class="ac done"><h3>최고 ${fmtD(S.best)}</h3><p>${S.runs}판 · 업그레이드 ${C.total(S)}Lv · 환생 ${S.rebirths}회</p><p>업적 ${n}개 → 골드 +${n * 3}%</p></div>` +
+    list.innerHTML = `<div class="bh">계정 · 저장 슬롯 3개</div>` + acctHTML() + slots.join('') + xcodeHTML() + `<div class="bh">기록</div><div class="ac done"><h3>최고 ${fmtD(S.best)}</h3><p>${S.runs}판 · 업그레이드 ${C.total(S)}Lv · 환생 ${S.rebirths}회</p><p>업적 ${n}개 → 골드 +${n * 3}%</p></div>` +
       `<div class="bh">구역</div><div class="ac"><h3>${Z[S.zone].name}</h3><p>지금까지 간 곳은 지도에서 필름처럼 넘겨 볼 수 있어요.</p><button class="buy sm" data-goto="map">지도 열기</button></div>` +
       `<div class="bh">업적 · 하나당 골드 +3%</div>` + C.ACH.map(a => `<div class="ac${S.ach[a.id] ? ' done' : ' off'}"><h3>${a.name}</h3><p>${a.desc}</p></div>`).join('') +
       `<div class="bh">기타</div><p class="note">코인은 공중에 2~3개씩 떠 있어요. 부스트·도약·대시·급강하로 높이를 맞춰 보세요.</p><div class="ac"><h3>골드만 비우기</h3><p>업그레이드·별은 그대로 두고 보유 골드만 0으로. 이 기기의 내 기록에만 적용됩니다.</p><button class="buy sm" data-zero="1">${confirmKey === 'zero' ? '정말요? 한 번 더' : '골드 0으로'}</button></div><div class="ac"><h3>처음부터 다시</h3><p>지금 슬롯의 별·업적까지 모두 지웁니다. 다른 슬롯은 그대로예요.</p><button class="buy sm" data-wipe="1">${confirmKey === 'wipe' ? '정말요? 한 번 더' : '초기화'}</button></div>` + `<p class="note">버전 ${VER}</p>`; }
@@ -992,7 +1023,16 @@ const shopClick = e => { const nd = e.target.closest('.nd'), sk = e.target.close
     else if (b.dataset.trans) { if (confirmKey !== 'trans') confirmKey = 'trans'; else { const n = C.transcend(S); if (C.tl(S, 't_auto')) C.buyAll(S); confirmKey = ''; SFX.zone(); SFX.perfect(); toast('초월! ◆ +' + n, 2400); } }
     else if (b.dataset.zero) { if (confirmKey !== 'zero') confirmKey = 'zero'; else { S.gold = 0; confirmKey = ''; toast('골드를 비웠어요', 1500); } }
     else if (b.dataset.wipe) { if (confirmKey !== 'wipe') confirmKey = 'wipe'; else { S = C.newSave(); LS.set('cart.force.' + slot, '1'); confirmKey = ''; } }
-    else if (b.dataset.slot) { switchSlot(+b.dataset.slot); return; } }
+    else if (b.dataset.slot) { switchSlot(+b.dataset.slot); return; }
+    else if (b.dataset.acct === 'push') { cloudNow(); toast('계정에 저장하는 중…', 1200); setTimeout(() => { if (state === 'shop') renderShop(); }, 1500); }
+    else if (b.dataset.acct === 'retry') { toast('계정에 다시 연결하는 중…', 1500); cloudInit().then(() => { toast(CLOUD.state === 'on' ? '계정에 연결됐어요' : '아직 계정에 연결되지 않았어요 · 로그인 상태를 확인해 주세요', 2400); if (state === 'shop') renderShop(); }); }
+    else if (b.dataset.xcode === 'copy') { const code = toCode(S); xcode = { mode: 'copy', text: code, msg: '' }; confirmKey = '';
+      try { navigator.clipboard.writeText(code).then(() => { xcode.msg = `✅ 슬롯 ${slot} 저장 코드를 복사했어요 (${fmt(S.runs)}판 · 환생 ${S.rebirths}회). 옮길 곳에서 '저장 코드 붙여넣기'로 가져오세요.`; if (state === 'shop') renderShop(); }, () => { xcode.msg = '자동 복사가 막혀 있어요. 아래 상자를 길게 눌러 전체 선택 후 복사하세요.'; if (state === 'shop') renderShop(); }); } catch (e) { xcode.msg = '아래 상자를 길게 눌러 전체 선택 후 복사하세요.'; } }
+    else if (b.dataset.xcode === 'paste') { xcode = { mode: 'paste', text: '', msg: '' }; confirmKey = ''; }
+    else if (b.dataset.xcode === 'load') { const box = $('#xIn'), t = box ? box.value : ''; xcode.text = t; const q = fromCode(t);
+      if (!q) { xcode.msg = '❌ 저장 코드가 아니에요. CART1. 로 시작하는 코드를 통째로 붙여 넣어 주세요.'; confirmKey = ''; }
+      else if (confirmKey !== 'xload') { confirmKey = 'xload'; xcode.msg = `가져올 기록: ${Z[Math.min(q.zone, Z.length - 1)].name} · ${fmt(q.runs)}판 · 환생 ${q.rebirths}회 · 초월 ${q.trans || 0}회. 지금 슬롯 ${slot} 기록은 백업해 두고 바꿔요.`; }
+      else { LS.set(skey(slot) + '.bak', JSON.stringify(S)); S = q; S.rev = (S.rev || 0) + 1; LS.set(skey(slot), JSON.stringify(S)); LS.set('cart.force.' + slot, '1'); cloudMark(slot); cloudNow(); confirmKey = ''; xcode = { mode: '', text: '', msg: `✅ 기록을 가져왔어요 (${fmt(S.runs)}판).` + (CLOUD.state === 'on' ? ' 계정에도 저장했어요.' : '') }; st = C.stats(S); SFX.zone(); } } }
   else if (sel[tab] && !e.target.closest('.pop') && e.target.closest('#sList')) sel[tab] = null;   // tap on empty space closes the card
   else return;
   save(); renderShop(); };
