@@ -179,9 +179,9 @@ button{font-family:var(--disp);touch-action:manipulation}
 .ac.done h3::before{content:"★ ";color:#ffcf4a}
 /* every achievement cleared: each card's border turns into a turning rainbow with a soft glow of the same colours */
 @property --rba{syntax:'<angle>';inherits:false;initial-value:0deg}
-.ac.rb{border-color:transparent;background:linear-gradient(160deg,#30275e,#221a45) padding-box,conic-gradient(from var(--rba),#ff4d4d,#ffb03b,#fff15a,#5dff7a,#4dd8ff,#6a7bff,#d36bff,#ff4d4d) border-box;animation:rbSpin 3s linear infinite,rbGlow 3s linear infinite}
+.ac.rb{border-color:transparent;background:linear-gradient(160deg,#30275e,#221a45) padding-box,conic-gradient(from var(--rba),#ffaee0,#ffe3a6,#c8ffd8,#ffffff,#a6ecff,#b9c4ff,#dcb0ff,#f7d6ff,#ffaee0) border-box;animation:rbSpin 3s linear infinite,rbGlow 3s linear infinite}
 @keyframes rbSpin{to{--rba:360deg}}
-@keyframes rbGlow{0%,100%{box-shadow:0 0 9px rgba(255,77,77,.55)}17%{box-shadow:0 0 9px rgba(255,176,59,.55)}33%{box-shadow:0 0 9px rgba(255,241,90,.5)}50%{box-shadow:0 0 9px rgba(93,255,122,.5)}67%{box-shadow:0 0 9px rgba(77,216,255,.55)}83%{box-shadow:0 0 9px rgba(211,107,255,.55)}}
+@keyframes rbGlow{0%,100%{box-shadow:0 0 10px rgba(255,174,224,.5)}20%{box-shadow:0 0 10px rgba(255,227,166,.45)}40%{box-shadow:0 0 10px rgba(200,255,216,.45)}60%{box-shadow:0 0 10px rgba(166,236,255,.5)}80%{box-shadow:0 0 10px rgba(220,176,255,.5)}}
 @media (prefers-reduced-motion:reduce){.ac.rb{animation:none}}
 .ac h3 .ic{width:13px;height:13px;vertical-align:-1px;margin-right:4px}
 .ac.tc{gap:4px}
@@ -325,7 +325,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 135, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 136, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -1154,6 +1154,9 @@ const hitStop = t => { if (OPT.shake > 0) hitT = Math.max(hitT, t); }, punch = k
 function pop(o) { if (o.a) { if (!OPT.pops && !o.im) return; const q = pops.find(v => v.a && v.base === o.txt && v.t < 0.5); if (q) { q.n = (q.n || 1) + 1; q.txt = q.base + ' ×' + q.n; q.t = Math.min(q.t, 0.12); return; } o.base = o.txt; let n = 0; for (const v of pops) if (v.a) n++; if (n >= 5) pops.splice(pops.findIndex(v => v.a), 1); } else if (!OPT.pops) return; pops.push(o); }
 const burst = (x, y, n, cols, spd, life, o = {}) => { if (fxs.length > Q.cap) return; n = Math.max(1, Math.round(n * Q.part)); for (let i = 0; i < n; i++) { const a = (o.a0 ?? 0) + (o.spread ?? 6.283) * (Math.random() - 0.5), v = spd * (0.35 + Math.random() * 0.65); fxs.push({ k: 's', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: life * (0.6 + Math.random() * 0.6), c: cols[i % cols.length], g: o.g ?? 500, z: (o.z ?? 5) * (0.6 + Math.random() * 0.8), sq: o.sq }); } };
 const ringFx = (x, y, c, r1, life = 0.45, w = 5, delay = 0) => fxs.push({ k: 'r', x, y, t: -delay, life, c, r1, w });
+// every achievement cleared: the pull lines and the pickup sparkles around the cart turn rainbow
+const RBW = ['#ff5fbf', '#ffc93a', '#3dff9a', '#38c8ff', '#6f7bff', '#c45cff', '#ff7ae0'], rbOn = () => !!S && C.achCount(S) >= C.ACH.length, rbHue = k => `hsl(${(performance.now() / 6 + k * 51) % 360},100%,64%)`,
+  rbCone = (a, x = 0, y = 0) => { if (!g.createConicGradient) return `hsla(${(performance.now() / 6) % 360},100%,64%,${a})`; const c = g.createConicGradient(performance.now() / 500, x, y); RBW.concat(RBW[0]).forEach((h, i) => c.addColorStop(i / RBW.length, `rgba(${parseInt(h.slice(1, 3), 16)},${parseInt(h.slice(3, 5), 16)},${parseInt(h.slice(5, 7), 16)},${a})`)); return c; };
 const confetti = (x, y, n) => burst(x, y, n, ['#f0452f', '#f5b014', '#12a594', '#3f8cff', '#ff8ab3', '#fff'], 420, 1.1, { a0: -1.57, spread: 3.4, g: 700, z: 6, sq: 1 });
 const coinFly = (x, y, n) => { for (let i = 0; i < n; i++) fxs.push({ k: 'c', x, y, x0: x, y0: y, t: -i * 0.05, life: 0.45, mx: x + (Math.random() - 0.5) * 120, my: y - 60 - Math.random() * 60 }); };
 // ---- motion effects: spin wind, booster flame, airflow, dash/dive immersion, gold-crate fanfare ----
@@ -1259,10 +1262,10 @@ function immerseFx(dt) { const K = FXK(); diveA += ((state === 'fly' && run && r
   g.restore(); }
 // gold crate fanfare: twinkling stars, a white ring, confetti and a stream of coins to the counter (no gold ray burst: the player found it too busy); a chain of crates
 // in quick succession gets one full fanfare and small sparkles for the rest, so a big haul does not drown the screen
-function crateFanfare(x, y) { const K = FXK(), nowT = performance.now(), big = nowT - fanT > 260; ringFx(x, y, '#ffd24a', 70, 0.5, 5);
-  if (!big || !K) { burst(x, y, 3, ['#ffd24a', '#fff3b0'], 200, 0.4, { g: 200, z: 3 }); coinFly(x, y, 2); return; } fanT = nowT;
+function crateFanfare(x, y) { const K = FXK(), nowT = performance.now(), big = nowT - fanT > 260, rb = rbOn(); ringFx(x, y, rb ? rbHue(0) : '#ffd24a', 70, 0.5, 5);
+  if (!big || !K) { burst(x, y, 3, rb ? RBW : ['#ffd24a', '#fff3b0'], 200, 0.4, { g: 200, z: 3 }); coinFly(x, y, 2); return; } fanT = nowT;
   for (let i = 0; i < Math.round(5 * K) + 1; i++) { const a = Math.random() * 6.283, v = 40 + 90 * Math.random(); fxs.push({ k: 'st', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 30, t: -i * 0.04, life: 0.6 + 0.3 * Math.random(), z: 5 + 4 * Math.random() * K }); }
-  ringFx(x, y, '#ffffff', 110 * K + 40, 0.6, 3, 0.08); confetti(x, y, Math.round(14 * (0.5 + K))); coinFly(x, y, Math.round(4 + 6 * K)); }
+  ringFx(x, y, rb ? rbHue(3) : '#ffffff', 110 * K + 40, 0.6, 3, 0.08); confetti(x, y, Math.round(14 * (0.5 + K))); coinFly(x, y, Math.round(4 + 6 * K)); }
 function drawFx(dt) {
   if (flash > 0.01) { g.globalAlpha = Math.min(0.6, flash) * OPT.flash; g.fillStyle = flashCol; g.fillRect(0, 0, W, H); g.globalAlpha = 1; flash *= Math.pow(0.001, dt); }
   g.globalCompositeOperation = 'lighter';
@@ -1307,7 +1310,8 @@ function drawWorld(cx, cy, dt) {
   objK = Math.max(0.5, Math.min(1, 320 * Math.max(34 / 22, CU()) / cam.vw));
   if (run) { const i0 = Math.max(0, Math.floor(x0 / run.cw - 1.2)), i1 = Math.min(i0 + 4000, Math.floor(x1 / run.cw - 1.2) + 1), keep = Math.min(1, 44 / Math.max(1, i1 - i0 + 1));
     for (let i = i0; i <= i1; i++) { if (keep < 1 && hsh(i * 13 + 7) > keep) continue; for (const o of C.cellObjs(run, i)) if (!run.used.has(o.id)) drawObj(o); }
-    for (const m of run.mag) { const f = Math.min(1, (run.tr - m.t0) / (m.d || 0.3)), e = f * f, o = m.o, tx = o.x + (run.x - o.x) * e, ty = o.y + (run.y + 0.5 * run.S - o.y) * e; g.strokeStyle = m.beam ? `rgba(255,226,122,${0.68 * (1 - f * 0.5)})` : `rgba(255,90,90,${0.4 * (1 - f)})`; g.lineWidth = m.beam ? 4 : 2; g.beginPath(); g.moveTo(SX(tx), SY(ty)); g.lineTo(SX(run.x), SY(run.y + 0.5 * run.S)); g.stroke();
+    const rb = rbOn(); let mk = 0;
+    for (const m of run.mag) { const f = Math.min(1, (run.tr - m.t0) / (m.d || 0.3)), e = f * f, o = m.o, tx = o.x + (run.x - o.x) * e, ty = o.y + (run.y + 0.5 * run.S - o.y) * e; if (rb) { g.globalAlpha = m.beam ? 0.95 * (1 - f * 0.4) : 0.7 * (1 - f); g.strokeStyle = rbHue(mk++); } else g.strokeStyle = m.beam ? `rgba(255,226,122,${0.68 * (1 - f * 0.5)})` : `rgba(255,90,90,${0.4 * (1 - f)})`; g.lineWidth = m.beam ? 4 : 2; g.beginPath(); g.moveTo(SX(tx), SY(ty)); g.lineTo(SX(run.x), SY(run.y + 0.5 * run.S)); g.stroke(); g.globalAlpha = 1;
       // a pulled coin or crate shrinks and fades as it is drawn in, so a burst of pickups reads as being swallowed rather than piling up
       g.globalAlpha = 1 - 0.55 * e; drawObj(Object.assign({}, o, { x: tx, y: ty }), 1 - 0.45 * e); g.globalAlpha = 1; } }
 }
@@ -1869,7 +1873,7 @@ function draw(now) {
       // pickup spot would land a whole frame's travel ahead of the cart (or pinned to the screen edge); the cart sits at ox horizontally
       const gx = Math.max(-40, Math.min(W + 40, ox + (e.x - run.x) * ppm)), gy = Math.max(-40, Math.min(H + 40, cartSY - (e.y - run.y) * ppm));
       if (e.k === 'bounce') { const hard = Math.min(1, e.imp / (0.5 * run.v0 + 1)); shake = Math.max(shake, 2 + 6 * hard); SFX.bounce(0.1 + 0.3 * hard); burst(cartX, cartY + 8, 4 + Math.round(6 * hard), ['#ffffff', '#e8dcc0'], 200, 0.45, { a0: -1.57, spread: 2.6, g: 600, z: 4 }); if (hard > 0.5) ringFx(cartX, cartY + 8, '#ffffff', 40 + 40 * hard, 0.35, 3); }
-      else if (e.k === 'coin') { const tn = performance.now(); if (tn - goldPopT > 140) pop({ x: e.x, y: e.y, t: 0, txt: '+' + fmt(e.g * st.rate) }); SFX.coin(run.combo, gx / W * 2 - 1); burst(gx, gy, 4, ['#ffd24a', '#fff3b0'], 220, 0.4, { g: 300, z: 4 }); coinFly(gx, gy, 1); goldPopT = tn; }
+      else if (e.k === 'coin') { const tn = performance.now(); if (tn - goldPopT > 140) pop({ x: e.x, y: e.y, t: 0, txt: '+' + fmt(e.g * st.rate) }); SFX.coin(run.combo, gx / W * 2 - 1); burst(gx, gy, 4, rbOn() ? RBW : ['#ffd24a', '#fff3b0'], 220, 0.4, { g: 300, z: 4 }); coinFly(gx, gy, 1); goldPopT = tn; }
       else if (e.k === 'crate') { pop({ x: e.x, y: e.y, t: 0, txt: '+' + fmt(e.g * st.rate) }); SFX.crate(gx / W * 2 - 1); crateFanfare(gx, gy); shake = Math.max(shake, 4); goldPopT = performance.now(); }
       else if (e.k === 'smash') { pop({ x: e.x, y: e.y, t: 0, txt: '+' + fmt(e.g * st.rate) }); SFX.bonk(); SFX.coin(); burst(gx, gy, 9, ['#ff8a1f', '#7a6f80', '#ffd24a'], 380, 0.6, { a0: -0.6, spread: 2.4, z: 5, sq: 1 }); coinFly(gx, gy, 2); shake = 5; }
       else if (e.k === 'pad') { SFX.pad(); ringFx(cartX, cartY, '#ff8a1f', 70, 0.4, 6); burst(cartX - 10, cartY, 8, ['#ff8a1f', '#ffd24a'], 520, 0.4, { a0: Math.PI, spread: 0.7, g: 0, z: 4 }); }
@@ -2007,9 +2011,12 @@ function draw(now) {
       g.save(); g.translate(cxp, cyp); g.rotate(rot); g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, R, Math.PI / 2 - jg, Math.PI / 2 + jg); g.closePath(); const gr = g.createRadialGradient(0, 0, R * 0.3, 0, 0, R); gr.addColorStop(0, 'rgba(120,220,255,0)'); gr.addColorStop(1, `rgba(120,220,255,${0.3 * pu})`); g.fillStyle = gr; g.fill();
       g.lineCap = 'round'; g.lineWidth = 2; g.strokeStyle = `rgba(150,230,255,${0.6 * pu})`; g.beginPath(); g.arc(0, 0, R, Math.PI / 2 - jg, Math.PI / 2 + jg); g.stroke();
       // the perfect window glows gold: a warm wedge, a thick gold rim with a bright core, a soft halo and a glint that runs along it
-      g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, R, Math.PI / 2 - jp, Math.PI / 2 + jp); g.closePath(); const gg = g.createRadialGradient(0, 0, R * 0.45, 0, 0, R * 1.02); gg.addColorStop(0, 'rgba(255,200,60,0)'); gg.addColorStop(1, `rgba(255,196,40,${0.42 * pu})`); g.fillStyle = gg; g.fill();
-      if (Q.glow) { g.shadowColor = 'rgba(255,190,40,.95)'; g.shadowBlur = 16; }
-      g.lineWidth = 6; g.strokeStyle = `rgba(232,160,20,${0.95 * pu})`; g.beginPath(); g.arc(0, 0, R, Math.PI / 2 - jp, Math.PI / 2 + jp); g.stroke(); g.shadowBlur = 0;
+      // (every achievement cleared: the wedge, rim and halo turn into a turning rainbow instead)
+      const rb = rbOn();
+      g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, R, Math.PI / 2 - jp, Math.PI / 2 + jp); g.closePath(); const gg = g.createRadialGradient(0, 0, R * 0.45, 0, 0, R * 1.02); gg.addColorStop(0, 'rgba(255,200,60,0)'); gg.addColorStop(1, `rgba(255,196,40,${0.42 * pu})`);
+      if (rb) { const band = (r0, a) => { g.beginPath(); g.arc(0, 0, R, Math.PI / 2 - jp, Math.PI / 2 + jp); g.arc(0, 0, R * r0, Math.PI / 2 + jp, Math.PI / 2 - jp, true); g.closePath(); g.fillStyle = rbCone(a); g.fill(); }; band(0.5, 0.18 * pu); band(0.72, 0.24 * pu); band(0.88, 0.32 * pu); } else { g.fillStyle = gg; g.fill(); }
+      if (Q.glow) { g.shadowColor = rb ? rbHue(0) : 'rgba(255,190,40,.95)'; g.shadowBlur = 16; }
+      g.lineWidth = 6; g.strokeStyle = rb ? rbCone(pu) : `rgba(232,160,20,${0.95 * pu})`; g.beginPath(); g.arc(0, 0, R, Math.PI / 2 - jp, Math.PI / 2 + jp); g.stroke(); g.shadowBlur = 0;
       g.lineWidth = 2.5; g.strokeStyle = `rgba(255,246,190,${pu})`; g.beginPath(); g.arc(0, 0, R, Math.PI / 2 - jp, Math.PI / 2 + jp); g.stroke();
       { const ta = Math.PI / 2 - jp + (performance.now() / 700 % 1) * 2 * jp, gx = Math.cos(ta) * R, gy = Math.sin(ta) * R, sg = g.createRadialGradient(gx, gy, 0, gx, gy, 9); sg.addColorStop(0, 'rgba(255,255,235,.95)'); sg.addColorStop(1, 'rgba(255,210,80,0)'); g.fillStyle = sg; g.beginPath(); g.arc(gx, gy, 9, 0, 7); g.fill(); }
       g.restore(); }
