@@ -25,7 +25,7 @@ for (let n = 1; n <= MAXR; n++) {
   const { r, t } = play(M); time += t + 6; const p = C.finish(r, M); C.buyAll(M);
   for (let z = 0; z <= M.zoneEver; z++) if (!firstAt[z]) firstAt[z] = { run: n, min: (time / 60).toFixed(1), recons: M.recons };
   if (M.bestCyc > last + 0.05) { last = M.bestCyc; stall = 0; } else stall++;
-  if (C.reconOpen(M) && C.crysFor(M) > 0 && stall >= 6) { const g = C.reconstruct(M); last = 0; stall = 0; for (let k = 0; k < 200; k++) { let b = null, bc = Infinity; for (const q of C.PERKS) { const l = C.pl(M, q.id); if (l >= q.max) continue; const c = C.perkCost(q.id, l); if (c < bc) { bc = c; b = q.id; } } if (!b || bc > M.crys) break; C.buyPerk(M, b); } }
+  if (C.reconOpen(M) && C.crysFor(M) > 0 && stall >= 6) { const g = C.reconstruct(M); last = 0; stall = 0; for (let k = 0; k < 200; k++) { let b = null, bc = Infinity; for (const q of C.PERKS) { const l = C.pl(M, q.id); if (l >= q.max || C.perkLock(M, q.id)) continue; const c = C.perkCost(q.id, l); if (c < bc) { bc = c; b = q.id; } } if (!b || bc > M.crys) break; C.buyPerk(M, b); } }
   if (n % 25 === 0 || r.found || n <= +(process.env.DBG || 0)) console.log(`run ${n} ${(time / 60).toFixed(0)}분 p=${r.pmax.toFixed(2)} best=${M.best.toFixed(2)} hits=${r.hits} near=${r.nearN} v=${r.v.toFixed(0)} why=${r.why} t=${t.toFixed(0)}s light=${M.light.toExponential(2)} recons=${M.recons} crys=${M.crys} power=${C.lvl(M, 'u_power')} lux=${C.lvl(M, 'u_lux')}`);
   if (r.found) break;
 }

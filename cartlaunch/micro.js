@@ -5,29 +5,16 @@
 const B = window.CARTB; if (!B || typeof MCORE === 'undefined' || typeof MART === 'undefined') return;
 const C = MCORE, A = MART, $ = s => document.querySelector(s), root = document.getElementById('root');
 const fmt = B.fmt, FONT = B.FONT, f2 = n => n < 10 ? n.toFixed(2) : n < 100 ? n.toFixed(1) : fmt(n);
-/* Money in the small world is 'minus money': the smaller an amount, the more it is worth.  Inside, light still counts up as before
-   (value v); on screen every amount is shown as 1/v won, in coined units below the won, one every ten thousandth (like 만·억·조 the
-   other way): 톨 (a speck of dust), 올 (a thread), 티 (a mote), 낟 (a grain), 찰 (an instant), 숨 (a breath), 결 (a ripple), 무 (next to
-   nothing).  Earning makes the wallet smaller; a price can be paid when the wallet is at or below it; prices shrink level by level. */
-const MONEY = [[-4, '톨', '먼지 한 톨'], [-8, '올', '실 한 올'], [-12, '티', '티끌 하나'], [-16, '낟', '낟알 하나'], [-20, '찰', '찰나의 반짝임'], [-24, '숨', '숨결 한 번'], [-28, '결', '물결 한 줄'], [-32, '무', '거의 없음(無)']];
-const nfmt = n => n < 10 ? n.toFixed(2) : n < 100 ? n.toFixed(1) : Math.round(n).toLocaleString('ko-KR');
-// an amount in won, written with the small units
-function won(a) { if (!isFinite(a) || a > 1e12) return '텅 빔'; if (a >= 1) return nfmt(a) + '원'; for (const [e, u] of MONEY) if (a >= Math.pow(10, e)) return nfmt(a / Math.pow(10, e)) + u; const n = a / 1e-32; return (n > 0 ? n.toExponential(1) : '0') + '무'; }
-// a value of light as minus money
-const mny = v => won(v > 1e-12 ? 1 / v : Infinity);
-
 /* ---------------- DOM ---------------- */
 const css = document.createElement('style');
 css.textContent = `
 #micro{position:absolute;inset:0;z-index:4;overflow:hidden;background:#141024;transition:transform .45s cubic-bezier(.6,0,.3,1)}
 #micro.slideR{transform:translateX(100%)} #micro.slideL{transform:translateX(-100%)}
 #micro canvas{position:absolute;left:0;top:0;width:100%;height:100%;touch-action:none}
-.micro-on #shopBtn,.micro-on #optBtn{display:none}
 .micro-on #topbar{z-index:6}
 #mTop{position:absolute;left:10px;top:8px;display:flex;gap:6px;align-items:center;z-index:2;zoom:var(--hk,1)}
 #mTop .goldv{font-size:17px}
 #mTop .goldv.cr{color:#bff4ff}#mTop .goldv.cr::before{background:radial-gradient(circle at 35% 30%,#fff,#9ae8ff 60%);border-radius:3px;transform:rotate(45deg)}
-.mlight::before{content:"⊖"!important;background:none!important;border:0!important;width:auto!important;height:auto!important;color:#ffe27a;margin-right:5px!important;vertical-align:0!important}
 #mBack{position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:2;border:3px solid #2b2233;border-left:0;border-radius:0 16px 16px 0;background:linear-gradient(#ffd75e,#f5a614);color:#2b2233;font:20px var(--disp);padding:14px 10px 14px 6px;box-shadow:3px 4px 0 #2b2233;display:flex;flex-direction:column;align-items:center;gap:2px;zoom:var(--hk,1)}
 #mBack small{font:700 10px var(--body);writing-mode:vertical-rl;letter-spacing:1px}
 #mBack:active{transform:translateY(-50%) translateX(-3px)}
@@ -43,32 +30,25 @@ css.textContent = `
 #mResult h2{color:#2aa7d8}
 #mResult .big{font:28px var(--disp);color:#2b2233}
 #mResult .big small{display:block;font:700 12px var(--body);color:#7a6f80}
-#mShop{position:absolute;left:0;top:0;width:calc(100% / var(--k,1));height:calc(100% / var(--k,1));transform:scale(var(--k,1));transform-origin:0 0;display:grid;grid-template-rows:auto 1fr;color:#e8f6ff;background:radial-gradient(120% 90% at 25% 0%,#1e3a5a 0%,#122238 55%,#0a1424 100%);z-index:3}
-#mShop .shead{background:linear-gradient(#1c3352,#152740);border-bottom-color:#2e5a86}
-#mShop .shead h2{color:#9ae8ff}
-#mShop .pill{background:linear-gradient(#9ae8ff,#4ab8e8);border-color:#0d0a1c;box-shadow:0 3px 0 #0d0a1c;white-space:nowrap}
-#mShop .goldv{background:#0a1424;border-color:#2e5a86}
-.msb{display:grid;grid-template-columns:auto 1fr;min-height:0}
-.mtabs{display:flex;flex-direction:column;gap:6px;padding:8px;overflow:auto;border-right:2px solid #1e3a5a}
-.mtabs button{border:2px solid #2e5a86;border-radius:10px;background:#13263e;color:#cfe8ff;font:15px var(--disp);padding:6px 12px;text-align:left;white-space:nowrap;position:relative}
-.mtabs button.on{background:#9ae8ff;color:#0d0a1c;border-color:#0d0a1c}
-.mtabs button i{position:absolute;right:-5px;top:-6px;background:#ff5a5a;color:#fff;font:700 10px sans-serif;border-radius:9px;padding:1px 5px;font-style:normal}
-.mlist{overflow:auto;padding:10px 12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;align-content:start}
-.mlist .bh{grid-column:1/-1;font:16px var(--disp);color:#9ae8ff;margin:4px 0 0}
-.mlist .note{grid-column:1/-1;margin:0;font-size:12px;color:#9ab8d0;line-height:1.45}
-.mc{border:2px solid #2e5a86;border-radius:10px;background:linear-gradient(160deg,#16304e,#0f2038);padding:7px 9px;display:flex;flex-direction:column;gap:3px;min-width:0}
+#mShop{position:absolute;left:0;top:0;width:calc(100% / var(--k,1));height:calc(100% / var(--k,1));transform:scale(var(--k,1));transform-origin:0 0;display:grid;grid-template-rows:auto 1fr;color:#efeaff;background:radial-gradient(120% 90% at 25% 0%,#34296a 0%,#1d1740 55%,#120e28 100%);z-index:3}
+#mShop .pill{background:linear-gradient(#ffd75e,#f5a614);border-color:#0d0a1c;box-shadow:0 3px 0 #0d0a1c;white-space:nowrap}
+#mAll{background:linear-gradient(#7df3da,#12a594)!important}
+#mShop .shead h2{flex:none}#mShop .shead #mAll{margin-left:auto}
+.mlist{position:relative;overflow:auto;min-width:0;scrollbar-width:thin;scrollbar-color:#4a3d8a transparent}
+.mlist.grid{padding:10px 12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;align-content:start}
+.mlist .bh{grid-column:1/-1;font:16px var(--disp);color:#c59bff;margin:4px 0 0}
+.mlist .note{grid-column:1/-1;margin:0;font-size:12px;color:#b3a9dd;line-height:1.45}
+.mlist .rbar{position:sticky;left:0;display:flex;gap:10px;align-items:center;margin:8px 12px 0;padding:8px 10px;border:1.5px solid #6a50b0;border-radius:12px;background:rgba(13,10,28,.6);font-size:12px;line-height:1.45;color:#cfc6f5;max-width:min(760px,calc(100% - 24px));box-sizing:border-box}
+.mlist .rbar .buy{flex:none;font-size:15px;padding:6px 12px}
+.mc{border:2px solid #53468f;border-radius:10px;background:linear-gradient(160deg,#30275e,#221a45);padding:7px 9px;display:flex;flex-direction:column;gap:3px;min-width:0}
 .mc h3{margin:0;font:15px/1.15 var(--disp);color:#fff;display:flex;gap:6px;align-items:baseline}
-.mc h3 small{margin-left:auto;font:700 10.5px var(--body);color:#9ae8ff;white-space:nowrap}
-.mc p{margin:0;font-size:11px;line-height:1.35;color:#a8c4dc}
+.mc h3 small{margin-left:auto;font:700 10.5px var(--body);color:#c59bff;white-space:nowrap}
+.mc p{margin:0;font-size:11px;line-height:1.35;color:#b3a9dd}
 .mc .ev{color:#fff;font-weight:700;font-size:11.5px}
-.mc button{margin-top:auto;border:2px solid #0d0a1c;border-radius:8px;background:linear-gradient(#ffd75e,#f5a614);font:14px var(--disp);color:#2b2233;padding:4px 6px;box-shadow:0 3px 0 #0d0a1c}
-.mc button:disabled{background:#3a4a5e;color:#8aa0b8;box-shadow:none}
-.mc.can{border-color:#ffd24a;box-shadow:0 0 10px rgba(255,210,74,.25)}
 .mc.lock{opacity:.55;border-style:dashed}
-.mc.mx{border-color:#5affc0}
 .mc.zone{border-left:6px solid var(--zc,#9ae8ff)}
-.mc.cr button{background:linear-gradient(#dff8ff,#7fd8ff)}
-.mbar{height:5px;border-radius:3px;background:#0a1424;overflow:hidden}.mbar b{display:block;height:100%;background:#9ae8ff}
+#mEnd{position:absolute;top:8px;right:10px;font-size:13px;padding:3px 10px;opacity:.9;z-index:2;zoom:var(--hk,1)}
+.micro-on #shop{z-index:7}
 #mCard{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;text-align:center;color:#fff;pointer-events:none;opacity:0;transition:opacity .6s}
 #mCard.show{opacity:1}
 #mCard h1{font:min(56px,7vw) var(--disp);white-space:nowrap;margin:0;color:#ffe27a;text-shadow:0 4px 0 #2b2233,0 0 24px rgba(255,220,120,.5)}
@@ -76,21 +56,20 @@ css.textContent = `
 #mCard p.s{font:700 13px var(--body);opacity:.85}
 #mHint{position:absolute;left:50%;bottom:5%;transform:translateX(-50%);z-index:2;font:16px var(--disp);color:#fff;text-shadow:0 2px 0 #2b2233;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .4s;zoom:var(--hk,1)}
 #mHint.show{opacity:1}
-#mOpen{position:absolute;right:10px;top:46px;z-index:2;zoom:var(--hk,1);display:flex;gap:6px}
 `;
 document.head.appendChild(css);
 const el = document.createElement('div'); el.id = 'micro'; el.hidden = true;
 el.innerHTML = `<canvas id="mcv"></canvas>
-<div id="mTop"><span class="goldv mlight" id="mLight"></span><span class="goldv cr" id="mCrys" hidden></span></div>
-<div id="mOpen"><button class="pill" id="mShopBtn" type="button">연구소</button></div>
+<div id="mTop"><span class="goldv" id="mLight"></span><span class="goldv cr" id="mCrys" hidden></span></div>
+<button class="pill" id="mEnd" type="button" hidden>결과 보기</button>
 <button id="mBack" type="button" title="카트 발사대로">◀<small>카트 발사대</small></button>
-<button class="hbtn" id="mBoost" type="button" data-key="Space" hidden>추진<small></small></button>
-<button class="hbtn" id="mPulse" type="button" data-key="E" hidden>펄스<small></small></button>
-<button class="hbtn" id="mBlink" type="button" data-key="Q" hidden>도약<small></small></button>
-<button class="hbtn" id="mShrink" type="button" data-key="R" hidden>수축<small></small></button>
+<button class="hbtn" id="mBoost" type="button" data-key="Space" hidden>부스트<small></small></button>
+<button class="hbtn" id="mPulse" type="button" data-key="E" hidden>대시<small></small></button>
+<button class="hbtn" id="mBlink" type="button" data-key="Q" hidden>순간<br>이동<small></small></button>
+<button class="hbtn" id="mShrink" type="button" data-key="R" hidden>작아<br>지기<small></small></button>
 <div id="mHint"></div>
-<section class="card" id="mResult" hidden><div class="rtop"><h2 id="mWhy"></h2><div class="big" id="mDist"></div></div><div class="rbody"><div class="tags" id="mTags"></div><div class="rows" id="mRows"></div></div><div class="btns"><button class="go alt" id="mRShop" type="button">연구소</button><button class="go" id="mAgain" type="button">다시 축소</button></div></section>
-<section id="mShop" hidden><div class="shead"><h2>축소 연구소</h2><span class="goldv mlight" id="mSL"></span><span class="goldv cr" id="mSC" hidden></span><button class="pill" id="mAll" type="button">모두 구매</button><button class="pill" id="mClose" type="button">돌아가기</button></div><div class="msb"><div class="mtabs" id="mTabs"></div><div class="mlist" id="mList"></div></div></section>
+<section class="card" id="mResult" hidden><div class="rtop"><h2 id="mWhy"></h2><div class="big" id="mDist"></div></div><div class="rbody"><div class="tags" id="mTags"></div><div class="rows" id="mRows"></div></div><div class="btns"><button class="go alt" id="mRShop" type="button">업그레이드</button><button class="go" id="mAgain" type="button">다시 출발</button></div></section>
+<section id="mShop" hidden><div class="shead"><h2>업그레이드</h2><span class="goldv" id="mSL"></span><span class="goldv cr" id="mSC" hidden></span><button class="pill" id="mAll" type="button">모두 구매</button><button class="pill" id="mClose" type="button">출발하러 가기</button></div><div class="sbody"><div class="tabs" id="mTabs"></div><div class="mlist" id="mList"></div></div></section>
 <div id="mCard"></div>`;
 root.appendChild(el);
 const cv = $('#mcv'); let g = cv.getContext('2d'); A.use(g);
@@ -144,27 +123,29 @@ const now = () => performance.now() / 1000;
 
 function showHint(t, ms = 2600) { hint.textContent = t; hint.classList.add('show'); clearTimeout(showHint.h); showHint.h = setTimeout(() => hint.classList.remove('show'), ms); }
 function bigCard(h, p, s, ms) { card.innerHTML = `<h1>${h}</h1>${p ? `<p>${p}</p>` : ''}${s ? `<p class="s">${s}</p>` : ''}`; card.classList.add('show'); clearTimeout(bigCard.h); if (ms) bigCard.h = setTimeout(() => card.classList.remove('show'), ms); }
-function hud() { const m = M(); $('#mLight').textContent = mny(m.light); const cr = $('#mCrys'); cr.hidden = !(m.crys > 0 || m.recons > 0); cr.textContent = fmt(m.crys); }
-function flyUI(v) { for (const b of [bBoost, bPulse, bBlink, bShrink]) b.hidden = !v; $('#mBack').hidden = v || mode === 'intro'; $('#mOpen').hidden = v; $('#mTop').hidden = v; if (v) hint.classList.remove('show'); }
+function hud() { const m = M(); $('#mLight').textContent = money(m.light); const cr = $('#mCrys'); cr.hidden = !(m.crys > 0 || m.recons > 0); cr.textContent = fmt(m.crys); }
+// the cart's top bar (full screen · settings · sound · upgrade) stays as it is in the cart; hidden during a run, which has '결과 보기' there
+const topbar = v => { const t = document.getElementById('topbar'); if (t) t.hidden = !v; };
+function flyUI(v) { for (const b of [bBoost, bPulse, bBlink, bShrink]) b.hidden = !v; $('#mEnd').hidden = !v; $('#mBack').hidden = v || mode === 'intro'; $('#mTop').hidden = v; topbar(!v && mode !== 'intro' && mode !== 'found'); if (v) hint.classList.remove('show'); }
 
 /* ---------------- enter / leave ---------------- */
 function enter(o) { o = o || {}; if (on && !o.intro) return; on = true; size(); root.classList.add('micro-on'); el.hidden = false; const m = M(); m.open = 1;
   try { localStorage.setItem('cart.mode', 'micro'); } catch (e) {}
   $('#mResult').hidden = true; $('#mShop').hidden = true; card.classList.remove('show');
-  if (o.intro) { mode = 'intro'; introT = now(); flyUI(false); $('#mBack').hidden = true; $('#mOpen').hidden = true; $('#mTop').hidden = true; }
+  if (o.intro) { mode = 'intro'; introT = now(); flyUI(false); $('#mBack').hidden = true; $('#mTop').hidden = true; topbar(false); }
   else { toLab(); if (o.slide) { el.classList.add('slideR'); void el.offsetWidth; el.classList.remove('slideR'); } }
   if (o.returned) setTimeout(() => bigCard('찾아 주셔서 고마워요!', '작은 세상 · 완료', '계속 더 깊이, 더 빠르게 내려가 볼 수 있어요', 4200), 400);
   hud(); last = performance.now(); save(); requestAnimationFrame(loop); }
-function leave() { if (!on) return; el.classList.add('slideR'); setTimeout(() => { on = false; el.hidden = true; el.classList.remove('slideR'); root.classList.remove('micro-on'); try { localStorage.setItem('cart.mode', 'cart'); } catch (e) {} try { B.toAim(); } catch (e) {} }, 430); }
+function leave() { if (!on) return; topbar(true); el.classList.add('slideR'); setTimeout(() => { on = false; el.hidden = true; el.classList.remove('slideR'); root.classList.remove('micro-on'); try { localStorage.setItem('cart.mode', 'cart'); } catch (e) {} try { B.toAim(); } catch (e) {} }, 430); }
 function toLab() { mode = 'lab'; run = null; charge = 0; fireT = 0; flyUI(false); $('#mResult').hidden = true; $('#mShop').hidden = true; B.MUS.want('mlab'); hud();
-  const m = M(); if (!seenHint.lab && m.runs < 2) { seenHint.lab = 1; setTimeout(() => showHint(B.portrait || !matchMedia('(pointer: fine)').matches ? '화면을 누르고 있다가, 고리가 점선에 겹칠 때 떼세요' : 'Space를 누르고 있다가, 고리가 점선에 겹칠 때 떼세요', 4200), 600); } }
+  const m = M(); if (!seenHint.lab && m.runs < 2) { seenHint.lab = 1; setTimeout(() => showHint(B.portrait || !matchMedia('(pointer: fine)').matches ? '화면을 누르고 있다가, 고리가 점선 원에 겹칠 때 떼세요' : 'Space를 누르고 있다가, 고리가 점선 원에 겹칠 때 떼세요', 4200), 600); } }
 
 /* ---------------- charge and launch ---------------- */
 function startCharge() { if (mode !== 'lab') return; mode = 'charge'; charge = 0; }
 function release() { if (mode !== 'charge') return; const st = C.stats(M()), mid = 0.86, d = Math.abs(charge - mid); quality = d <= st.perfW ? 2 : d <= 0.1 ? 1 : 0; mode = 'fire'; fireT = now(); SND.fire();
   if (quality === 2) { SND.perfect(); bigCard('완벽 축소!', '', '', 900); } else if (quality === 1) bigCard('좋아요', '', '', 700); }
 function begin() { const m = M(); run = C.newRun(m, quality); mode = 'run'; tunT = now(); fx = []; pops = []; trail = []; scroll = 0; zk = 1; banner = null; lightPop = { v: 0, t: -9 }; flyUI(true); updBtns();
-  B.MUS.want(C.ZONES[0].tune); showZone(0, true); if (m.runs < 3) setTimeout(() => showHint(matchMedia('(pointer: fine)').matches ? '↑↓(W·S)로 위아래 · Space 추진 · E 펄스' : '화면을 눌러 끄는 쪽으로 움직여요 · 버튼으로 추진·펄스', 4200), 900); }
+  B.MUS.want(C.ZONES[0].tune); showZone(0, true); if (m.runs < 3) setTimeout(() => showHint(matchMedia('(pointer: fine)').matches ? '↑↓(W·S)로 위아래 · Space 부스트 · E 대시' : '화면을 누른 채 위아래로 움직여요 · 버튼으로 부스트·대시', 4200), 900); }
 function showZone(z, first) { const Z = C.ZONES[z], m = M(), fresh = z > (m.seenZone || 0); if (fresh) m.seenZone = z; banner = { z, t: now(), fresh, first }; if (!first) SND.zone(); B.MUS.want(Z.tune); }
 function updBtns() { if (!run) return; const st = run.st; bPulse.querySelector('small').textContent = run.pulses + '회'; bPulse.disabled = !run.pulses;
   bBlink.hidden = mode !== 'run' || !st.blinks; bBlink.querySelector('small').textContent = run.blinks + '회'; bBlink.disabled = !run.blinks;
@@ -188,7 +169,7 @@ addEventListener('keydown', e => { if (!on) return; if (e.target && e.target.clo
   if (mode === 'result' && e.code === 'KeyU') openShop(); if (mode === 'lab' && e.code === 'KeyU') openShop(); if (mode === 'lab' && e.code === 'ArrowLeft') leave(); });
 addEventListener('keyup', e => { if (!on) return; keys.delete(e.code); if (e.code === 'Space') { boostHeld = false; if (mode === 'charge') release(); } });
 $('#mBack').addEventListener('click', e => { e.stopPropagation(); leave(); });
-$('#mShopBtn').addEventListener('click', e => { e.stopPropagation(); openShop(); });
+$('#mEnd').addEventListener('click', e => { e.stopPropagation(); if (run && mode === 'run' && !run.over) { run.over = true; run.why = '여기까지 할게요'; } });
 $('#mRShop').addEventListener('click', openShop); $('#mAgain').addEventListener('click', again);
 $('#mClose').addEventListener('click', closeShop); $('#mAll').addEventListener('click', () => { const n = C.buyAll(M()); if (n) { SND.buy(); save(); } renderShop(); hud(); });
 function again() { toLab(); }
@@ -269,7 +250,7 @@ function drawFx(dt) { g.save(); g.globalCompositeOperation = 'lighter';
 function drawRun(dt, tm) {
   const r = run, st = r.st, p = r.X / C.LEN, z = Math.min(C.ZN - 1, Math.floor(p)), Z = C.ZONES[z], fr = p - z, Zn = C.ZONES[Math.min(C.ZN - 1, z + 1)];
   // the view widens with speed so there is time to react; the camera follows the capsule's height loosely
-  const zt = Math.max(1, Math.min(1.6, 1 + (r.v - 45) / 150)); zk += (zt - zk) * Math.min(1, dt * 2.5);
+  const zt = Math.max(1, Math.min(1.5, 1 + (r.v - 15) / 60)); zk += (zt - zk) * Math.min(1, dt * 2.5);
   const ppm = ppmNow(), half = (H / 2) / ppm; camY += (Math.max(-C.HH + half * 0.75, Math.min(C.HH - half * 0.75, r.y * 0.5)) - camY) * Math.min(1, dt * 4); if (half >= C.HH) camY = 0;
   scroll += Math.min(r.v, 400) * ppm * dt;
   const pal = fr > 0.92 ? Z.pal.map((c, i) => A.mixc(c, Zn.pal[i], (fr - 0.92) / 0.08)) : Z.pal;
@@ -294,7 +275,7 @@ function drawRun(dt, tm) {
   if (r.v >= st.brk || r.inv > 0) { g.save(); g.globalCompositeOperation = 'lighter'; A.glow(X + R * 0.6, Y, R * 2.2, r.inv > 0 && r.pf > 0 ? '#ffb05a' : '#9ae8ff', 0.35); g.restore(); }
   A.bubble(X, Y, R, tm, { inv: r.inv > 0 && r.pf <= 0.05, tilt: r.vy * 0.012, hp: r.hp, hpMax: st.hp, rb: rbOn(), cap: true });
   // speed lines when fast
-  const q = Math.min(1, Math.max(0, (r.v - 60) / 300)); if (q > 0) { g.save(); g.globalCompositeOperation = 'lighter'; for (let k = 0; k < 14 * q + 2; k++) { const yy = (A.hs(k * 3.3) * H), ph = (tm * (2 + A.hs(k)) + A.hs(k * 7)) % 1, xx = W * (1 - ph * 1.3), L = 40 + 160 * q; g.strokeStyle = `rgba(255,255,255,${0.25 * q * Math.sin(ph * Math.PI)})`; g.lineWidth = 1.5; g.beginPath(); g.moveTo(xx, yy); g.lineTo(xx + L, yy); g.stroke(); } g.restore(); }
+  const q = Math.min(1, Math.max(0, (r.v - 20) / 120)); if (q > 0) { g.save(); g.globalCompositeOperation = 'lighter'; for (let k = 0; k < 14 * q + 2; k++) { const yy = (A.hs(k * 3.3) * H), ph = (tm * (2 + A.hs(k)) + A.hs(k * 7)) % 1, xx = W * (1 - ph * 1.3), L = 40 + 160 * q; g.strokeStyle = `rgba(255,255,255,${0.25 * q * Math.sin(ph * Math.PI)})`; g.lineWidth = 1.5; g.beginPath(); g.moveTo(xx, yy); g.lineTo(xx + L, yy); g.stroke(); } g.restore(); }
   g.restore();
   drawFx(dt);
   drawHud(r, tm);
@@ -307,8 +288,8 @@ function drawHud(r, tm) {
   txt(sl.unit, 20 + w1, 44 * s, 'left', 17 * s, '#cfe8ff'); txt(`${C.ZONES[z].name}${sl.east ? ' · ' + sl.east : ''}`, 14, 66 * s, 'left', 14 * s, '#ffe27a');
   { const bw = 160 * s, y = 74 * s; g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(14, y, bw, 5 * s); g.fillStyle = C.ZONES[z].pal[3]; g.fillRect(14, y, bw * Math.min(1, p - z), 5 * s); if (z + 1 < C.ZN) { g.font = `700 ${10 * s}px sans-serif`; g.fillStyle = 'rgba(255,255,255,.7)'; g.textAlign = 'left'; g.fillText('다음: ' + (z + 1 > M().zoneEver + 1 ? '???' : C.ZONES[z + 1].name), 14, y + 17 * s); } }
   // top centre: light this run, combo
-  const pay = C.payout(r, M()); const V0 = M().light; txt('지갑 ' + mny(V0 + pay.total), W / 2, 30 * s, 'center', 22 * s, '#ffe27a');
-  if (lightPop.v > 0 && now() - lightPop.t < 0.9) { g.globalAlpha = Math.min(1, (0.9 - (now() - lightPop.t)) * 3); txt('−' + won(1 / Math.max(1e-12, V0 + pay.total - lightPop.v) - 1 / Math.max(1e-12, V0 + pay.total)), W / 2, 52 * s, 'center', 15 * s, '#fff3b0'); g.globalAlpha = 1; }
+  const pay = C.payout(r, M()); txt(money(pay.total), W / 2, 30 * s, 'center', 22 * s, '#ffe27a');
+  if (lightPop.v > 0 && now() - lightPop.t < 0.9) { g.globalAlpha = Math.min(1, (0.9 - (now() - lightPop.t)) * 3); txt('+' + money(lightPop.v), W / 2, 52 * s, 'center', 15 * s, '#fff3b0'); g.globalAlpha = 1; }
   if (r.combo >= 3 && r.tr - r.comboT < st.comboT) txt(`연쇄 ${r.combo}`, W / 2, 74 * s, 'center', 16 * s, '#9ae8ff');
   // bottom centre: energy, and the thrust gauge above it
   const bw = Math.min(320, W * 0.34), bx2 = W / 2 - bw / 2, y = H - 30 * s, ef = Math.min(1, r.E / r.Emax), low = r.E < 4;
@@ -327,45 +308,82 @@ function showResult() { const r = run, m = M(), p = C.finish(r, m); save(); mode
   $('#mWhy').textContent = r.why; $('#mDist').innerHTML = `${sl.num} ${sl.unit}<small>${C.ZONES[z].name}${sl.east ? ' · ' + sl.east : ''}까지</small>`;
   const tags = []; for (const a of p.ach) tags.push('업적: ' + a.name); if (p.newZone) tags.push(C.ZONES[p.zone].name + ' 첫 도달'); if (r.quality === 2) tags.push('완벽 축소');
   $('#mTags').innerHTML = tags.map((t, i) => `<span class="tagx" style="--i:${i}">${t}</span>`).join('');
-  const rows = [['빛 알갱이 · 결정 (' + (r.grains + r.crystals) + '개)', mny(p.grains)], ['깊이 보상', mny(p.depth)]];
-  if (p.near) rows.push([`스침 (${r.nearN}회)`, mny(p.near)]); if (p.rings) rows.push([`고리 (${r.ringN}회 · 정확 ${r.perfRingN})`, mny(p.rings)]); if (p.smash) rows.push([`돌파 (${r.smashN}회)`, mny(p.smash)]); if (p.first) rows.push(['새 구역 발견', mny(p.first)]);
+  const rows = [['빛 알갱이 · 결정 (' + (r.grains + r.crystals) + '개)', money(p.grains)], ['깊이 보상', money(p.depth)]];
+  if (p.near) rows.push([`스침 (${r.nearN}회)`, money(p.near)]); if (p.rings) rows.push([`고리 (${r.ringN}회 · 정확 ${r.perfRingN})`, money(p.rings)]); if (p.smash) rows.push([`돌파 (${r.smashN}회)`, money(p.smash)]); if (p.first) rows.push(['새 구역 발견', money(p.first)]);
   if (p.perfect) rows.push(['완벽 축소', '+30%']); if (p.combo) rows.push([`연쇄 (최고 ${r.maxCombo})`, '+' + Math.round(p.combo * 100) + '%']);
-  $('#mRows').innerHTML = rows.map((x, i) => `<span style="--i:${i}">${x[0]}</span><b style="--i:${i}">${x[1]}</b>`).join('') + `<span class="tot" style="--i:${rows.length}">지갑</span><b class="tot" style="--i:${rows.length}">${mny(m.light - p.total)} → ${mny(m.light)}</b>`;
+  $('#mRows').innerHTML = rows.map((x, i) => `<span style="--i:${i}">${x[0]}</span><b style="--i:${i}">${x[1]}</b>`).join('') + `<span class="tot" style="--i:${rows.length}">번 돈</span><b class="tot" style="--i:${rows.length}">${money(p.total)}</b>`;
   const c = $('#mResult'); c.classList.remove('in'); c.hidden = false; void c.offsetWidth; c.classList.add('in'); if (p.newZone) SND.zone();
   if (p.ach.length) setTimeout(() => showHint('업적 달성 · 빛 +3%', 2200), 600); }
 
-/* ---------------- the lab shop ---------------- */
+/* ---------------- the upgrade screen: the same tree of tiles as the cart's shop ---------------- */
 const EFX = {
-  u_power: s => `힘 ×${f2(s.V0 / 50)}`, u_flow: s => `힘 ×${f2(s.V0 / 50)}`, u_lens: s => `완벽 구간 ±${(s.perfW * 100).toFixed(1)} · 보너스 +${Math.round(s.perfB * 100)}%`, u_pre: s => `출발 가속 +${Math.round(s.preB * 100)}%`,
-  u_fin: s => `조향 ${s.steer.toFixed(0)}`, u_hull: s => `막 ${s.hp}칸`, u_tens: s => `부딪힐 때 속도 ${Math.round(s.hitKeep * 100)}% 유지 · 무적 ${s.invT.toFixed(1)}초`, u_ram: s => `돌파 속도 ${s.brk.toFixed(0)}`,
-  u_tank: s => `연료 ${s.fuel.toFixed(1)}초`, u_noz: s => `추진 +${Math.round(s.thrust * 100)}%`, u_pulse: s => `펄스 ${s.pulses}회`, u_pamp: s => `펄스 +${Math.round(s.pulseP * 100)}%`, u_blink: s => `도약 ${s.blinks}회`, u_blinkd: s => `도약 ${s.blinkD.toFixed(0)}칸`,
-  u_shrink: s => `수축 ${s.shrinks}회`, u_shrinkt: s => `수축 ${s.shrinkT.toFixed(1)}초`, u_lux: s => `빛 ×${f2(s.lux)}`, u_mag: s => s.mag ? `끌어오는 범위 ${s.mag.toFixed(1)}칸` : '없음', u_en: s => `에너지 ${s.energy.toFixed(1)}초`, u_eng: s => `방울 하나 +${s.enGain.toFixed(1)}초`,
-  u_graze: s => `스침 범위 ${s.graze.toFixed(2)} · 보너스 ×${s.grazeB.toFixed(1)}`, u_combo: s => `연쇄 ${s.comboT.toFixed(2)}초`, u_scout: s => `첫 도달 ×${s.scout.toFixed(1)}` };
-function openShop() { if (mode === 'run' || mode === 'charge' || mode === 'fire') return; $('#mResult').hidden = true; $('#mShop').hidden = false; confirmRecon = false; renderShop(); flyUI(false); }
+  u_power: s => `힘 ×${f2(s.V0 / 8)}`, u_flow: s => `힘 ×${f2(s.V0 / 8)}`, u_lens: s => `완벽 보너스 +${Math.round(s.perfB * 100)}%`, u_pre: s => `출발 속도 +${Math.round(s.preB * 100)}%`,
+  u_fin: s => `위아래 속도 ${s.steer.toFixed(0)}`, u_hull: s => `막 ${s.hp}칸`, u_tens: s => `부딪힐 때 속도 ${Math.round(s.hitKeep * 100)}% 남음`, u_ram: s => `속도 ${s.brk.toFixed(0)}부터 부수고 지나감`,
+  u_tank: s => `부스트 ${s.fuel.toFixed(1)}초`, u_noz: s => `부스트 +${Math.round(s.thrust * 100)}%`, u_pulse: s => `대시 ${s.pulses}회`, u_pamp: s => `대시 +${Math.round(s.pulseP * 100)}%`, u_blink: s => `순간이동 ${s.blinks}회`, u_blinkd: s => `순간이동 ${s.blinkD.toFixed(0)}칸`,
+  u_shrink: s => `작아지기 ${s.shrinks}회`, u_shrinkt: s => `작아지기 ${s.shrinkT.toFixed(1)}초`, u_lux: s => `버는 돈 ×${f2(s.lux)}`, u_mag: s => s.mag ? `끌어오는 거리 ${s.mag.toFixed(1)}칸` : '없음', u_en: s => `에너지 ${s.energy.toFixed(1)}초`, u_eng: s => `방울 하나 +${s.enGain.toFixed(1)}초`,
+  u_graze: s => `스침 보너스 ×${s.grazeB.toFixed(1)}`, u_combo: s => `연쇄 ${s.comboT.toFixed(2)}초`, u_scout: s => `첫 도달 ×${s.scout.toFixed(1)}` };
+// icons borrowed from the cart's set; branch colours per tab
+const MIC = { u_power: 'push', u_lens: 'timing', u_pre: 'heat', u_flow: 'aero', u_fin: 'gyro', u_hull: 'frame', u_tens: 'rubber', u_ram: 'bumper', u_tank: 'fuel', u_noz: 'nozzle', u_pulse: 'dash', u_pamp: 'dashpow', u_blink: 'leap', u_blinkd: 'warp', u_shrink: 'r_feather', u_shrinkt: 'ctime',
+  u_lux: 'coin', u_mag: 'magnet', u_en: 'refuel', u_eng: 'burn', u_graze: 'style', u_combo: 'combo', u_scout: 'r_skip',
+  k_reso: 'p_gold', k_cata: 'p_power', k_amp: 'amp', k_graze: 'r_trick', k_mem: 'r_mem', k_auto: 'autoreb', k_time: 'r_time', k_comp: 'over', k_shell: 'r_land', k_super: 'r_phoenix', k_kit: 'r_dash',
+  gear: 'ramp', hull: 'frame', tech: 'rocket', gain: 'coin', recon: 'style', book: 't_map', rec: 't_info' };
+const MCOL = { gear: '#ff8a66', hull: '#6cbcff', tech: '#3fe6c5', gain: '#ffcf4a', recon: '#c59bff', book: '#9ae8ff', rec: '#9ae8ff' };
+const icon = id => { try { return B.icon(MIC[id] || id); } catch (e) { return ''; } };
+const money = v => fmt(v) + '원';
+let sel = {};
+function openShop() { if (mode === 'run' || mode === 'charge' || mode === 'fire' || mode === 'over' || mode === 'intro' || mode === 'found') return; $('#mResult').hidden = true; $('#mShop').hidden = false; confirmRecon = false; renderShop(); flyUI(false); topbar(false); }
 function closeShop() { $('#mShop').hidden = true; toLab(); }
-function renderShop() { const m = M(); $('#mSL').textContent = mny(m.light); const sc = $('#mSC'); sc.hidden = !(m.crys > 0 || m.recons > 0 || C.reconOpen(m)); sc.textContent = fmt(m.crys);
-  const tabs = C.TABS.map(t => [t[0], t[1], C.UPS.filter(u => u.tab === t[0] && C.canBuy(m, u.id)).length]).concat(C.reconOpen(m) ? [['recon', '재구성', C.PERKS.filter(q => C.canPerk(m, q.id)).length]] : []).concat([['book', '도감', 0], ['rec', '기록', 0]]);
+// lay a tree out: roots side by side, children under their first prerequisite
+function layout(items) { const by = Object.fromEntries(items.map(u => [u.id, u])), kids = {}, depth = {}, pos = {}; let col = 0;
+  const dep = id => depth[id] != null ? depth[id] : (depth[id] = Math.max(0, ...by[id].req.filter(q => by[q[0]]).map(q => dep(q[0]) + 1)));
+  for (const u of items) { const q = u.req.find(q => by[q[0]]); u._p = q ? q[0] : null; if (q) (kids[q[0]] = kids[q[0]] || []).push(u.id); }
+  const place = id => { const ks = kids[id] || []; if (!ks.length) return (pos[id] = [col++, dep(id)])[0]; const xs = ks.map(place); return (pos[id] = [(xs[0] + xs[xs.length - 1]) / 2, dep(id)])[0]; };
+  for (const u of items) if (!u._p) place(u.id);
+  return { pos, cols: col, rows: Math.max(...items.map(u => pos[u.id][1])) + 1 }; }
+function treeHTML(items, perk, colr) { const m = M(), L = $('#mList'), aw = L.clientWidth || 700, T = layout(items), n = 54, lbl = 58, gap = 30, top = perk ? 12 : 14;
+  const cw = Math.max(64, Math.min(116, Math.floor((aw - 20) / T.cols))), rh = n + lbl + gap, inner = Math.max(aw, T.cols * cw + 20), px = (inner - cw * T.cols) / 2, X = c => Math.round(px + c * cw + cw / 2), Y = r => top + r * rh;
+  const have = id => perk ? C.pl(m, id) : C.lvl(m, id), lockOf = id => perk ? C.perkLock(m, id) : C.lockReason(m, id), canOf = id => perk ? C.canPerk(m, id) : C.canBuy(m, id), costOf = (id, l) => perk ? '◆ ' + fmt(C.perkCost(id, l)) : money(C.cost(id, l));
+  let edges = '', h = '';
+  for (const u of items) { const [c, r] = T.pos[u.id], l = have(u.id), lk = lockOf(u.id), mx = l >= u.max, can = canOf(u.id);
+    u.req.forEach(([rid, need], k) => { if (!T.pos[rid]) return; const [pc, pr] = T.pos[rid], ok = have(rid) >= need, x1 = X(pc), y1 = Y(pr) + n, x2 = X(c), y2 = Y(r) - 3, by = y1 + lbl + 6, rr = Math.min(9, Math.abs(x2 - x1) / 2), d = Math.abs(x1 - x2) < 1 ? `M${x1} ${y1}V${y2}` : `M${x1} ${y1}V${by - rr}Q${x1} ${by} ${x1 + Math.sign(x2 - x1) * rr} ${by}H${x2 - Math.sign(x2 - x1) * rr}Q${x2} ${by} ${x2} ${by + rr}V${y2}`;
+      edges += `<path class="${ok ? 'on' : ''}" style="--bc:${colr}" d="${d}"/>`; if (need > 1) { const t = 'Lv' + need, w = t.length * 5.6 + 8; edges += `<rect class="${ok ? 'on' : ''}" style="--bc:${colr}" x="${x2 - w / 2}" y="${y2 - 17}" width="${w}" height="13" rx="6.5"/><text class="${ok ? 'on' : ''}" x="${x2}" y="${y2 - 7.3}">${t}</text>`; } });
+    const pct = mx ? 100 : Math.round(100 * l / u.max), cls = lk ? 'lock' : mx ? 'max' : can ? 'can' : '', price = mx || lk ? '' : `<u class="${can ? '' : 'poor'}">${costOf(u.id, l)}</u>`, bd = lk ? 't_lock' : mx ? 't_check' : can ? 't_up' : '';
+    h += `<button type="button" class="nd ${cls}${sel[shopTab] === u.id ? ' sel' : ''}" data-id="${u.id}" style="left:${X(c) - n / 2}px;top:${Y(r)}px;--bc:${colr}"><svg class="ring" viewBox="0 0 54 54"><rect class="rt" x="1.5" y="1.5" width="51" height="51" rx="14.5"/>${pct && !lk ? `<rect class="rf" x="1.5" y="1.5" width="51" height="51" rx="14.5" pathLength="100" stroke-dasharray="${pct} 100"/>` : ''}</svg>${icon(u.id)}${bd ? `<i class="bd">${B.icon(bd)}</i>` : ''}<b>${mx ? 'MAX' : l + '/' + u.max}</b><span><em>${u.name}</em>${price}</span></button>`; }
+  const ht = top + T.rows * rh; let pop = '';
+  const sid = sel[shopTab]; if (sid && T.pos[sid]) { const u = items.find(q => q.id === sid), [c, r] = T.pos[sid], nl = X(c) - n / 2, nr = X(c) + n / 2, PW = 244, vl = L.scrollLeft, vr = vl + L.clientWidth, x = nr + 12 + PW <= Math.min(inner, vr) - 4 ? nr + 12 : nl - 12 - PW >= vl + 4 ? nl - 12 - PW : Math.max(4, Math.min(nr + 12, inner - PW - 4));
+    pop = `<div class="pop" data-ty="${Y(r)}" data-tb="${Y(r) + n}" style="left:${x}px;top:${Math.max(4, Y(r) - 8)}px;--bc:${colr}">${detail(u, perk)}</div>`; }
+  return `<div class="tw" style="height:${ht}px;width:${inner}px;--cw:${cw - 6}px;--n:${n}px"><svg class="edges" width="${inner}" height="${ht}">${edges}</svg>${h}${pop}</div>`; }
+// the card beside a tapped tile: what it does now and next, what it needs, buy one or as many as the money allows
+function detail(u, perk) { const m = M(), l = perk ? C.pl(m, u.id) : C.lvl(m, u.id), mx = l >= u.max, lk = perk ? C.perkLock(m, u.id) : C.lockReason(m, u.id), can = perk ? C.canPerk(m, u.id) : C.canBuy(m, u.id);
+  let eff = ''; if (!perk && EFX[u.id]) { const a = EFX[u.id](C.stats(m)); if (mx || lk) eff = `<p>${a}</p>`; else { m.lv[u.id] = l + 1; const b = EFX[u.id](C.stats(m)); m.lv[u.id] = l; if (!l) delete m.lv[u.id]; eff = `<p>${a}</p><p class="nx"><i>다음 Lv</i>${b}</p>`; } }
+  const reqs = u.req.map(([r, nd]) => { const ok = (perk ? C.pl(m, r) : C.lvl(m, r)) >= nd; return `<li class="${ok ? 'ok' : ''}">${B.icon(ok ? 't_check' : 't_lock')}${(perk ? C.PK[r] : C.UP[r]).name} Lv${nd}</li>`; }).concat(!perk && u.zone ? [`<li class="${m.zoneEver >= u.zone ? 'ok' : ''}">${B.icon(m.zoneEver >= u.zone ? 't_check' : 't_lock')}${C.ZONES[u.zone].name} 도달</li>`] : []).join('');
+  const price = perk ? '◆ ' + fmt(C.perkCost(u.id, l)) : money(C.cost(u.id, l));
+  return `<div class="dh"><div class="di">${icon(u.id)}</div><div><h3>${u.name}</h3><span>${mx ? '최대 레벨' : `Lv ${l} / ${u.max}`}</span></div><button type="button" class="dx" data-x="1" aria-label="닫기">✕</button></div><div class="lvbar"><i style="width:${Math.round(100 * Math.min(1, l / u.max))}%"></i></div><p>${u.desc}</p>${eff ? `<div class="eff">${eff}</div>` : ''}${reqs ? `<ul class="dr">${reqs}</ul>` : ''}<div class="brow"><button class="buy${perk ? ' star' : ''}" data-${perk ? 'perk' : 'buy'}="${u.id}" ${can ? '' : 'disabled'}>${mx ? '최대 레벨' : lk ? '잠김' : price}</button><button class="buy sm" data-${perk ? 'pmax' : 'max'}="${u.id}" ${can ? '' : 'disabled'}>최대로</button></div>`; }
+function renderShop() { const m = M(); $('#mSL').textContent = money(m.light); const sc = $('#mSC'); sc.hidden = !(m.crys > 0 || m.recons > 0 || C.reconOpen(m)); sc.textContent = fmt(m.crys);
+  const tabs = C.TABS.map(t => [t[0], t[1], C.UPS.filter(u => u.tab === t[0] && C.canBuy(m, u.id)).length]).concat(C.reconOpen(m) ? [['recon', '환생', C.PERKS.filter(q => C.canPerk(m, q.id)).length]] : []).concat([['book', '도감', 0], ['rec', '기록', 0]]);
   if (!tabs.some(t => t[0] === shopTab)) shopTab = 'gear';
-  $('#mTabs').innerHTML = tabs.map(([id, n, c]) => `<button type="button" data-t="${id}" class="${id === shopTab ? 'on' : ''}">${n}${c ? `<i>${c}</i>` : ''}</button>`).join('');
-  const L = $('#mList'), st = C.stats(m);
-  if (C.TABS.some(t => t[0] === shopTab)) { L.innerHTML = `<p class="note">작은 세상의 돈은 <b>작을수록 값져요.</b> 지갑(${mny(m.light)})이 가격보다 작거나 같으면 살 수 있고, 사고 나면 지갑이 커져요. 레벨이 오를수록 가격은 점점 작아져요.</p>` + C.UPS.filter(u => u.tab === shopTab).map(u => { const l = C.lvl(m, u.id), mx = l >= u.max, lk = C.lockReason(m, u.id), c = C.cost(u.id, l), can = C.canBuy(m, u.id);
-      let nx = ''; if (!mx && !lk) { m.lv[u.id] = l + 1; nx = EFX[u.id](C.stats(m)); m.lv[u.id] = l; if (!l) delete m.lv[u.id]; }
-      return `<div class="mc ${can ? 'can' : ''} ${lk ? 'lock' : ''} ${mx ? 'mx' : ''}"><h3>${u.name}<small>Lv ${l} / ${u.max}</small></h3><p>${u.desc}</p><p class="ev">${lk ? '🔒 ' + lk : EFX[u.id](st) + (nx ? ' → ' + nx : '')}</p><div class="mbar"><b style="width:${100 * l / u.max}%"></b></div><button type="button" data-buy="${u.id}" ${can ? '' : 'disabled'}>${mx ? '최대' : lk ? '잠김' : mny(c)}</button></div>`; }).join(''); }
+  $('#mTabs').innerHTML = tabs.map(([id, n, c]) => `<button type="button" class="tab${id === shopTab ? ' on' : ''}" data-t="${id}" style="--bc:${MCOL[id]}">${icon(id)}${n}${c ? `<i>${c}</i>` : ''}</button>`).join('');
+  const L = $('#mList'); L.classList.toggle('grid', shopTab === 'book' || shopTab === 'rec');
+  if (C.TABS.some(t => t[0] === shopTab)) L.innerHTML = treeHTML(C.UPS.filter(u => u.tab === shopTab), false, MCOL[shopTab]);
   else if (shopTab === 'recon') { const gn = C.crysFor(m);
-    L.innerHTML = `<div class="bh">재구성 · 결정 ◈</div><p class="note">방울을 처음부터 다시 조립해요. 업그레이드와 빛은 처음으로 돌아가지만, 이번 주기에 내려간 가장 깊은 곳에 따라 결정을 얻고, 결정으로 산 능력은 영원히 남아요. DNA 나선 계단부터 결정이 생기고, 깊을수록 훨씬 많아요.</p>
-      <div class="mc cr ${gn ? 'can' : ''}"><h3>지금 재구성하면<small>${fmt(m.recons)}회 함</small></h3><p>이번 주기 최고 깊이: ${C.ZONES[Math.min(C.ZN - 1, Math.floor(m.bestCyc))].name}</p><p class="ev">◈ +${fmt(gn)}</p><button type="button" data-recon="1" ${gn ? '' : 'disabled'}>${confirmRecon ? '정말요? 한 번 더' : gn ? '재구성하기' : 'DNA 나선 계단까지 가 보세요'}</button></div>` +
-      C.PERKS.map(q => { const l = C.pl(m, q.id), mx = l >= q.max, c = C.perkCost(q.id, l), can = C.canPerk(m, q.id); return `<div class="mc cr ${can ? 'can' : ''} ${mx ? 'mx' : ''}"><h3>${q.name}<small>Lv ${l} / ${q.max}</small></h3><p>${q.desc}</p><div class="mbar"><b style="width:${100 * l / q.max}%"></b></div><button type="button" data-perk="${q.id}" ${can ? '' : 'disabled'}>${mx ? '최대' : '◈ ' + fmt(c)}</button></div>`; }).join(''); }
+    L.innerHTML = `<div class="rbar"><span>환생하면 업그레이드와 돈은 처음으로 돌아가지만, 결정 ◆을 받아 영원히 남는 능력을 살 수 있어요. DNA 나선 계단부터 결정이 생기고, 깊이 갈수록 많아져요.</span><button type="button" class="buy star" data-recon="1" ${gn ? '' : 'disabled'}>${confirmRecon ? '정말요? 한 번 더' : gn ? `환생하기 · ◆ +${fmt(gn)}` : 'DNA 나선 계단까지 가 보세요'}</button></div>` + treeHTML(C.PERKS, true, MCOL.recon); }
   else if (shopTab === 'book') { const far = m.zoneEver; L.innerHTML = `<div class="bh">도감 · 지금까지 가 본 크기</div><p class="note">마트 바닥에서 시작해 한 구역마다 세상이 몇 배씩 커져요. 숫자는 그 구역에서 방울 둘레의 물체 크기예요.</p>` +
-      C.ZONES.map((Z, i) => { if (i > far + 1) return ''; if (i === far + 1) return `<div class="mc lock zone"><h3>???<small>다음 구역</small></h3><p>더 작은 세상이 기다려요.</p></div>`; const sl = C.sizeLabel(Z.lg); return `<div class="mc zone" style="--zc:${Z.pal[3]}"><h3>${i + 1}. ${Z.name}<small>${sl.num} ${sl.unit}</small></h3><p>${sl.east ? sl.east + ' · ' : ''}${Z.fact}</p></div>`; }).join('') + `<div class="bh">작은 세상의 돈 · 원보다 작은 단위</div><p class="note">숫자가 작을수록 큰돈이에요. 단위는 만분의 1씩 작아져요.</p>` + MONEY.map(([e, u, why]) => `<div class="mc zone" style="--zc:#ffd24a"><h3>1${u}<small>10<sup>${e}</sup>원</small></h3><p>${why} · 1${u} = 1만분의 1${e === -4 ? '원' : MONEY.find(x => x[0] === e + 4)[1]}</p></div>`).join(''); }
-  else { const n = C.achN(m); L.innerHTML = `<div class="bh">기록</div><div class="mc"><h3>최고 깊이<small>${fmt(m.runs)}판</small></h3><p>${C.ZONES[Math.min(C.ZN - 1, Math.floor(m.best))].name} · ${(() => { const s2 = C.sizeLabel(C.lgAt(m.best)); return s2.num + ' ' + s2.unit; })()}</p><p>재구성 ${fmt(m.recons)}회 · 완벽 축소 ${fmt(m.perfects)}회 · 소수점 ${fmt(m.ended)}번 찾음</p><p class="ev">업적 ${n}개 → 빛 +${n * 3}%</p></div><div class="bh">업적 · 하나당 빛 +3%</div>` +
+      C.ZONES.map((Z, i) => { if (i > far + 1) return ''; if (i === far + 1) return `<div class="mc lock zone"><h3>???<small>다음 구역</small></h3><p>더 작은 세상이 기다려요.</p></div>`; const sl = C.sizeLabel(Z.lg); return `<div class="mc zone" style="--zc:${Z.pal[3]}"><h3>${i + 1}. ${Z.name}<small>${sl.num} ${sl.unit}</small></h3><p>${sl.east ? sl.east + ' · ' : ''}${Z.fact}</p></div>`; }).join(''); }
+  else { const n = C.achN(m); L.innerHTML = `<div class="bh">기록</div><div class="mc"><h3>최고 깊이<small>${fmt(m.runs)}판</small></h3><p>${C.ZONES[Math.min(C.ZN - 1, Math.floor(m.best))].name} · ${(() => { const s2 = C.sizeLabel(C.lgAt(m.best)); return s2.num + ' ' + s2.unit; })()}</p><p>환생 ${fmt(m.recons)}회 · 완벽 출발 ${fmt(m.perfects)}회 · 소수점 ${fmt(m.ended)}번 찾음</p><p class="ev">업적 ${n}개 → 버는 돈 +${n * 3}%</p></div><div class="bh">업적 · 하나당 버는 돈 +3%</div>` +
       C.ACH.map(a => `<div class="ac${m.ach[a.id] ? ' done' : ' off'}${n >= C.ACH.length ? ' rb' : ''}"><h3>${a.name}</h3><p>${a.desc}</p></div>`).join(''); }
-}
+  // a card near the bottom opens upward so it stays on screen
+  const pc = L.querySelector('.pop'); if (pc) { const ty = +pc.dataset.ty, tb = +pc.dataset.tb, hh = pc.offsetHeight, bottom = L.scrollTop + L.clientHeight - 6; if (ty - 8 + hh > bottom) pc.style.top = Math.max(4, Math.min(tb - hh + 8, bottom - hh)) + 'px'; } }
 $('#mTabs').addEventListener('click', e => { const b = e.target.closest('button[data-t]'); if (!b) return; shopTab = b.dataset.t; confirmRecon = false; renderShop(); $('#mList').scrollTop = 0; });
-$('#mList').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const m = M();
-  if (b.dataset.buy && C.buy(m, b.dataset.buy)) { SND.buy(); save(); }
-  if (b.dataset.perk && C.buyPerk(m, b.dataset.perk)) { SND.buy(); save(); }
-  if (b.dataset.recon) { if (!confirmRecon) { confirmRecon = true; renderShop(); return; } const gn = C.reconstruct(m); confirmRecon = false; if (gn) { SND.super(); save(); B.toast(`재구성 · ◈ +${fmt(gn)}`, 2200); } }
-  const sc = $('#mList').scrollTop; renderShop(); $('#mList').scrollTop = sc; hud(); });
+$('#mList').addEventListener('click', e => { const m = M(), b = e.target.closest('button'), sc = [$('#mList').scrollLeft, $('#mList').scrollTop];
+  if (!b) { if (sel[shopTab]) { sel[shopTab] = null; renderShop(); } return; }
+  if (b.dataset.id) { sel[shopTab] = sel[shopTab] === b.dataset.id ? null : b.dataset.id; }
+  else if (b.dataset.x) sel[shopTab] = null;
+  else if (b.dataset.buy && C.buy(m, b.dataset.buy)) { SND.buy(); save(); }
+  else if (b.dataset.max) { let n = 0; while (C.buy(m, b.dataset.max)) n++; if (n) { SND.buy(); save(); } }
+  else if (b.dataset.perk && C.buyPerk(m, b.dataset.perk)) { SND.buy(); save(); }
+  else if (b.dataset.pmax) { let n = 0; while (C.buyPerk(m, b.dataset.pmax)) n++; if (n) { SND.buy(); save(); } }
+  else if (b.dataset.recon) { if (!confirmRecon) { confirmRecon = true; renderShop(); return; } const gn = C.reconstruct(m); confirmRecon = false; if (gn) { SND.super(); save(); B.toast(`환생 · ◆ +${fmt(gn)}`, 2200); } }
+  renderShop(); $('#mList').scrollLeft = sc[0]; $('#mList').scrollTop = sc[1]; hud(); });
 
 /* ---------------- intro: through the little door, into the lab, to meet the director ---------------- */
 // the director stands by the platform in the lab; in the intro he walks over to greet the passenger who comes in through the door
@@ -391,10 +409,10 @@ function drawIntro(t) { const tm = now(), k = Math.min(1.4, H / 420);
   if (t < 0.9) { g.fillStyle = `rgba(255,255,255,${1 - t / 0.9})`; g.fillRect(0, 0, W, H); }
   if (t > 15.6 && !drawIntro.s3) { drawIntro.s3 = 1; SND.zone(); bigCard('2장 · 작은 세상', '연구소장님의 부탁: 영수증의 소수점을 찾아 주세요', '방울을 타고 점점 더 작은 세상으로 · 왼쪽 벽 화살표로 카트 발사대에 돌아갈 수 있어요'); }
   if (t > 17.4) txt('눌러서 시작', W / 2, H * 0.94, 'center', 18, `rgba(255,255,255,${0.6 + 0.4 * Math.sin(tm * 4)})`); }
-function finishIntro() { for (const k2 in drawIntro) delete drawIntro[k2]; card.classList.remove('show'); const m = M(); m.introSeen = 1; save(); toLab(); $('#mTop').hidden = false; }
+function finishIntro() { for (const k2 in drawIntro) delete drawIntro[k2]; card.classList.remove('show'); const m = M(); m.introSeen = 1; save(); mode = 'lab'; toLab(); $('#mTop').hidden = false; }
 
 /* ---------------- the end: the decimal point, then the long way back up ---------------- */
-function startFound() { mode = 'found'; foundT = now(); flyUI(false); boostHeld = false; $('#mBack').hidden = true; $('#mOpen').hidden = true; $('#mTop').hidden = true; hint.classList.remove('show'); const m = M(); C.finish(run, m); save(); SND.found(); B.MUS.want('mfoam'); }
+function startFound() { mode = 'found'; foundT = now(); flyUI(false); boostHeld = false; $('#mBack').hidden = true; $('#mTop').hidden = true; topbar(false); hint.classList.remove('show'); const m = M(); C.finish(run, m); save(); SND.found(); B.MUS.want('mfoam'); }
 const UP_PALS = C.ZONES.map(Z => Z.pal).reverse().concat([['#3a2f26', '#8a6a48', '#ffe3a0', '#ffb347'], ['#fffdf2', '#ffe3a0', '#ffffff', '#ffd24a']]);
 function drawFound(t, dt) { const tm = now();
   if (t < 3.2) { // the dot in the dark, the capsule drifting to it
@@ -411,7 +429,7 @@ function drawFound(t, dt) { const tm = now();
 
 /* ---------------- public ---------------- */
 // eligible for the chapter: every cart achievement before reaching the last checkout again
-window.MICRO = { get on() { return on; }, enter, leave, get mode() { return mode; }, open: () => !!(B.S.micro && B.S.micro.open), get run() { return run; }, C, finishIntro,
+window.MICRO = { get on() { return on; }, enter, leave, openShop, get mode() { return mode; }, open: () => !!(B.S.micro && B.S.micro.open), get run() { return run; }, C, finishIntro,
   test: { setRun: f => f(run), found: () => { if (run) { run.X = C.LEN * C.ZN + 1; } }, release: (c) => { charge = c; release(); }, M } };
 // came back to the page while in the small world last time
 try { if (localStorage.getItem('cart.mode') === 'micro' && B.S.micro && B.S.micro.open) setTimeout(() => enter({}), 50); } catch (e) {}

@@ -329,7 +329,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 140, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 141, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -921,7 +921,7 @@ $('#rAgain').addEventListener('click', toAim); $('#rShop').addEventListener('cli
     fb.addEventListener('click', e => { e.stopPropagation(); if (realFs()) { fsAuto = false; fsLock = true; exitFs(); } else if (isFs()) exitFs().then(goFs); else goFs(); });
     sync(); addEventListener('resize', () => setTimeout(sync, 120));
     document.addEventListener('fullscreenchange', sync); document.addEventListener('webkitfullscreenchange', sync); } }
-$('#shopBtn').addEventListener('click', openShop); $('#optBtn').addEventListener('click', () => { tab = 'opt'; openShop(); }); $('#sClose').addEventListener('click', toAim);
+$('#shopBtn').addEventListener('click', () => { if (window.MICRO && MICRO.on) MICRO.openShop(); else openShop(); }); $('#optBtn').addEventListener('click', () => { tab = 'opt'; openShop(); }); $('#sClose').addEventListener('click', toAim);
 
 /* ---------------- shop ---------------- */
 let tab = 'launch', confirmKey = '';
@@ -2236,7 +2236,7 @@ const liveLS = LS.get('cart.live');   // read before the first toAim clears it
 toAim(); requestAnimationFrame(frame);
 { let booted = false; const boot = d => { if (booted) return; booted = true; try { if (d && d.v === 1 && Date.now() - d.at < 300000) { liveRestore(d, true); return; } const j = JSON.parse(liveLS || 'null'); if (j && Date.now() - j.at < 90000) liveRestore(j, false); } catch (e) {} };
   try { if (HOT && HOT.ready) { HOT.ready(boot); setTimeout(() => boot(HOT.data), 1500); } else boot(HOT && HOT.data); } catch (e) { boot(null); } }
-window.CARTB = { get S() { return S; }, save, cloudNow, snd, tone, noise, buzz, fmt, toast, MUS, AUD, OPT, FONT, get W() { return W; }, get H() { return H; }, get DPR() { return DPR; }, get portrait() { return portrait; }, locX, locY, rbOn, epilogue: startEpilogue, toAim: () => { if (state !== 'fly' && state !== 'ending') toAim(); } };
+window.CARTB = { icon, get S() { return S; }, save, cloudNow, snd, tone, noise, buzz, fmt, toast, MUS, AUD, OPT, FONT, get W() { return W; }, get H() { return H; }, get DPR() { return DPR; }, get portrait() { return portrait; }, locX, locY, rbOn, epilogue: startEpilogue, toAim: () => { if (state !== 'fly' && state !== 'ending') toAim(); } };
 window.__cart = { get endS() { return endS; }, C, SKINS, get cartXY() { return [cartX, cartY]; }, fxTest(cx, f) { const g0 = g; g = cx; try { f({ spinFx, airFx, boostFlame, diveTrail, drawCart, crateFanfare, setDive: v => { diveA = v; } }); } finally { g = g0; } }, drawSkin(cx, k, x, y, sc, ride, wind = 0, gear = false) { const g0 = g; g = cx; pvSkin = k; pvGear = gear; try { if (ride) { resetDoll(); doll.mood = 0; doll.wx = -wind; doll.wy = 0; let pins; for (let i = 0; i < 90; i++) pins = dollStep(0.016, 0, 0, 0, wind, 0); drawDoll(x, y, sc, pins, false); drawCart(x, y, 0, sc); drawDoll(x, y, sc, pins, true); } else drawCart(x, y, 0, sc); } finally { pvSkin = null; pvGear = false; g = g0; resetDoll(); } }, get S() { return S; }, set S(v) { S = v; }, get run() { return run; }, get state() { return state; }, launch, toAim, openShop, save, set peek(v) { peekZ = v; }, CLOUD, get slot() { return slot; }, startCharge, release, tryKick, get charge() { return charge; }, get audio() { return actx ? actx.state : 'none'; }, MUS, EFF, PEFF, OPT, PERF, AUD, liveSnap, liveStore, MAP, get Q() { return Q; }, get updated() { return updated; } };
 })();
 </script>

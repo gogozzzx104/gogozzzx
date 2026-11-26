@@ -7,7 +7,7 @@
    frontier is where steering matters.  A run ends when the energy runs out or the hull breaks. */
 const MCORE = (() => {
   'use strict';
-  const LEN = 1500, HH = 9, CW = 10, ZN = 24, RB = 0.9;
+  const LEN = 420, HH = 16, CW = 8, ZN = 24, RB = 0.75;
 
   // zones: name, log10 of the size of things around the capsule at the zone's start (metres), style, palette [deep, mid, glow, accent],
   // music, a short fact about that scale
@@ -47,48 +47,49 @@ const MCORE = (() => {
 
   /* ---------- upgrades (bought with light ✦) ---------- */
   // id, tab, name, max, base cost, growth, description, zone needed (index reached before it can be bought)
+  // id, tab, name, max, base cost, growth, description, zone needed, prerequisites [[id, level]] (the tree, as in the cart shop)
   const UPS = [
-    ['u_power', 'gear', '축소 출력', 90, 10, 2.1, '방울이 나아가는 힘 ×1.22씩', 0],
-    ['u_lens', 'gear', '집속 렌즈', 10, 40, 2.2, '완벽 축소 구간이 넓어지고 보너스 증가', 0],
-    ['u_pre', 'gear', '예열 코일', 15, 60, 1.9, '출발할 때 가속 +8%씩', 1],
-    ['u_flow', 'hull', '유선형 막', 60, 25, 2.2, '나아가는 힘 ×1.12씩', 0],
-    ['u_fin', 'hull', '조향 지느러미', 15, 30, 1.8, '위아래로 움직이는 속도 +8%씩', 0],
-    ['u_hull', 'hull', '막 두께', 4, 150, 12, '부딪혀도 버티는 막 +1', 2],
-    ['u_tens', 'hull', '표면 장력', 6, 120, 4, '부딪혔을 때 잃는 속도가 줄고 무적 시간이 늘어요', 1],
-    ['u_ram', 'hull', '충격 돌파', 12, 200, 2.6, '이 속도부터는 부딪혀도 뚫고 나가요 (돌파 속도 −6%씩)', 2],
-    ['u_tank', 'tech', '추진 탱크', 12, 50, 2.0, '추진(Space) 연료 +0.5초씩', 0],
-    ['u_noz', 'tech', '추진 노즐', 15, 70, 2.0, '추진 세기 +12%씩', 0],
-    ['u_pulse', 'tech', '펄스 셀', 6, 100, 5, '펄스(E) +1회: 순간 가속하며 잠깐 무적', 0],
-    ['u_pamp', 'tech', '펄스 증폭', 10, 150, 2.4, '펄스 세기 +20%씩', 1],
-    ['u_blink', 'tech', '양자 도약', 5, 800, 7, '양자 도약(Q) +1회: 앞으로 순간 이동', 4],
-    ['u_blinkd', 'tech', '도약 거리', 10, 600, 2.5, '양자 도약 거리 +15%씩', 4],
-    ['u_shrink', 'tech', '수축', 4, 2000, 8, '수축(R) +1회: 방울이 절반으로 작아져요', 7],
-    ['u_shrinkt', 'tech', '수축 시간', 8, 1500, 2.6, '수축이 0.5초씩 더 오래', 7],
-    ['u_lux', 'gain', '빛 렌즈', 70, 20, 2.3, '얻는 빛 ×1.25씩', 0],
-    ['u_mag', 'gain', '자기장', 10, 80, 2.2, '빛 알갱이를 끌어오는 범위', 1],
-    ['u_en', 'gain', '에너지 탱크', 10, 100, 2.5, '출발 에너지 +1.5초씩', 0],
-    ['u_eng', 'gain', '에너지 흡수', 10, 150, 2.3, '에너지 방울 하나에 +0.4초씩', 2],
-    ['u_graze', 'gain', '스침 감각', 10, 90, 2.3, '스침 판정 범위·보너스 +20%씩', 1],
-    ['u_combo', 'gain', '연쇄 회로', 10, 120, 2.3, '연쇄가 끊기지 않는 시간 +0.12초씩', 1],
-    ['u_scout', 'gain', '개척 보상', 10, 300, 3, '새 구역 첫 도달 보상 +50%씩', 3]
-  ].map(([id, tab, name, max, c0, gr, desc, zone]) => ({ id, tab, name, max, c0, gr, desc, zone }));
+    ['u_power', 'gear', '출발 힘', 90, 10, 2.1, '방울이 더 빨리 나가요 (힘 ×1.22씩)', 0, []],
+    ['u_lens', 'gear', '조준 렌즈', 10, 40, 2.2, '완벽 출발 구간이 넓어지고 보너스가 커져요', 0, [['u_power', 2]]],
+    ['u_pre', 'gear', '예열', 15, 60, 1.9, '출발 직후 속도 +8%씩', 1, [['u_power', 5]]],
+    ['u_flow', 'hull', '매끈한 방울', 60, 25, 2.2, '방울이 더 빨라져요 (힘 ×1.12씩)', 0, []],
+    ['u_fin', 'hull', '지느러미', 15, 30, 1.8, '위아래로 더 빨리 움직여요 (+8%씩)', 0, []],
+    ['u_hull', 'hull', '두꺼운 막', 4, 150, 12, '한 번 더 부딪혀도 버텨요 (막 +1칸)', 2, [['u_flow', 3]]],
+    ['u_tens', 'hull', '말랑한 막', 6, 120, 4, '부딪혀도 속도를 덜 잃고, 잠깐 무적인 시간이 늘어요', 1, [['u_fin', 2]]],
+    ['u_ram', 'hull', '돌파', 12, 200, 2.6, '이 속도보다 빠르면 장애물을 부수고 지나가요 (기준 −6%씩)', 2, [['u_flow', 8]]],
+    ['u_tank', 'tech', '연료통', 12, 50, 2.0, '부스트(Space)를 더 오래 써요 (+0.5초씩)', 0, []],
+    ['u_noz', 'tech', '노즐', 15, 70, 2.0, '부스트가 더 세져요 (+12%씩)', 0, [['u_tank', 2]]],
+    ['u_pulse', 'tech', '대시', 6, 100, 5, '대시(E) +1회: 순간 빨라지고 잠깐 무적', 0, []],
+    ['u_pamp', 'tech', '대시 강화', 10, 150, 2.4, '대시가 더 세져요 (+20%씩)', 1, [['u_pulse', 1]]],
+    ['u_blink', 'tech', '순간이동', 5, 800, 7, '순간이동(Q) +1회: 앞으로 훌쩍 건너뛰어요', 4, [['u_pulse', 2]]],
+    ['u_blinkd', 'tech', '순간이동 거리', 10, 600, 2.5, '순간이동 거리 +15%씩', 4, [['u_blink', 1]]],
+    ['u_shrink', 'tech', '작아지기', 4, 2000, 8, '작아지기(R) +1회: 잠깐 절반 크기가 돼요', 7, [['u_blink', 1]]],
+    ['u_shrinkt', 'tech', '작아지기 시간', 8, 1500, 2.6, '작아지는 시간 +0.5초씩', 7, [['u_shrink', 1]]],
+    ['u_lux', 'gain', '빛 렌즈', 70, 20, 2.3, '버는 돈 ×1.25씩', 0, []],
+    ['u_mag', 'gain', '자석', 10, 80, 2.2, '가까운 빛 알갱이를 끌어와요', 1, [['u_lux', 3]]],
+    ['u_en', 'gain', '에너지통', 10, 100, 2.5, '출발 에너지 +1.5초씩', 0, []],
+    ['u_eng', 'gain', '에너지 흡수', 10, 150, 2.3, '에너지 방울 하나에 +0.4초씩', 2, [['u_en', 2]]],
+    ['u_graze', 'gain', '스침 보너스', 10, 90, 2.3, '장애물을 아슬아슬하게 피하면 받는 돈 +20%씩', 1, [['u_lux', 5]]],
+    ['u_combo', 'gain', '연쇄', 10, 120, 2.3, '연쇄가 끊기지 않는 시간 +0.12초씩', 1, [['u_graze', 1]]],
+    ['u_scout', 'gain', '개척 보너스', 10, 300, 3, '새 구역에 처음 가면 받는 돈 +50%씩', 3, [['u_lux', 8]]]
+  ].map(([id, tab, name, max, c0, gr, desc, zone, req]) => ({ id, tab, name, max, c0, gr, desc, zone, req }));
   const UP = Object.fromEntries(UPS.map(u => [u.id, u]));
-  const TABS = [['gear', '축소기'], ['hull', '방울'], ['tech', '기술'], ['gain', '수집']];
+  const TABS = [['gear', '출발'], ['hull', '방울'], ['tech', '기술'], ['gain', '수익']];
 
-  /* ---------- reconstruction perks (bought with crystals ◈) ---------- */
+  /* ---------- rebirth abilities (bought with crystals ◆), also a tree ---------- */
   const PERKS = [
-    ['k_reso', '결정 공명', 15, 3, 1.9, '얻는 빛 ×2씩'],
-    ['k_cata', '가속 촉매', 15, 3, 1.9, '나아가는 힘 ×1.6씩'],
-    ['k_amp', '결정 증폭', 10, 12, 2.4, '재구성 때 얻는 결정 ×1.3씩'],
-    ['k_comp', '차원 압축', 5, 30, 3.5, '구역이 깊어질 때 느려지는 정도를 줄여요'],
-    ['k_mem', '형태 기억', 5, 10, 3, '재구성해도 업그레이드 레벨 10%씩 유지'],
-    ['k_time', '시간 결정', 5, 8, 2.5, '출발 에너지 +3초씩'],
-    ['k_graze', '스침의 달인', 5, 10, 2.6, '스침 보너스 ×1.5씩, 스칠 때 가속 증가'],
-    ['k_shell', '결정 껍질', 2, 25, 6, '막 +1'],
-    ['k_super', '양자 중첩', 2, 40, 8, '막이 다 깨져도 한 번 더 살아나요'],
-    ['k_kit', '출발 장비', 3, 20, 4, '펄스·양자 도약 +1회씩 (도약은 배운 뒤)'],
-    ['k_auto', '자동 조립', 1, 30, 1, '판이 끝날 때마다 업그레이드 자동 구매']
-  ].map(([id, name, max, c0, gr, desc]) => ({ id, name, max, c0, gr, desc }));
+    ['k_reso', '빛 증폭', 15, 3, 1.9, '버는 돈 ×2씩', []],
+    ['k_cata', '가속', 15, 3, 1.9, '방울의 힘 ×1.6씩', []],
+    ['k_amp', '결정 증폭', 10, 12, 2.4, '환생할 때 받는 결정 ×1.3씩', [['k_reso', 1]]],
+    ['k_graze', '스침 달인', 5, 10, 2.6, '스침 보너스 ×1.5씩, 스칠 때 더 빨라져요', [['k_reso', 2]]],
+    ['k_mem', '기억', 5, 10, 3, '환생해도 업그레이드 레벨이 10%씩 남아요', [['k_amp', 1]]],
+    ['k_auto', '자동 구매', 1, 30, 1, '판이 끝날 때마다 업그레이드를 알아서 사요', [['k_mem', 1]]],
+    ['k_time', '시간 결정', 5, 8, 2.5, '출발 에너지 +3초씩', [['k_cata', 1]]],
+    ['k_comp', '깊이 적응', 5, 30, 3.5, '깊이 들어갈 때 덜 느려져요', [['k_cata', 2]]],
+    ['k_shell', '단단한 막', 2, 25, 6, '막 +1칸', [['k_time', 1]]],
+    ['k_super', '두 번째 기회', 2, 40, 8, '막이 다 깨져도 한 번 더 살아나요', [['k_shell', 1]]],
+    ['k_kit', '출발 장비', 3, 20, 4, '대시·순간이동 +1회씩 (순간이동은 배운 뒤)', [['k_time', 2]]]
+  ].map(([id, name, max, c0, gr, desc, req]) => ({ id, name, max, c0, gr, desc, req }));
   const PK = Object.fromEntries(PERKS.map(q => [q.id, q]));
   const RECON_Z = 9;   // reconstruction opens once the DNA zone has been reached
 
@@ -127,15 +128,15 @@ const MCORE = (() => {
   function stats(M) {
     const L = id => lvl(M, id), P = id => pl(M, id), an = achN(M);
     return {
-      V0: 50 * Math.pow(1.22, L('u_power')) * Math.pow(1.12, L('u_flow')) * Math.pow(1.6, P('k_cata')),
+      V0: 8 * Math.pow(1.22, L('u_power')) * Math.pow(1.12, L('u_flow')) * Math.pow(1.6, P('k_cata')),
       base: 2.2 - 0.04 * P('k_comp'),
       perfW: 0.035 + 0.004 * L('u_lens'), perfB: 0.6 + 0.08 * L('u_lens'), preB: 0.08 * L('u_pre'),
-      steer: 22 * (1 + 0.08 * L('u_fin')),
-      hp: 2 + L('u_hull') + P('k_shell'), hitKeep: 0.62 + 0.045 * L('u_tens'), invT: 0.9 + 0.12 * L('u_tens'),
-      brk: 110 * Math.pow(0.94, L('u_ram')),
+      steer: 20 * (1 + 0.08 * L('u_fin')),
+      hp: 3 + L('u_hull') + P('k_shell'), hitKeep: 0.62 + 0.045 * L('u_tens'), invT: 0.9 + 0.12 * L('u_tens'),
+      brk: 30 * Math.pow(0.94, L('u_ram')),
       fuel: 2.5 + 0.5 * L('u_tank'), thrust: 0.6 * (1 + 0.12 * L('u_noz')), refuel: 0.04,
       pulses: 1 + L('u_pulse') + P('k_kit'), pulseP: 0.9 * (1 + 0.2 * L('u_pamp')),
-      blinks: L('u_blink') ? L('u_blink') + P('k_kit') : 0, blinkD: 30 * (1 + 0.15 * L('u_blinkd')),
+      blinks: L('u_blink') ? L('u_blink') + P('k_kit') : 0, blinkD: 12 * (1 + 0.15 * L('u_blinkd')),
       shrinks: L('u_shrink'), shrinkT: 2.5 + 0.5 * L('u_shrinkt'),
       lux: Math.pow(1.25, L('u_lux')) * Math.pow(2, P('k_reso')) * (1 + 0.03 * an),
       mag: L('u_mag') ? 1.2 + 0.6 * L('u_mag') : 0,
@@ -149,12 +150,13 @@ const MCORE = (() => {
   /* ---------- costs and buying ---------- */
   const cost = (id, l) => { const u = UP[id]; return Math.ceil(u.c0 * Math.pow(u.gr, l) * (1 + 0.004 * l * l)); };
   const perkCost = (id, l) => { const q = PK[id]; return Math.ceil(q.c0 * Math.pow(q.gr, l)); };
-  const lockReason = (M, id) => { const u = UP[id]; return M.zoneEver >= u.zone ? '' : ZONES[u.zone].name + ' 도달 필요'; };
+  const lockReason = (M, id) => { const u = UP[id]; if (M.zoneEver < u.zone) return ZONES[u.zone].name + ' 도달 필요'; for (const [r, n] of u.req) if (lvl(M, r) < n) return UP[r].name + ' Lv' + n + ' 필요'; return ''; };
+  const perkLock = (M, id) => { for (const [r, n] of PK[id].req) if (pl(M, r) < n) return PK[r].name + ' Lv' + n + ' 필요'; return ''; };
   const canBuy = (M, id) => { const u = UP[id], l = lvl(M, id); return l < u.max && !lockReason(M, id) && M.light >= cost(id, l); };
   function buy(M, id) { if (!canBuy(M, id)) return false; M.light -= cost(id, lvl(M, id)); M.lv[id] = lvl(M, id) + 1; return true; }
   // spends light on whichever upgrade is cheapest right now, again and again (the automatic buy and the 'buy all' button)
   function buyAll(M) { let n = 0; for (let k = 0; k < 4000; k++) { let best = null, bc = Infinity; for (const u of UPS) { const l = lvl(M, u.id); if (l >= u.max || lockReason(M, u.id)) continue; const c = cost(u.id, l); if (c < bc) { bc = c; best = u.id; } } if (!best || bc > M.light) break; buy(M, best); n++; } return n; }
-  const canPerk = (M, id) => { const q = PK[id], l = pl(M, id); return l < q.max && M.crys >= perkCost(id, l); };
+  const canPerk = (M, id) => { const q = PK[id], l = pl(M, id); return l < q.max && !perkLock(M, id) && M.crys >= perkCost(id, l); };
   function buyPerk(M, id) { if (!canPerk(M, id)) return false; M.crys -= perkCost(id, pl(M, id)); M.perks[id] = pl(M, id) + 1; return true; }
 
   /* ---------- reconstruction ---------- */
@@ -168,14 +170,14 @@ const MCORE = (() => {
   function newRun(M, quality, seed) {
     const st = stats(M);
     return { st, seed: seed == null ? Math.floor(Math.random() * 1e9) : seed, X: 0, y: 0, vy: 0, V: st.V0, m: 1 + st.preB + (quality === 2 ? st.perfB : quality === 1 ? st.perfB * 0.4 : 0), pf: 0,
-      E: st.energy, Emax: st.energy, hp: st.hp, fuel: st.fuel, pulses: st.pulses, blinks: st.blinks, shrinks: st.shrinks, shT: 0, inv: 0, revives: st.revive, revived: 0,
+      E: st.energy, Emax: st.energy, hp: st.hp, fuel: st.fuel, pulses: st.pulses, blinks: st.blinks, shrinks: st.shrinks, shT: 0, inv: 1.5, revives: st.revive, revived: 0,
       tr: 0, used: new Set(), passed: new Set(), mag: [], grainV: 0, grains: 0, crystals: 0, nearN: 0, nearV: 0, ringN: 0, perfRingN: 0, ringV: 0, smashN: 0, smashV: 0, hits: 0,
       combo: 0, comboT: -9, maxCombo: 0, pmax: 0, p: 0, v: 0, quality, boosting: false, over: false, why: '', found: false, ev: [], zone: 0 };
   }
   const F = (st, p) => Math.pow(st.base, p);
   // light value of one grain at progress p (before the light multipliers)
-  const TUNE = { gv: 1.7, depth: 20, first: 60, crys: 1.5 };
-  const gv = p => Math.pow(TUNE.gv, p);
+  const TUNE = { gv: 1.7, val: 15, depth: 20, first: 60, crys: 1.5 };
+  const gv = p => TUNE.val * Math.pow(TUNE.gv, p);
   const zoneOf = X => Math.max(0, Math.min(ZN - 1, Math.floor(X / LEN)));
 
   // objects in cell i (deterministic): b blocker circle, rod spinning bar, gate wall with a gap, ring, lt grain, big crystal, en energy
@@ -186,15 +188,15 @@ const MCORE = (() => {
     if (i < 4) { r.cache.set(i, c); return c; }   // a clear stretch right after the start
     // a gate every few cells: a wall across the channel with one gap
     const gateEvery = z < 1 ? 0 : Math.max(5, 11 - Math.floor(z / 3));
-    if (gateEvery && i % gateEvery === 0) { const gw = Math.max(2.4, 5.2 - 0.12 * z), gy = (h(1) * 2 - 1) * (HH - gw - 0.5); c.push({ id: i * 16, t: 'gate', x: x0 + 5, y: gy, gw, r: 0.7, z });
+    if (gateEvery && i % gateEvery === 0) { const gw = Math.max(3.2, 7 - 0.16 * z), gy = (h(1) * 2 - 1) * (HH - gw - 0.5); c.push({ id: i * 16, t: 'gate', x: x0 + 4, y: gy, gw, r: 0.6, z });
       // grains through the gap
       for (let k = 0; k < 3; k++) c.push({ id: i * 16 + 8 + k, t: 'lt', x: x0 + 2 + k * 3, y: gy, r: 0.55, z });
       r.cache.set(i, c); return c; }
     // blockers: 1-4 per cell, some drifting up and down, some spinning bars from the third zone
-    const nb = Math.floor(1 + d * 2.6 + h(2) * 1.4);
+    const nb = Math.floor(0.7 + d * 3 + h(2) * 1.3);
     for (let k = 0; k < nb; k++) { const x = x0 + CW * (0.1 + 0.8 * h(10 + k)), y = (h(20 + k) * 2 - 1) * (HH - 1), rod = z >= 3 && h(30 + k) < 0.12 + 0.12 * d;
-      if (rod) c.push({ id: i * 16 + 1 + k, t: 'rod', x, y, L: 2.2 + 2 * h(40 + k), a0: h(50 + k) * 6.28, w: (h(60 + k) < 0.5 ? -1 : 1) * (0.8 + 1.6 * h(70 + k) * (0.5 + d)), r: 0.45, z });
-      else { const mv = h(80 + k) < 0.25 + 0.35 * d; c.push({ id: i * 16 + 1 + k, t: 'b', x, y, r: 0.9 + 1.5 * h(90 + k), amp: mv ? 1.5 + 3 * h(100 + k) : 0, w: 0.6 + 1.2 * h(110 + k), ph: h(120 + k) * 6.28, z, k: Math.floor(h(130 + k) * 4) }); } }
+      if (rod) c.push({ id: i * 16 + 1 + k, t: 'rod', x, y, L: 1.4 + 1.3 * h(40 + k), a0: h(50 + k) * 6.28, w: (h(60 + k) < 0.5 ? -1 : 1) * (0.8 + 1.6 * h(70 + k) * (0.5 + d)), r: 0.32, z });
+      else { const mv = h(80 + k) < 0.25 + 0.35 * d; c.push({ id: i * 16 + 1 + k, t: 'b', x, y, r: 0.5 + 0.8 * h(90 + k), amp: mv ? 1.5 + 3 * h(100 + k) : 0, w: 0.6 + 1.2 * h(110 + k), ph: h(120 + k) * 6.28, z, k: Math.floor(h(130 + k) * 4) }); } }
     // a ring now and then
     if (h(3) < 0.16) c.push({ id: i * 16 + 6, t: 'ring', x: x0 + CW * 0.5, y: (h(4) * 2 - 1) * (HH - 2.5), r: 1.9, z });
     // a short arc of light grains, an energy bubble, a crystal
@@ -292,6 +294,6 @@ const MCORE = (() => {
     const e = EAST[String(Math.floor(lg + 1e-9))] || ''; return { num: v >= 100 ? v.toFixed(0) : v >= 10 ? v.toFixed(1) : v.toFixed(2), unit: u[1], east: e }; }
 
   return { LEN, HH, CW, ZN, RB, ZONES, lgAt, sizeLabel, UPS, UP, TABS, PERKS, PK, ACH, RECON_Z, newSave, fix, lvl, pl, achN, stats, cost, perkCost, lockReason, canBuy, buy, buyAll, canPerk, buyPerk,
-    reconOpen, crysFor, reconstruct, newRun, cellObjs, TUNE, objY, gap, step, payout, finish, checkAch, gv, zoneOf, hash };
+    reconOpen, crysFor, reconstruct, newRun, cellObjs, TUNE, perkLock, objY, gap, step, payout, finish, checkAch, gv, zoneOf, hash };
 })();
 if (typeof module !== 'undefined') module.exports = MCORE;
