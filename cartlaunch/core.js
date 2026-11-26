@@ -235,7 +235,7 @@ const CORE = (() => {
   // shards for a transcendence: 5 for reaching the end of time, more for every uncharted zone beyond it
   // past uncharted zone 20 every further zone pays a growing extra; the whole amount is then multiplied by the step of the deepest zone
   // reached (SHARD_M: [first zone of the step, multiplier]).  Set by the player: uncharted 1-50 in steps of five, then steps of three.
-  const SHARD_M = [[6, 1.3], [11, 1.6], [16, 2], [21, 2.3], [26, 2.6], [31, 3], [36, 3.5], [41, 4], [46, 5], [51, 6], [54, 7], [57, 8], [60, 9]];
+  const SHARD_M = [[6, 1.3], [11, 1.6], [16, 2], [21, 2.3], [26, 2.6], [31, 3], [36, 3.5], [41, 4], [46, 5], [51, 6], [54, 7], [57, 8], [60, 9], [61, 10]];
   const shardMult = z => { let m = 1; for (const [k, v] of SHARD_M) if (z >= k) m = v; return m; };
   const shardsFor = s => { const d = cycleBest(s); if (d < ZONES[LAST].at) return 0; const z = zoneProg(d) - LAST, m = shardMult(z);
     return Math.floor(5 + (3 * Math.pow(z, 1.2) + 6 * Math.pow(Math.max(0, z - 20), 1.5)) * (1 + 0.1 * tl(s, 't_deep')) * m); };
