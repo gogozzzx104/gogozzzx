@@ -5,6 +5,16 @@
 const B = window.CARTB; if (!B || typeof MCORE === 'undefined' || typeof MART === 'undefined') return;
 const C = MCORE, A = MART, $ = s => document.querySelector(s), root = document.getElementById('root');
 const fmt = B.fmt, FONT = B.FONT, f2 = n => n < 10 ? n.toFixed(2) : n < 100 ? n.toFixed(1) : fmt(n);
+/* Money in the small world is 'minus money': the smaller an amount, the more it is worth.  Inside, light still counts up as before
+   (value v); on screen every amount is shown as 1/v won, in coined units below the won, one every ten thousandth (like 만·억·조 the
+   other way): 톨 (a speck of dust), 올 (a thread), 티 (a mote), 낟 (a grain), 찰 (an instant), 숨 (a breath), 결 (a ripple), 무 (next to
+   nothing).  Earning makes the wallet smaller; a price can be paid when the wallet is at or below it; prices shrink level by level. */
+const MONEY = [[-4, '톨', '먼지 한 톨'], [-8, '올', '실 한 올'], [-12, '티', '티끌 하나'], [-16, '낟', '낟알 하나'], [-20, '찰', '찰나의 반짝임'], [-24, '숨', '숨결 한 번'], [-28, '결', '물결 한 줄'], [-32, '무', '거의 없음(無)']];
+const nfmt = n => n < 10 ? n.toFixed(2) : n < 100 ? n.toFixed(1) : Math.round(n).toLocaleString('ko-KR');
+// an amount in won, written with the small units
+function won(a) { if (!isFinite(a) || a > 1e12) return '텅 빔'; if (a >= 1) return nfmt(a) + '원'; for (const [e, u] of MONEY) if (a >= Math.pow(10, e)) return nfmt(a / Math.pow(10, e)) + u; const n = a / 1e-32; return (n > 0 ? n.toExponential(1) : '0') + '무'; }
+// a value of light as minus money
+const mny = v => won(v > 1e-12 ? 1 / v : Infinity);
 
 /* ---------------- DOM ---------------- */
 const css = document.createElement('style');
@@ -17,7 +27,7 @@ css.textContent = `
 #mTop{position:absolute;left:10px;top:8px;display:flex;gap:6px;align-items:center;z-index:2;zoom:var(--hk,1)}
 #mTop .goldv{font-size:17px}
 #mTop .goldv.cr{color:#bff4ff}#mTop .goldv.cr::before{background:radial-gradient(circle at 35% 30%,#fff,#9ae8ff 60%);border-radius:3px;transform:rotate(45deg)}
-.mlight::before{content:"✦"!important;background:none!important;border:0!important;width:auto!important;height:auto!important;color:#ffe27a;margin-right:5px!important;vertical-align:0!important}
+.mlight::before{content:"⊖"!important;background:none!important;border:0!important;width:auto!important;height:auto!important;color:#ffe27a;margin-right:5px!important;vertical-align:0!important}
 #mBack{position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:2;border:3px solid #2b2233;border-left:0;border-radius:0 16px 16px 0;background:linear-gradient(#ffd75e,#f5a614);color:#2b2233;font:20px var(--disp);padding:14px 10px 14px 6px;box-shadow:3px 4px 0 #2b2233;display:flex;flex-direction:column;align-items:center;gap:2px;zoom:var(--hk,1)}
 #mBack small{font:700 10px var(--body);writing-mode:vertical-rl;letter-spacing:1px}
 #mBack:active{transform:translateY(-50%) translateX(-3px)}
@@ -134,7 +144,7 @@ const now = () => performance.now() / 1000;
 
 function showHint(t, ms = 2600) { hint.textContent = t; hint.classList.add('show'); clearTimeout(showHint.h); showHint.h = setTimeout(() => hint.classList.remove('show'), ms); }
 function bigCard(h, p, s, ms) { card.innerHTML = `<h1>${h}</h1>${p ? `<p>${p}</p>` : ''}${s ? `<p class="s">${s}</p>` : ''}`; card.classList.add('show'); clearTimeout(bigCard.h); if (ms) bigCard.h = setTimeout(() => card.classList.remove('show'), ms); }
-function hud() { const m = M(); $('#mLight').textContent = fmt(m.light); const cr = $('#mCrys'); cr.hidden = !(m.crys > 0 || m.recons > 0); cr.textContent = fmt(m.crys); }
+function hud() { const m = M(); $('#mLight').textContent = mny(m.light); const cr = $('#mCrys'); cr.hidden = !(m.crys > 0 || m.recons > 0); cr.textContent = fmt(m.crys); }
 function flyUI(v) { for (const b of [bBoost, bPulse, bBlink, bShrink]) b.hidden = !v; $('#mBack').hidden = v || mode === 'intro'; $('#mOpen').hidden = v; $('#mTop').hidden = v; if (v) hint.classList.remove('show'); }
 
 /* ---------------- enter / leave ---------------- */
@@ -297,8 +307,8 @@ function drawHud(r, tm) {
   txt(sl.unit, 20 + w1, 44 * s, 'left', 17 * s, '#cfe8ff'); txt(`${C.ZONES[z].name}${sl.east ? ' · ' + sl.east : ''}`, 14, 66 * s, 'left', 14 * s, '#ffe27a');
   { const bw = 160 * s, y = 74 * s; g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(14, y, bw, 5 * s); g.fillStyle = C.ZONES[z].pal[3]; g.fillRect(14, y, bw * Math.min(1, p - z), 5 * s); if (z + 1 < C.ZN) { g.font = `700 ${10 * s}px sans-serif`; g.fillStyle = 'rgba(255,255,255,.7)'; g.textAlign = 'left'; g.fillText('다음: ' + (z + 1 > M().zoneEver + 1 ? '???' : C.ZONES[z + 1].name), 14, y + 17 * s); } }
   // top centre: light this run, combo
-  const pay = C.payout(r, M()); txt('✦ ' + fmt(pay.total), W / 2, 30 * s, 'center', 22 * s, '#ffe27a');
-  if (lightPop.v > 0 && now() - lightPop.t < 0.9) { g.globalAlpha = Math.min(1, (0.9 - (now() - lightPop.t)) * 3); txt('+' + fmt(lightPop.v), W / 2, 52 * s, 'center', 15 * s, '#fff3b0'); g.globalAlpha = 1; }
+  const pay = C.payout(r, M()); const V0 = M().light; txt('지갑 ' + mny(V0 + pay.total), W / 2, 30 * s, 'center', 22 * s, '#ffe27a');
+  if (lightPop.v > 0 && now() - lightPop.t < 0.9) { g.globalAlpha = Math.min(1, (0.9 - (now() - lightPop.t)) * 3); txt('−' + won(1 / Math.max(1e-12, V0 + pay.total - lightPop.v) - 1 / Math.max(1e-12, V0 + pay.total)), W / 2, 52 * s, 'center', 15 * s, '#fff3b0'); g.globalAlpha = 1; }
   if (r.combo >= 3 && r.tr - r.comboT < st.comboT) txt(`연쇄 ${r.combo}`, W / 2, 74 * s, 'center', 16 * s, '#9ae8ff');
   // bottom centre: energy, and the thrust gauge above it
   const bw = Math.min(320, W * 0.34), bx2 = W / 2 - bw / 2, y = H - 30 * s, ef = Math.min(1, r.E / r.Emax), low = r.E < 4;
@@ -317,10 +327,10 @@ function showResult() { const r = run, m = M(), p = C.finish(r, m); save(); mode
   $('#mWhy').textContent = r.why; $('#mDist').innerHTML = `${sl.num} ${sl.unit}<small>${C.ZONES[z].name}${sl.east ? ' · ' + sl.east : ''}까지</small>`;
   const tags = []; for (const a of p.ach) tags.push('업적: ' + a.name); if (p.newZone) tags.push(C.ZONES[p.zone].name + ' 첫 도달'); if (r.quality === 2) tags.push('완벽 축소');
   $('#mTags').innerHTML = tags.map((t, i) => `<span class="tagx" style="--i:${i}">${t}</span>`).join('');
-  const rows = [['빛 알갱이 · 결정 (' + (r.grains + r.crystals) + '개)', fmt(p.grains)], ['깊이 보상', fmt(p.depth)]];
-  if (p.near) rows.push([`스침 (${r.nearN}회)`, fmt(p.near)]); if (p.rings) rows.push([`고리 (${r.ringN}회 · 정확 ${r.perfRingN})`, fmt(p.rings)]); if (p.smash) rows.push([`돌파 (${r.smashN}회)`, fmt(p.smash)]); if (p.first) rows.push(['새 구역 발견', fmt(p.first)]);
+  const rows = [['빛 알갱이 · 결정 (' + (r.grains + r.crystals) + '개)', mny(p.grains)], ['깊이 보상', mny(p.depth)]];
+  if (p.near) rows.push([`스침 (${r.nearN}회)`, mny(p.near)]); if (p.rings) rows.push([`고리 (${r.ringN}회 · 정확 ${r.perfRingN})`, mny(p.rings)]); if (p.smash) rows.push([`돌파 (${r.smashN}회)`, mny(p.smash)]); if (p.first) rows.push(['새 구역 발견', mny(p.first)]);
   if (p.perfect) rows.push(['완벽 축소', '+30%']); if (p.combo) rows.push([`연쇄 (최고 ${r.maxCombo})`, '+' + Math.round(p.combo * 100) + '%']);
-  $('#mRows').innerHTML = rows.map((x, i) => `<span style="--i:${i}">${x[0]}</span><b style="--i:${i}">${x[1]}</b>`).join('') + `<span class="tot" style="--i:${rows.length}">얻은 빛</span><b class="tot" style="--i:${rows.length}">✦ ${fmt(p.total)}</b>`;
+  $('#mRows').innerHTML = rows.map((x, i) => `<span style="--i:${i}">${x[0]}</span><b style="--i:${i}">${x[1]}</b>`).join('') + `<span class="tot" style="--i:${rows.length}">지갑</span><b class="tot" style="--i:${rows.length}">${mny(m.light - p.total)} → ${mny(m.light)}</b>`;
   const c = $('#mResult'); c.classList.remove('in'); c.hidden = false; void c.offsetWidth; c.classList.add('in'); if (p.newZone) SND.zone();
   if (p.ach.length) setTimeout(() => showHint('업적 달성 · 빛 +3%', 2200), 600); }
 
@@ -333,20 +343,20 @@ const EFX = {
   u_graze: s => `스침 범위 ${s.graze.toFixed(2)} · 보너스 ×${s.grazeB.toFixed(1)}`, u_combo: s => `연쇄 ${s.comboT.toFixed(2)}초`, u_scout: s => `첫 도달 ×${s.scout.toFixed(1)}` };
 function openShop() { if (mode === 'run' || mode === 'charge' || mode === 'fire') return; $('#mResult').hidden = true; $('#mShop').hidden = false; confirmRecon = false; renderShop(); flyUI(false); }
 function closeShop() { $('#mShop').hidden = true; toLab(); }
-function renderShop() { const m = M(); $('#mSL').textContent = fmt(m.light); const sc = $('#mSC'); sc.hidden = !(m.crys > 0 || m.recons > 0 || C.reconOpen(m)); sc.textContent = fmt(m.crys);
+function renderShop() { const m = M(); $('#mSL').textContent = mny(m.light); const sc = $('#mSC'); sc.hidden = !(m.crys > 0 || m.recons > 0 || C.reconOpen(m)); sc.textContent = fmt(m.crys);
   const tabs = C.TABS.map(t => [t[0], t[1], C.UPS.filter(u => u.tab === t[0] && C.canBuy(m, u.id)).length]).concat(C.reconOpen(m) ? [['recon', '재구성', C.PERKS.filter(q => C.canPerk(m, q.id)).length]] : []).concat([['book', '도감', 0], ['rec', '기록', 0]]);
   if (!tabs.some(t => t[0] === shopTab)) shopTab = 'gear';
   $('#mTabs').innerHTML = tabs.map(([id, n, c]) => `<button type="button" data-t="${id}" class="${id === shopTab ? 'on' : ''}">${n}${c ? `<i>${c}</i>` : ''}</button>`).join('');
   const L = $('#mList'), st = C.stats(m);
-  if (C.TABS.some(t => t[0] === shopTab)) { L.innerHTML = C.UPS.filter(u => u.tab === shopTab).map(u => { const l = C.lvl(m, u.id), mx = l >= u.max, lk = C.lockReason(m, u.id), c = C.cost(u.id, l), can = C.canBuy(m, u.id);
+  if (C.TABS.some(t => t[0] === shopTab)) { L.innerHTML = `<p class="note">작은 세상의 돈은 <b>작을수록 값져요.</b> 지갑(${mny(m.light)})이 가격보다 작거나 같으면 살 수 있고, 사고 나면 지갑이 커져요. 레벨이 오를수록 가격은 점점 작아져요.</p>` + C.UPS.filter(u => u.tab === shopTab).map(u => { const l = C.lvl(m, u.id), mx = l >= u.max, lk = C.lockReason(m, u.id), c = C.cost(u.id, l), can = C.canBuy(m, u.id);
       let nx = ''; if (!mx && !lk) { m.lv[u.id] = l + 1; nx = EFX[u.id](C.stats(m)); m.lv[u.id] = l; if (!l) delete m.lv[u.id]; }
-      return `<div class="mc ${can ? 'can' : ''} ${lk ? 'lock' : ''} ${mx ? 'mx' : ''}"><h3>${u.name}<small>Lv ${l} / ${u.max}</small></h3><p>${u.desc}</p><p class="ev">${lk ? '🔒 ' + lk : EFX[u.id](st) + (nx ? ' → ' + nx : '')}</p><div class="mbar"><b style="width:${100 * l / u.max}%"></b></div><button type="button" data-buy="${u.id}" ${can ? '' : 'disabled'}>${mx ? '최대' : lk ? '잠김' : '✦ ' + fmt(c)}</button></div>`; }).join(''); }
+      return `<div class="mc ${can ? 'can' : ''} ${lk ? 'lock' : ''} ${mx ? 'mx' : ''}"><h3>${u.name}<small>Lv ${l} / ${u.max}</small></h3><p>${u.desc}</p><p class="ev">${lk ? '🔒 ' + lk : EFX[u.id](st) + (nx ? ' → ' + nx : '')}</p><div class="mbar"><b style="width:${100 * l / u.max}%"></b></div><button type="button" data-buy="${u.id}" ${can ? '' : 'disabled'}>${mx ? '최대' : lk ? '잠김' : mny(c)}</button></div>`; }).join(''); }
   else if (shopTab === 'recon') { const gn = C.crysFor(m);
     L.innerHTML = `<div class="bh">재구성 · 결정 ◈</div><p class="note">방울을 처음부터 다시 조립해요. 업그레이드와 빛은 처음으로 돌아가지만, 이번 주기에 내려간 가장 깊은 곳에 따라 결정을 얻고, 결정으로 산 능력은 영원히 남아요. DNA 나선 계단부터 결정이 생기고, 깊을수록 훨씬 많아요.</p>
       <div class="mc cr ${gn ? 'can' : ''}"><h3>지금 재구성하면<small>${fmt(m.recons)}회 함</small></h3><p>이번 주기 최고 깊이: ${C.ZONES[Math.min(C.ZN - 1, Math.floor(m.bestCyc))].name}</p><p class="ev">◈ +${fmt(gn)}</p><button type="button" data-recon="1" ${gn ? '' : 'disabled'}>${confirmRecon ? '정말요? 한 번 더' : gn ? '재구성하기' : 'DNA 나선 계단까지 가 보세요'}</button></div>` +
       C.PERKS.map(q => { const l = C.pl(m, q.id), mx = l >= q.max, c = C.perkCost(q.id, l), can = C.canPerk(m, q.id); return `<div class="mc cr ${can ? 'can' : ''} ${mx ? 'mx' : ''}"><h3>${q.name}<small>Lv ${l} / ${q.max}</small></h3><p>${q.desc}</p><div class="mbar"><b style="width:${100 * l / q.max}%"></b></div><button type="button" data-perk="${q.id}" ${can ? '' : 'disabled'}>${mx ? '최대' : '◈ ' + fmt(c)}</button></div>`; }).join(''); }
   else if (shopTab === 'book') { const far = m.zoneEver; L.innerHTML = `<div class="bh">도감 · 지금까지 가 본 크기</div><p class="note">마트 바닥에서 시작해 한 구역마다 세상이 몇 배씩 커져요. 숫자는 그 구역에서 방울 둘레의 물체 크기예요.</p>` +
-      C.ZONES.map((Z, i) => { if (i > far + 1) return ''; if (i === far + 1) return `<div class="mc lock zone"><h3>???<small>다음 구역</small></h3><p>더 작은 세상이 기다려요.</p></div>`; const sl = C.sizeLabel(Z.lg); return `<div class="mc zone" style="--zc:${Z.pal[3]}"><h3>${i + 1}. ${Z.name}<small>${sl.num} ${sl.unit}</small></h3><p>${sl.east ? sl.east + ' · ' : ''}${Z.fact}</p></div>`; }).join(''); }
+      C.ZONES.map((Z, i) => { if (i > far + 1) return ''; if (i === far + 1) return `<div class="mc lock zone"><h3>???<small>다음 구역</small></h3><p>더 작은 세상이 기다려요.</p></div>`; const sl = C.sizeLabel(Z.lg); return `<div class="mc zone" style="--zc:${Z.pal[3]}"><h3>${i + 1}. ${Z.name}<small>${sl.num} ${sl.unit}</small></h3><p>${sl.east ? sl.east + ' · ' : ''}${Z.fact}</p></div>`; }).join('') + `<div class="bh">작은 세상의 돈 · 원보다 작은 단위</div><p class="note">숫자가 작을수록 큰돈이에요. 단위는 만분의 1씩 작아져요.</p>` + MONEY.map(([e, u, why]) => `<div class="mc zone" style="--zc:#ffd24a"><h3>1${u}<small>10<sup>${e}</sup>원</small></h3><p>${why} · 1${u} = 1만분의 1${e === -4 ? '원' : MONEY.find(x => x[0] === e + 4)[1]}</p></div>`).join(''); }
   else { const n = C.achN(m); L.innerHTML = `<div class="bh">기록</div><div class="mc"><h3>최고 깊이<small>${fmt(m.runs)}판</small></h3><p>${C.ZONES[Math.min(C.ZN - 1, Math.floor(m.best))].name} · ${(() => { const s2 = C.sizeLabel(C.lgAt(m.best)); return s2.num + ' ' + s2.unit; })()}</p><p>재구성 ${fmt(m.recons)}회 · 완벽 축소 ${fmt(m.perfects)}회 · 소수점 ${fmt(m.ended)}번 찾음</p><p class="ev">업적 ${n}개 → 빛 +${n * 3}%</p></div><div class="bh">업적 · 하나당 빛 +3%</div>` +
       C.ACH.map(a => `<div class="ac${m.ach[a.id] ? ' done' : ' off'}${n >= C.ACH.length ? ' rb' : ''}"><h3>${a.name}</h3><p>${a.desc}</p></div>`).join(''); }
 }
