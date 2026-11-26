@@ -319,7 +319,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 131, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 132, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -1139,7 +1139,7 @@ function zoneMix(x, key, idx) { const z = C.zoneAt(x); if (z === 0) return idx =
 let ppm = 20, ox = 0, oy = 0, dollJolt = 0, camV = 0, camPy = 0;
 // --- juice: screen-space sparks, rings, coins flying to the counter, a ribbon behind the cart, flashes ---
 let zoneIn = 0, zoneSaid = true, jingleT = -9e9, landT = -9e9, fuelShown = 1, fuelUpT = -9e9, liveG = 0, liveT = -9e9, launchFx = null;
-let fxs = [], trail = [], flash = 0, flashCol = '#fff', goldPopT = 0, dashT = 0, sonicLv = 0, cartX = 200, cartY = 200;
+let fxs = [], trail = [], flash = 0, flashCol = '#fff', goldPopT = 0, dashT = 0, sonicLv = 0, cartX = 200, cartY = 200, cartSY = 200;
 // hit-stop (a few frozen frames on a heavy impact), squash and stretch of the cart, a short zoom punch, and the rider's expression
 let pivK = 0, objK = 1, spinAcc = 0, spinPrev = null, whooshT = 0, hitT = 0, sqz = 0, sqzV = 0, zoomP = 0, moodK = 0, moodT = 0, phxT = -9e9, phxTail = [];
 const PHX_WING = 2.2, PHX_TAIL = 6;   // seconds the fire wings and the fire tail last
@@ -1859,10 +1859,13 @@ function draw(now) {
     if (fdiveOn && !run.fdive && !run.slam) fdiveOn = false;
     for (const e of run.ev) {
       const ex = Math.max(-40, Math.min(W + 40, SX(e.x))), ey = Math.max(-40, Math.min(H + 40, SY(e.y)));
+      // gold pickups are placed relative to the cart: the camera has not caught up with this frame's move yet, so at speed SX/SY of the
+      // pickup spot would land a whole frame's travel ahead of the cart (or pinned to the screen edge); the cart sits at ox horizontally
+      const gx = Math.max(-40, Math.min(W + 40, ox + (e.x - run.x) * ppm)), gy = Math.max(-40, Math.min(H + 40, cartSY - (e.y - run.y) * ppm));
       if (e.k === 'bounce') { const hard = Math.min(1, e.imp / (0.5 * run.v0 + 1)); shake = Math.max(shake, 2 + 6 * hard); SFX.bounce(0.1 + 0.3 * hard); burst(cartX, cartY + 8, 4 + Math.round(6 * hard), ['#ffffff', '#e8dcc0'], 200, 0.45, { a0: -1.57, spread: 2.6, g: 600, z: 4 }); if (hard > 0.5) ringFx(cartX, cartY + 8, '#ffffff', 40 + 40 * hard, 0.35, 3); }
-      else if (e.k === 'coin') { const tn = performance.now(); if (tn - goldPopT > 140) pop({ x: e.x, y: e.y, t: 0, txt: '+' + fmt(e.g * st.rate) }); SFX.coin(run.combo, ex / W * 2 - 1); burst(ex, ey, 4, ['#ffd24a', '#fff3b0'], 220, 0.4, { g: 300, z: 4 }); coinFly(ex, ey, 1); goldPopT = tn; }
-      else if (e.k === 'crate') { pop({ x: e.x, y: e.y, t: 0, txt: '+' + fmt(e.g * st.rate) }); SFX.crate(ex / W * 2 - 1); crateFanfare(ex, ey); shake = Math.max(shake, 4); goldPopT = performance.now(); }
-      else if (e.k === 'smash') { pop({ x: e.x, y: e.y, t: 0, txt: '+' + fmt(e.g * st.rate) }); SFX.bonk(); SFX.coin(); burst(ex, ey, 9, ['#ff8a1f', '#7a6f80', '#ffd24a'], 380, 0.6, { a0: -0.6, spread: 2.4, z: 5, sq: 1 }); coinFly(ex, ey, 2); shake = 5; }
+      else if (e.k === 'coin') { const tn = performance.now(); if (tn - goldPopT > 140) pop({ x: e.x, y: e.y, t: 0, txt: '+' + fmt(e.g * st.rate) }); SFX.coin(run.combo, gx / W * 2 - 1); burst(gx, gy, 4, ['#ffd24a', '#fff3b0'], 220, 0.4, { g: 300, z: 4 }); coinFly(gx, gy, 1); goldPopT = tn; }
+      else if (e.k === 'crate') { pop({ x: e.x, y: e.y, t: 0, txt: '+' + fmt(e.g * st.rate) }); SFX.crate(gx / W * 2 - 1); crateFanfare(gx, gy); shake = Math.max(shake, 4); goldPopT = performance.now(); }
+      else if (e.k === 'smash') { pop({ x: e.x, y: e.y, t: 0, txt: '+' + fmt(e.g * st.rate) }); SFX.bonk(); SFX.coin(); burst(gx, gy, 9, ['#ff8a1f', '#7a6f80', '#ffd24a'], 380, 0.6, { a0: -0.6, spread: 2.4, z: 5, sq: 1 }); coinFly(gx, gy, 2); shake = 5; }
       else if (e.k === 'pad') { SFX.pad(); ringFx(cartX, cartY, '#ff8a1f', 70, 0.4, 6); burst(cartX - 10, cartY, 8, ['#ff8a1f', '#ffd24a'], 520, 0.4, { a0: Math.PI, spread: 0.7, g: 0, z: 4 }); }
       else if (e.k === 'tramp') { SFX.tramp(); ringFx(cartX, cartY + 10, '#3f8cff', 80, 0.5, 6); ringFx(cartX, cartY + 10, '#bfe0ff', 50, 0.4, 3, 0.07); burst(cartX, cartY + 10, 10, ['#bfe0ff', '#fff'], 300, 0.5, { a0: -1.57, spread: 1.6, z: 4 }); }
       else if (e.k === 'ring') { SFX.ring(); ringFx(cartX, cartY, '#12e0c4', 90, 0.5, 7); burst(cartX, cartY, 9, ['#12e0c4', '#d3fff7'], 340, 0.5, { g: 0, z: 4 }); }
@@ -1976,7 +1979,7 @@ function draw(now) {
       gr.addColorStop(0, `rgba(255,236,140,${0.75 * a})`); gr.addColorStop(0.45, `rgba(255,210,74,${0.45 * a})`); gr.addColorStop(1, 'rgba(255,200,60,0)'); g.fillStyle = gr; g.beginPath(); g.arc(pxT, pyT - 14, 34 + 10 * kg, 0, 7); g.fill();
       g.globalAlpha = a; g.strokeStyle = '#ffd24a'; g.lineWidth = 4.5; g.beginPath(); g.arc(pxT, pyT - 14, 15, 0, 7); g.stroke(); g.strokeStyle = '#fff8d0'; g.lineWidth = 1.5; g.beginPath(); g.arc(pxT, pyT - 14, 15, 0, 7); g.stroke(); g.globalAlpha = 1; } }
   }
-  cartX = cx0; cartY = cy0 - 14 * csc;
+  cartX = cx0; cartY = cy0 - 14 * csc; cartSY = SY(py);
   if (r && state === 'fly') { const ca = Math.cos(rot), sa = Math.sin(rot);
     // ribbon behind the cart
     g.lineCap = 'round'; for (const gp of Q.trail ? [1, 0] : [0]) { if (gp) g.globalCompositeOperation = 'lighter'; for (let i = 1; i < trail.length; i++) { const a = trail[i - 1], b = trail[i], f = i / trail.length; g.globalAlpha = f * (gp ? 0.14 : 0.55); g.strokeStyle = b.c; g.lineWidth = (2 + f * 10 * csc) * (gp ? 2.8 : 1); g.beginPath(); g.moveTo(Math.max(-50, SX(a.x)), SY(a.y) - 14 * csc); g.lineTo(SX(b.x), SY(b.y) - 14 * csc); g.stroke(); } g.globalCompositeOperation = 'source-over'; } g.globalAlpha = 1; g.lineCap = 'butt';
