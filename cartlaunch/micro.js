@@ -164,14 +164,14 @@ function updBtns() { if (!run) return; const st = run.st; bPulse.querySelector('
 /* ---------------- input ---------------- */
 const locX = e => B.locX(e), locY = e => B.locY(e);
 cv.addEventListener('pointerdown', e => { e.preventDefault(); try { B.snd(); } catch (er) {} try { cv.setPointerCapture(e.pointerId); } catch (er) {}
-  if (mode === 'intro' && now() - introT > 7.5) { finishIntro(); return; } if (mode === 'lab') { startCharge(); return; } if (mode === 'run') ptrY = locY(e); });
+  if (mode === 'intro' && now() - introT > 17.4) { finishIntro(); return; } if (mode === 'lab') { startCharge(); return; } if (mode === 'run') ptrY = locY(e); });
 cv.addEventListener('pointermove', e => { if (mode === 'run' && ptrY != null) ptrY = locY(e); });
 const up = () => { ptrY = null; if (mode === 'charge') release(); };
 cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
 const hold = (b, on2, off) => { b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); b.classList.add('down'); on2(); }); const o2 = e => { b.classList.remove('down'); if (off) off(); }; b.addEventListener('pointerup', o2); b.addEventListener('pointercancel', o2); b.addEventListener('pointerleave', o2); };
 hold(bBoost, () => { boostHeld = true; }, () => { boostHeld = false; }); hold(bPulse, () => { tapPulse = true; }); hold(bBlink, () => { tapBlink = true; }); hold(bShrink, () => { tapShrink = true; });
 addEventListener('keydown', e => { if (!on) return; if (e.target && e.target.closest && e.target.closest('textarea, input')) return; if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); keys.add(e.code); if (e.repeat) return;
-  if (mode === 'intro') { if (now() - introT > 7.5) finishIntro(); return; }
+  if (mode === 'intro') { if (now() - introT > 17.4) finishIntro(); return; }
   if (!$('#mShop').hidden) { if (e.code === 'Escape') closeShop(); return; }
   if (e.code === 'Space') { if (mode === 'lab') startCharge(); else if (mode === 'run') boostHeld = true; else if (mode === 'result') again(); }
   if (mode === 'run') { if (e.code === 'KeyE') tapPulse = true; if (e.code === 'KeyQ') tapBlink = true; if (e.code === 'KeyR') tapShrink = true; }
@@ -186,7 +186,7 @@ function again() { toLab(); }
 /* ---------------- the loop ---------------- */
 function loop(t) { if (!on) return; requestAnimationFrame(loop); if (!$('#mShop').hidden) { last = t; return; }
   const dt = Math.min(0.05, (t - last) / 1000); last = t; const tm = now() - T0 / 1000;
-  g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  g.setTransform(DPR, 0, 0, DPR, 0, 0); A.use(g);
   if (mode === 'intro') { drawIntro(now() - introT); return; }
   if (mode === 'found') { drawFound(now() - foundT, dt); return; }
   if (mode === 'lab' || mode === 'charge' || mode === 'fire') { labStep(dt, tm); return; }
@@ -196,7 +196,7 @@ function labStep(dt, tm) {
   if (mode === 'charge') { const c0 = charge; charge += dt / 1.1; if (Math.floor(c0 * 12) !== Math.floor(charge * 12)) SND.charge(charge); if (charge >= 1.12) release(); }
   const st = C.stats(M()), fire = mode === 'fire' ? Math.min(1, (now() - fireT) / 0.9) : 0;
   g.save(); if (shake > 0.3) { g.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake); shake *= 0.9; }
-  A.lab(W, H, tm, mode === 'charge' ? charge : -1, [0.86 - st.perfW, 0.86 + st.perfW], fire, { rb: rbOn() }); g.restore();
+  A.lab(W, H, tm, mode === 'charge' ? charge : -1, [0.86 - st.perfW, 0.86 + st.perfW], fire, { rb: rbOn(), behind: G => A.director(W * DIR_X, G.fy, G.u * 1.15, tm, { face: -1, wave: mode === 'fire' }) }); g.restore();
   // a few lines on the wall: where the run stands
   const m = M();
   const bz = Math.min(C.ZN - 1, Math.floor(m.best)), sl = C.sizeLabel(C.lgAt(m.best)); txt(m.best > 0 ? `최고 깊이 · ${C.ZONES[bz].name}` : '축소 연구소', W * 0.5, H * 0.12, 'center', Math.min(24, H * 0.055), '#ffe27a');
@@ -282,7 +282,7 @@ function drawRun(dt, tm) {
   g.save(); g.globalCompositeOperation = 'lighter'; for (let k = 0; k < trail.length; k++) { const [tx, ty] = trail[k], f = k / trail.length; g.fillStyle = `rgba(160,230,255,${0.25 * f})`; g.beginPath(); g.arc(SX(tx), SY(ty), R * (0.25 + 0.5 * f), 0, 6.283); g.fill(); } g.restore();
   if (r.boosting) A.thrust(X, Y, R, tm, 1.2, '#5ad1ff'); if (r.pf > 0.05) A.thrust(X, Y, R, tm, 1 + r.pf * 2, '#ffb05a');
   if (r.v >= st.brk || r.inv > 0) { g.save(); g.globalCompositeOperation = 'lighter'; A.glow(X + R * 0.6, Y, R * 2.2, r.inv > 0 && r.pf > 0 ? '#ffb05a' : '#9ae8ff', 0.35); g.restore(); }
-  A.bubble(X, Y, R, tm, { inv: r.inv > 0 && r.pf <= 0.05, tilt: r.vy * 0.012, hp: r.hp, hpMax: st.hp, rb: rbOn() });
+  A.bubble(X, Y, R, tm, { inv: r.inv > 0 && r.pf <= 0.05, tilt: r.vy * 0.012, hp: r.hp, hpMax: st.hp, rb: rbOn(), cap: true });
   // speed lines when fast
   const q = Math.min(1, Math.max(0, (r.v - 60) / 300)); if (q > 0) { g.save(); g.globalCompositeOperation = 'lighter'; for (let k = 0; k < 14 * q + 2; k++) { const yy = (A.hs(k * 3.3) * H), ph = (tm * (2 + A.hs(k)) + A.hs(k * 7)) % 1, xx = W * (1 - ph * 1.3), L = 40 + 160 * q; g.strokeStyle = `rgba(255,255,255,${0.25 * q * Math.sin(ph * Math.PI)})`; g.lineWidth = 1.5; g.beginPath(); g.moveTo(xx, yy); g.lineTo(xx + L, yy); g.stroke(); } g.restore(); }
   g.restore();
@@ -357,17 +357,31 @@ $('#mList').addEventListener('click', e => { const b = e.target.closest('button'
   if (b.dataset.recon) { if (!confirmRecon) { confirmRecon = true; renderShop(); return; } const gn = C.reconstruct(m); confirmRecon = false; if (gn) { SND.super(); save(); B.toast(`재구성 · ◈ +${fmt(gn)}`, 2200); } }
   const sc = $('#mList').scrollTop; renderShop(); $('#mList').scrollTop = sc; hud(); });
 
-/* ---------------- intro: through the floor, into the small world ---------------- */
-const INTRO_PALS = [['#3a2f26', '#8a6a48', '#ffe3a0', '#ffb347'], C.ZONES[0].pal, C.ZONES[1].pal, ['#0e1c26', '#1a4656', '#d0fbff', '#ffffff']];
-function drawIntro(t) { const tm = now();
-  if (t < 4.2) { A.tunnel(W, H, Math.min(1, t / 4.2), INTRO_PALS, tm, 1); g.fillStyle = `rgba(255,255,255,${Math.max(0, (t - 3.4) / 0.8)})`; g.fillRect(0, 0, W, H);
-    if (!drawIntro.s1) { drawIntro.s1 = 1; B.tone(200, 900, 4, 0.06, 'sine'); B.noise(4, 0.08, 1200); B.MUS.want('mlab'); }
-    const sl = C.sizeLabel(-1 - Math.min(1, t / 4.2) * 2.2); txt(`${sl.num} ${sl.unit}`, W / 2, H - 40, 'center', 24, '#ffffff'); return; }
-  if (t < 5.4) { g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); if (!drawIntro.s2) { drawIntro.s2 = 1; SND.found(); } return; }
-  A.lab(W, H, tm, -1, [0.8, 0.9], 0, { rb: rbOn() }); const a = Math.min(1, (t - 5.4) / 0.8); g.fillStyle = `rgba(255,255,255,${1 - a})`; g.fillRect(0, 0, W, H);
-  if (!drawIntro.s3) { drawIntro.s3 = 1; bigCard('2장 · 작은 세상', '계산원 73번의 부탁: 바닥에 떨어진 물건을 찾아 주세요', '방울을 타고 점점 더 작은 세상으로 · 왼쪽 벽 화살표로 카트 발사대에 돌아갈 수 있어요'); }
-  if (t > 7.5) txt('눌러서 시작', W / 2, H * 0.9, 'center', 18, `rgba(255,255,255,${0.6 + 0.4 * Math.sin(tm * 4)})`); }
-function finishIntro() { drawIntro.s1 = drawIntro.s2 = drawIntro.s3 = 0; card.classList.remove('show'); const m = M(); m.introSeen = 1; save(); toLab(); $('#mTop').hidden = false; }
+/* ---------------- intro: through the little door, into the lab, to meet the director ---------------- */
+// the director stands by the platform in the lab; in the intro he walks over to greet the passenger who comes in through the door
+const DIR_X = 0.68, INTRO_LINES = [[3.6, 6.0, '어서 오게! 계산원 73번에게 이야기 들었네.'], [6.0, 8.4, '그 빨간 모자가 우리 연구소 출입증이지. 허허.'], [8.4, 11.2, '떨어진 건 영수증의 소수점이라네. 너무 작아서 아주아주 작은 세상까지 굴러갔을 거야.'], [11.2, 13.4, '이 방울을 타고 내려가 찾아 주겠나?']];
+function say(x, y, t, k, a) { g.save(); g.globalAlpha = a; g.font = `${15 * k}px ${FONT}`; const w = Math.min(W * 0.5, g.measureText(t).width + 28 * k), lines = []; let cur = '';
+  for (const ch of t.split(' ')) { const nx = cur ? cur + ' ' + ch : ch; if (g.measureText(nx).width > w - 24 * k && cur) { lines.push(cur); cur = ch; } else cur = nx; } lines.push(cur);
+  const h = lines.length * 19 * k + 14 * k, bx = Math.max(8, Math.min(W - w - 8, x - w / 2)), by = y - h;
+  g.fillStyle = '#fff'; g.strokeStyle = '#2b2233'; g.lineWidth = 2.5; g.beginPath(); g.roundRect(bx, by, w, h, 12 * k); g.fill(); g.stroke(); g.beginPath(); g.moveTo(x - 8 * k, by + h - 1); g.lineTo(x + 2 * k, by + h + 12 * k); g.lineTo(x + 10 * k, by + h - 1); g.closePath(); g.fill(); g.stroke(); g.fillStyle = '#fff'; g.fillRect(x - 7 * k, by + h - 3, 16 * k, 4);
+  g.fillStyle = '#2b2233'; g.textAlign = 'center'; lines.forEach((l, q) => g.fillText(l, bx + w / 2, by + 20 * k + q * 19 * k)); g.restore(); }
+const sm = v => { v = Math.max(0, Math.min(1, v)); return v * v * (3 - 2 * v); };
+function drawIntro(t) { const tm = now(), k = Math.min(1.4, H / 420);
+  if (!drawIntro.s1) { drawIntro.s1 = 1; B.MUS.want('mlab'); B.tone(400, 900, 0.5, 0.05, 'sine'); }
+  // where the passenger and the director are
+  const pf = sm((t - 0.6) / 2.8), pf2 = sm((t - 13.4) / 1.2), bubS = sm((t - 14.6) / 0.8), df = sm((t - 1.2) / 2.4), df2 = sm((t - 15.4) / 2.0);
+  let geo = null; const inside = bubS > 0.6;
+  A.lab(W, H, tm, -1, [0.8, 0.9], 0, { rb: rbOn(), door: t < 4 ? 1 - sm((t - 3) / 1) : 0, bubbleS: bubS, behind: G => { geo = G; const dx = W * (0.12 + (0.38 - 0.12) * df + (DIR_X - 0.38) * df2), walking = (df > 0 && df < 1) || (df2 > 0 && df2 < 1);
+      const L = INTRO_LINES.find(l => t >= l[0] && t < l[1]); A.director(dx, G.fy, G.u * 1.15, tm, { ph: walking ? dx / (8 * G.u) : null, face: df2 > 0 && df2 < 1 ? 1 : t < 13.4 ? 1 : -1, talk: !!L, wave: t > 3 && t < 3.6 });
+      drawIntro.dx = dx; } });
+  // the passenger: in from the door, then onto the platform where the bubble forms around them
+  if (!inside && geo) { const u = geo.u, x0 = geo.dx, x1 = W * 0.6, x = pf2 > 0 ? x1 + (W * 0.5 - x1) * pf2 : x0 + (x1 - x0) * pf, walking = (pf > 0 && pf < 1) || (pf2 > 0 && pf2 < 1); A.walker(x, geo.fy, u * 1.1, tm, { ph: walking ? x / (6 * u) : null, face: -1, cap: true }); }
+  if (bubS > 0 && bubS < 1) { g.save(); g.globalCompositeOperation = 'lighter'; for (let q = 0; q < 10; q++) { const an = q * 0.628 + tm * 3, rr = 40 * (1 - bubS) + 10; g.fillStyle = `rgba(190,240,255,${1 - bubS})`; g.beginPath(); g.arc(W * 0.5 + Math.cos(an) * rr, (geo ? geo.ty : H * 0.6) + Math.sin(an) * rr, 2.5, 0, 6.3); g.fill(); } g.restore(); if (!drawIntro.s4) { drawIntro.s4 = 1; SND.shrink(); B.tone(500, 1500, 0.6, 0.05, 'sine'); } }
+  const L = INTRO_LINES.find(l => t >= l[0] && t < l[1]); if (L && geo) { const f = Math.min(1, (t - L[0]) * 5, (L[1] - t) * 5); say(drawIntro.dx, geo.fy - 96 * geo.u * 1.15, L[2], k, f); if (!drawIntro['l' + L[0]]) { drawIntro['l' + L[0]] = 1; B.tone(330, 360, 0.09, 0.06, 'triangle'); B.tone(440, 420, 0.09, 0.05, 'triangle', 0.1); } }
+  if (t < 0.9) { g.fillStyle = `rgba(255,255,255,${1 - t / 0.9})`; g.fillRect(0, 0, W, H); }
+  if (t > 15.6 && !drawIntro.s3) { drawIntro.s3 = 1; SND.zone(); bigCard('2장 · 작은 세상', '연구소장님의 부탁: 영수증의 소수점을 찾아 주세요', '방울을 타고 점점 더 작은 세상으로 · 왼쪽 벽 화살표로 카트 발사대에 돌아갈 수 있어요'); }
+  if (t > 17.4) txt('눌러서 시작', W / 2, H * 0.94, 'center', 18, `rgba(255,255,255,${0.6 + 0.4 * Math.sin(tm * 4)})`); }
+function finishIntro() { for (const k2 in drawIntro) delete drawIntro[k2]; card.classList.remove('show'); const m = M(); m.introSeen = 1; save(); toLab(); $('#mTop').hidden = false; }
 
 /* ---------------- the end: the decimal point, then the long way back up ---------------- */
 function startFound() { mode = 'found'; foundT = now(); flyUI(false); boostHeld = false; $('#mBack').hidden = true; $('#mOpen').hidden = true; $('#mTop').hidden = true; hint.classList.remove('show'); const m = M(); C.finish(run, m); save(); SND.found(); B.MUS.want('mfoam'); }
@@ -375,7 +389,7 @@ const UP_PALS = C.ZONES.map(Z => Z.pal).reverse().concat([['#3a2f26', '#8a6a48',
 function drawFound(t, dt) { const tm = now();
   if (t < 3.2) { // the dot in the dark, the capsule drifting to it
     g.fillStyle = '#000'; g.fillRect(0, 0, W, H); const f = Math.min(1, t / 2.4), cx = W * 0.62, cy = H / 2;
-    A.dot(cx, cy, 10 + 10 * f, tm); const bx2 = W * 0.24 + (cx - 40 - W * 0.24) * f * f; A.bubble(bx2, cy, 28, tm, { rb: rbOn() });
+    A.dot(cx, cy, 10 + 10 * f, tm); const bx2 = W * 0.24 + (cx - 40 - W * 0.24) * f * f; A.bubble(bx2, cy, 28, tm, { rb: rbOn(), cap: true });
     if (t > 2.3) { txt('찾았다!', W / 2, H * 0.24, 'center', 44, '#ffe27a'); txt('잃어버린 소수점 ( . )', W / 2, H * 0.24 + 34, 'center', 20, '#ffffff'); }
     return; }
   if (t < 9) { // growing back: every world rushing past the other way, the size climbing back to the shop floor

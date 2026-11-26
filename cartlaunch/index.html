@@ -329,7 +329,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 137, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 138, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -592,26 +592,75 @@ function launch() {
 const endExit = $('#endExit'); endExit.addEventListener('click', e => { e.stopPropagation(); if (state === 'ending') { endExit.hidden = true; if (endS.epi) epiExit(); else endRun(); } });
 // the small world (chapter 2): the arrow on the right wall of the lot, and the chapter's entry and exit through the checkout
 const toMicroB = $('#toMicro'); toMicroB.addEventListener('click', e => { e.stopPropagation(); if (window.MICRO && state === 'aim') MICRO.enter({ slide: true }); });
-// the cashier asks for help at the checkout once every cart achievement is done, the first time the chapter is not open yet
-const micReady = () => (rbOn() && !(S.micro && S.micro.open) && !!window.MICRO) ? 1 : 0;
-const MIC_T = 7.6, MIC_ZOOM = 19.6, MIC_END = 22.6;
-let clerkPose = null, clerkT = 0;
-// what the cashier says, by time since the ending began
-const MIC_LINES = [[7.8, 9.6, '어? 잠깐만요…'], [9.6, 12.2, '모든 업적을 다 클리어하셨네요?'], [12.2, 14.8, '그럼 부탁 하나만 드려도 될까요?'], [14.8, 17.6, '아까 계산하다가 저기 바닥에 뭘 떨어뜨렸어요. 너무 작아서 안 보여요…'], [17.6, 19.8, '물건을 좀 찾아 주세요!']];
+// The cashier at the checkout: a warm greeting, then a line that depends on how many cart achievements will be left once this ending
+// counts.  The first time a hint, then the number left; when only '엔딩 5번 보기' is left, how many endings to go.  The ending that
+// completes them all promises good news; the next visit after that opens the small world: the two walk to the shop's right wall,
+// the cashier gives the passenger the red cap, and the passenger shrinks through a tiny door at the foot of the wall.
+const MIC_T = 7.6, MIC_WALK = 14.2, MIC_GO = 25.2;
+let clerkPose = null, clerkT = 0, clerkNoCap = false;
+function clerkPlan() {
+  const total = C.ACH.length, before = C.achCount(S), back = (S.ended || 0) > 0;
+  const greet = [[2.2, 4.8, back ? '어서 오세요! 또 와 주셨네요!' : '어서 오세요! 여기까지 오시다니!']];
+  if (before >= total) return S.micro && S.micro.open ? { say: greet.concat([[6.6, 10.8, '연구소장님은 잘 계시죠? 안부 전해 주세요.']]) } : { mic: window.MICRO ? 1 : 0, say: greet };
+  let s2 = null; try { s2 = JSON.parse(JSON.stringify(S)); C.finish(Object.assign({}, run, { used: new Set(run.used), ev: [] }), s2); } catch (e) { s2 = null; }
+  const left = C.ACH.filter(a => !(s2 || S).ach[a.id]);
+  let L;
+  if (!left.length) L = ['업적을 전부 클리어하셨네요?', '다시 한번 더 저를 찾아오신다면… 좋은 정보를 드리죠.'];
+  else if (left.length === 1 && left[0].id === 'a_fin5') { const n = 5 - (s2 ? s2.ended || 0 : (S.ended || 0) + 1); L = n >= 3 ? [`${n}번만 엔딩을 보시면…`, '제안을 하나 드리죠..'] : n === 2 ? ['두 번 남으셨군요..?'] : ['이제 슬슬 업적 클리어에 도달 직전이시네요?']; }
+  else if (!S.clerkHint) { S.clerkHint = 1; L = ['흠..', '업적이 얼마 남지 않으셨네요?']; }
+  else L = [`남은 업적이… ${left.length}개군요.`];
+  return { say: greet.concat(L.length === 1 ? [[6.6, 10.8, L[0]]] : [[6.4, 8.6, L[0]], [8.6, 11.2, L[1]]]) };
+}
+const MIC_LINES = [[7.8, 10.2, '약속대로 좋은 정보를 드리죠.'], [10.2, 12.8, '저 벽 아래에 좋은 게 숨겨져 있답니다..'], [12.8, 14.4, '같이 가 보실까요?'], [18.6, 19.8, '바로 여기예요.'], [19.8, 21.8, '이 모자를 쓰면 들어갈 수 있어요.'], [21.8, 24.2, '연구소장님을 만나 보세요!']];
 function speech(x, y, t, k, a = 1, cx) { g.save(); g.globalAlpha = a; g.font = `${15 * k}px ${FONT}`; const w = Math.min(W * 0.46, g.measureText(t).width + 28 * k), lines = []; let cur = '';
   for (const ch of t.split(' ')) { const nx = cur ? cur + ' ' + ch : ch; if (g.measureText(nx).width > w - 24 * k && cur) { lines.push(cur); cur = ch; } else cur = nx; } lines.push(cur);
   const h = lines.length * 19 * k + 14 * k, bx = Math.max(8, Math.min(W - w - 8, (cx == null ? x : cx) - w / 2)), by = y - h;
   g.fillStyle = '#fff'; g.strokeStyle = '#2b2233'; g.lineWidth = 2.5; g.beginPath(); g.roundRect(bx, by, w, h, 12 * k); g.fill(); g.stroke();
   g.beginPath(); g.moveTo(x - 8 * k, by + h - 1); g.lineTo(x + 2 * k, by + h + 12 * k); g.lineTo(x + 10 * k, by + h - 1); g.closePath(); g.fill(); g.stroke(); g.fillStyle = '#fff'; g.fillRect(x - 7 * k, by + h - 3, 16 * k, 4);
   g.fillStyle = '#2b2233'; g.textAlign = 'center'; lines.forEach((l, q) => g.fillText(l, bx + w / 2, by + 20 * k + q * 19 * k)); g.restore(); }
-// on top of the frozen checkout: the cashier's lines, the glint on the floor, then the dive into it
-function micOverlay(a, zf) { const sc = Math.min(2.2, H / 330), fy = H * 0.76, kx = W * 0.5, kw = Math.min(W * 0.34, 330), ct = fy - 46 * sc, px = kx + kw * 0.6, k = Math.min(1.4, H / 420), sx = W * 0.88, sy = fy + (H - fy) * 0.55;
-  const L = MIC_LINES.find(l => a >= l[0] && a < l[1]); if (L && zf < 0.3) { const f = Math.min(1, (a - L[0]) * 5, (L[1] - a) * 5); speech(px, ct - 92 * sc, L[2], k, f * (1 - zf / 0.3)); if (!endS['say' + L[0]]) { endS['say' + L[0]] = 1; tone(520, 560, 0.08, 0.06, 'triangle'); tone(660, 640, 0.08, 0.05, 'triangle', 0.09); } }
-  if (a > 14.8) { const pu = 0.6 + 0.4 * Math.sin(a * 6), R = (6 + 4 * pu) * (1 + zf * zf * 30); g.save(); g.globalCompositeOperation = 'lighter'; const gr = g.createRadialGradient(sx, sy, 0, sx, sy, R * 4); gr.addColorStop(0, `rgba(255,255,255,${0.9})`); gr.addColorStop(0.3, `rgba(180,240,255,${0.5 * pu})`); gr.addColorStop(1, 'rgba(160,230,255,0)'); g.fillStyle = gr; g.beginPath(); g.arc(sx, sy, R * 4, 0, 7); g.fill(); g.restore();
-    if (zf <= 0) { g.strokeStyle = `rgba(255,255,255,${0.5 + 0.5 * pu})`; g.lineWidth = 2; g.beginPath(); g.arc(sx, sy, 14 + 8 * ((a * 1.2) % 1), 0, 7); g.stroke(); }
-    if (!endS.glint) { endS.glint = 1; tone(2400, 2600, 0.4, 0.04, 'sine'); } }
-  if (zf > 0) { if (!endS.dive) { endS.dive = 1; tone(200, 1400, 2.8, 0.07, 'sine'); noise(2.8, 0.1, 1600, { rev: 0.4 }); AUD.duck(0.6, 2.6); } g.fillStyle = `rgba(255,255,255,${Math.max(0, (zf - 0.7) / 0.3)})`; g.fillRect(0, 0, W, H); }
-  if (a >= MIC_END) micGo(); }
+// where everyone is during the walk (world x; the view pans right by pan)
+function micGeo(a) { const sc = Math.min(2.2, H / 330), fy = H * 0.76, kx = W * 0.5, kw = Math.min(W * 0.34, 330), ct = fy - 46 * sc, cl = v => Math.max(0, Math.min(1, v)), sm = v => { v = cl(v); return v * v * (3 - 2 * v); };
+  const wallX = W * 1.5, doorX = wallX + 46 * sc, pan = W * 0.86 * sm((a - 14.2) / 4.6);
+  const c0 = kx + kw * 0.6, c1 = doorX - 108 * sc, cf = sm((a - 14.5) / 4.0), cx = c0 + (c1 - c0) * cf;
+  const seat = [kx - 36 * sc, fy - 26 * sc], land = [kx + 2 * sc, fy], hop = cl((a - 13.4) / 0.6), p1 = doorX - 52 * sc, pf = sm((a - 14.6) / 3.8), sf = cl((a - 23.6) / 1.4);
+  let px = land[0] + (p1 - land[0]) * pf, py = fy; if (hop < 1) { px = seat[0] + (land[0] - seat[0]) * hop; py = seat[1] + (fy - seat[1]) * hop - Math.sin(hop * Math.PI) * 26 * sc; }
+  if (sf > 0) px = p1 + (doorX - p1) * sf;
+  const ps = 1 - 0.94 * sf * sf;
+  return { sc, fy, kx, kw, ct, wallX, doorX, pan, cx, cWalk: cf > 0 && cf < 1, px, py, pWalk: (pf > 0 && pf < 1) || (sf > 0 && sf < 1), ps, out: a > 13.4 }; }
+// the shop's right end: a potted plant, a cream wall with panelling and a wooden skirting board, a tiny arched door to the lab at its foot
+function micRight(a, G) { const { sc, fy, wallX, doorX } = G;
+  g.strokeStyle = '#2b2233'; g.lineWidth = 2; const pxp = W * 1.18; g.fillStyle = '#c98b3c'; g.beginPath(); g.moveTo(pxp - 12 * sc, fy); g.lineTo(pxp - 9 * sc, fy - 18 * sc); g.lineTo(pxp + 9 * sc, fy - 18 * sc); g.lineTo(pxp + 12 * sc, fy); g.closePath(); g.fill(); g.stroke();
+  g.fillStyle = '#3f9a52'; for (let q = 0; q < 7; q++) { const an = -Math.PI / 2 + (q - 3) * 0.35; g.beginPath(); g.ellipse(pxp + Math.cos(an) * 16 * sc, fy - 18 * sc + Math.sin(an) * 22 * sc, 5 * sc, 12 * sc, an + Math.PI / 2, 0, 7); g.fill(); g.stroke(); }
+  const ww = W * 1.2; g.fillStyle = '#f6e6c4'; g.fillRect(wallX, 0, ww, fy); g.fillStyle = 'rgba(160,110,40,.18)'; g.fillRect(wallX, 0, 14 * sc, fy); g.strokeStyle = '#2b2233'; g.lineWidth = 2.5; g.beginPath(); g.moveTo(wallX, 0); g.lineTo(wallX, fy); g.stroke();
+  g.fillStyle = '#e8cc96'; g.fillRect(wallX, fy - 62 * sc, ww, 56 * sc); g.strokeStyle = 'rgba(138,84,24,.45)'; g.lineWidth = 2; for (let q = 0; q < 8; q++) { const x = wallX + 70 * sc + q * 70 * sc; g.strokeRect(x, fy - 54 * sc, 52 * sc, 40 * sc); }
+  g.fillStyle = '#8a5418'; g.fillRect(wallX, fy - 8 * sc, ww, 8 * sc); g.strokeStyle = '#2b2233'; g.lineWidth = 2; g.strokeRect(wallX, fy - 8 * sc, ww, 8 * sc);
+  // the little door: an arch in the skirting board, a knob, a sign; it glows once they reach it and opens for the passenger
+  const dw = 15 * sc, dh = 21 * sc, open = Math.max(0, Math.min(1, (a - 23.4) / 0.8)), glw = a > 17.6 ? 0.5 + 0.5 * Math.sin(a * 4) : 0;
+  if (glw || open) { g.save(); g.globalCompositeOperation = 'lighter'; const R = 60 * sc * (1 + open * 2), gr = g.createRadialGradient(doorX, fy - dh * 0.5, 0, doorX, fy - dh * 0.5, R); gr.addColorStop(0, `rgba(170,240,255,${0.35 * glw + 0.6 * open})`); gr.addColorStop(1, 'rgba(160,230,255,0)'); g.fillStyle = gr; g.beginPath(); g.arc(doorX, fy - dh * 0.5, R, 0, 7); g.fill(); g.restore(); }
+  g.fillStyle = open > 0 ? '#eafcff' : '#3a2a1a'; g.strokeStyle = '#2b2233'; g.lineWidth = 2; g.beginPath(); g.moveTo(doorX - dw / 2, fy); g.lineTo(doorX - dw / 2, fy - dh + dw / 2); g.arc(doorX, fy - dh + dw / 2, dw / 2, Math.PI, 0); g.lineTo(doorX + dw / 2, fy); g.closePath(); g.fill(); g.stroke();
+  const dr = doorX + dw / 2 - dw * open; g.fillStyle = '#c98b3c'; g.beginPath(); g.moveTo(doorX - dw / 2, fy); g.lineTo(doorX - dw / 2, fy - dh + dw / 2); g.quadraticCurveTo(doorX - dw / 2, fy - dh, doorX, fy - dh); g.lineTo(Math.max(doorX - dw / 2 + 1, dr), fy - dh + dw * 0.25); g.lineTo(Math.max(doorX - dw / 2 + 1, dr), fy); g.closePath(); g.fill(); g.stroke();
+  if (open < 0.5) { g.fillStyle = '#ffd24a'; g.beginPath(); g.arc(doorX + dw * 0.25, fy - dh * 0.42, 1.4 * sc, 0, 7); g.fill(); }
+  g.fillStyle = '#f4efe0'; g.beginPath(); g.roundRect(doorX - 12 * sc, fy - dh - 11 * sc, 24 * sc, 8 * sc, 2 * sc); g.fill(); g.lineWidth = 1.2; g.stroke(); g.fillStyle = '#2b2233'; g.font = `${5.2 * sc}px ${FONT}`; g.textAlign = 'center'; g.fillText('연구소', doorX, fy - dh - 5.2 * sc); }
+// the cashier walking out from behind the counter: legs below the apron, then the usual upper body
+function micClerk(a, G) { const { sc: u, ct } = G, px = G.cx, ph = px / (9 * u), walk = G.cWalk, feet = ct + 46 * u;
+  for (const sd of [-1, 1]) { const sw = walk ? Math.sin(ph) * 0.4 * sd : 0, hx = px + sd * 4.5 * u, fx = hx + Math.sin(sw) * 14 * u; g.strokeStyle = '#2b2233'; g.lineWidth = 7 * u; g.lineCap = 'round'; g.beginPath(); g.moveTo(hx, ct + 6 * u); g.lineTo(fx, feet - 3 * u); g.stroke(); g.strokeStyle = '#2c3a5a'; g.lineWidth = 7 * u - 3.6; g.stroke();
+    g.fillStyle = '#2b2233'; g.beginPath(); g.ellipse(fx + 3 * u, feet - 2 * u, 5.5 * u, 2.6 * u, 0, 0, 7); g.fill(); }
+  g.lineCap = 'butt';
+  clerkPose = a > MIC_WALK && a < 18.4 ? 'walk' : a >= 19.8 && a < 20.9 ? 'give' : a >= 23.6 ? 'wave' : 'talk'; clerkNoCap = a >= 20.2; drawClerk(px, ct, u, a, false); clerkNoCap = false; }
+// inWorld (inside the pan): the passenger on foot and the cap changing heads; otherwise, on screen: the lines and the final flash
+function micOverlay(a, G, inWorld) { const { sc, ct } = G, k = Math.min(1.4, H / 420);
+  if (inWorld) { if (G.out) { const capOn = a >= 20.9; MART.use(g); MART.walker(G.px, G.py, sc, a, { ph: G.pWalk ? G.px / (6 * sc) : null, face: 1, cap: capOn, s: G.ps });
+      if (capOn && a < 21.8) { const f = (a - 20.9) / 0.9; g.save(); g.globalCompositeOperation = 'lighter'; for (let q = 0; q < 8; q++) { const an = q * 0.785 + a * 3, rr = (8 + 18 * f) * sc; g.fillStyle = `rgba(255,240,170,${1 - f})`; g.beginPath(); g.arc(G.px + 1.8 * sc + Math.cos(an) * rr, G.py - 34 * sc + Math.sin(an) * rr, 1.6 * sc, 0, 7); g.fill(); } g.restore(); } }
+    if (a >= 20.2 && a < 20.9) { const f = (a - 20.2) / 0.7, hx0 = G.cx, hy0 = ct - 50 * sc, hx1 = G.px + 1.8 * sc, hy1 = G.py - 31 * sc, x = hx0 + (hx1 - hx0) * f, y = hy0 + (hy1 - hy0) * f - Math.sin(f * Math.PI) * 36 * sc; MART.use(g); MART.cap(x, y, 5.6 * sc * (2.1 - 1.1 * f), 1); }
+    return; }
+  const lines = (endS.say || []).concat(MIC_LINES), L = lines.find(l => a >= l[0] && a < l[1]);
+  if (L) { const f = Math.min(1, (a - L[0]) * 5, (L[1] - a) * 5), x = (a > MIC_WALK ? G.cx : G.kx + G.kw * 0.6) - G.pan; speech(x, ct - 92 * sc, L[2], k, f); if (!endS['say' + L[0]]) { endS['say' + L[0]] = 1; tone(520, 560, 0.08, 0.06, 'triangle'); tone(660, 640, 0.08, 0.05, 'triangle', 0.09); } }
+  if (a > 13.4 && !endS.hopS) { endS.hopS = 1; tone(500, 900, 0.15, 0.06, 'triangle'); }
+  if (a > 20.2 && !endS.capS) { endS.capS = 1; tone(700, 1400, 0.4, 0.06, 'sine'); }
+  if (a > 20.9 && !endS.capOn) { endS.capOn = 1; [0, 4, 7, 12].forEach((s2, q) => tone(784 * Math.pow(2, s2 / 12), 784 * Math.pow(2, s2 / 12), 0.3, 0.05, 'triangle', q * 0.06)); }
+  if (a > 23.6 && !endS.shrinkS) { endS.shrinkS = 1; tone(1200, 200, 1.4, 0.07, 'sine'); noise(1.4, 0.06, 2400, { rev: 0.4 }); }
+  if (a > 24.3) { g.fillStyle = `rgba(255,255,255,${Math.min(1, (a - 24.3) / 0.8)})`; g.fillRect(0, 0, W, H); }
+  if (a >= MIC_GO) micGo(); }
 // the cart's run is settled quietly (the ending counts), then the small world opens with its own intro
 function micGo() { if (endS.micDone) return; endS.micDone = 1; LS.del('cart.live'); endExit.hidden = true; try { C.finish(run, S); if (C.tl(S, 't_auto')) C.buyAll(S); } catch (e) {} save(); cloudNow(); toAim(); if (window.MICRO) MICRO.enter({ intro: true }); }
 // after the decimal point is found: back at the checkout to hand it over
@@ -665,11 +714,11 @@ function souvenir(i, x, y, z) { g.lineWidth = Math.max(1.2, z * 0.14); g.strokeS
 function drawEnding(a) {
   if (endS.epi) { drawEpilogue(a); return; }
   const real = a, mic = endS.mic; if (mic && a > MIC_T) a = MIC_T;
-  clerkPose = mic && real > MIC_T ? (real > 14.8 && real < MIC_ZOOM ? 'point' : 'talk') : null; clerkT = real;
-  const zf = mic ? Math.max(0, Math.min(1, (real - MIC_ZOOM) / (MIC_END - MIC_ZOOM - 0.2))) : 0;
+  clerkPose = mic && real > MIC_T ? (real > 10.2 && real < 12.8 ? 'point' : 'talk') : (endS.say && endS.say.some(l => real >= l[0] && real < l[1]) ? 'talk' : null); clerkT = real;
+  const MG = mic ? micGeo(real) : null;
   const D = FONT, cl = v => Math.max(0, Math.min(1, v)), ez = v => { v = cl(v); return 1 - (1 - v) * (1 - v) * (1 - v); }, once = (k, fn) => { if (!endS[k]) { endS[k] = 1; fn(); } };
   g.save(); g.textAlign = 'center';
-  if (zf > 0) { const sx = W * 0.88, sy = H * 0.76 + H * 0.24 * 0.55, z = Math.exp(zf * zf * 5.4); g.translate(sx, sy); g.scale(z, z); g.translate(-sx, -sy); }
+  if (MG && MG.pan > 0) { const bg0 = g.createLinearGradient(0, 0, 0, H); bg0.addColorStop(0, '#fffdf2'); bg0.addColorStop(1, '#ffe3a0'); g.fillStyle = bg0; g.fillRect(0, 0, W, H); g.fillStyle = '#f0c36a'; g.fillRect(0, MG.fy, W, H - MG.fy); g.fillStyle = 'rgba(255,255,255,.55)'; g.fillRect(0, MG.fy, W, 3); g.translate(-MG.pan, 0); micRight(real, MG); }
   // 0-1.5 s: the light takes the whole screen
   g.fillStyle = `rgba(255,255,255,${0.75 + 0.25 * cl(a / 1.2)})`; g.fillRect(0, 0, W, H); once('boom', () => { noise(1.8, 0.5, 2400, { rev: 0.5 }); tone(220, 1760, 1.4, 0.2, 'sine'); tone(110, 55, 1.6, 0.3, 'sine'); AUD.duck(0.7, 1.2); });
   const s1 = cl((a - 1.5) / 1.5);
@@ -683,7 +732,7 @@ function drawEnding(a) {
     { const sx = kx + kw * 0.5, sw = 92 * sc * 0.8, sh = 24 * sc * 0.8, sy = H * 0.04 + Math.sin(a * 1.3) * 1.5; g.strokeStyle = '#2b2233'; g.lineWidth = 2; g.beginPath(); g.moveTo(sx - sw * 0.35, 0); g.lineTo(sx - sw * 0.35, sy); g.moveTo(sx + sw * 0.35, 0); g.lineTo(sx + sw * 0.35, sy); g.stroke(); g.fillStyle = '#f0452f'; g.beginPath(); g.roundRect(sx - sw / 2, sy, sw, sh, 5); g.fill(); g.stroke(); g.fillStyle = '#fff'; g.font = `${15 * sc * 0.8}px ${D}`; g.fillText('계산대 73', sx, sy + sh * 0.72); }
     // the checkout: the cashier stands behind a wooden counter with a belt, a scanner arch with a glass panel and a register
     const ax = kx + kw * 0.3, ct = fy - kh;
-    drawClerk(kx + kw * 0.6, ct, sc, a, fin);
+    if (MG && real > MIC_WALK) micClerk(real, MG); else drawClerk(kx + kw * 0.6, ct, sc, a, fin);
     g.fillStyle = '#8a5418'; g.strokeStyle = '#2b2233'; g.lineWidth = 2.5; g.beginPath(); g.roundRect(kx, ct, kw, kh, 8); g.fill(); g.stroke();
     g.fillStyle = '#c98b3c'; g.beginPath(); g.roundRect(kx + 3, ct + 2, kw - 6, 5 * sc, 3); g.fill();
     g.strokeStyle = 'rgba(43,34,51,.22)'; g.lineWidth = 1.5; g.beginPath(); for (let q = 1; q < 7; q++) { const x = kx + kw * q / 7; g.moveTo(x, beltY + 14 * sc); g.lineTo(x, fy - 7 * sc); } g.stroke();
@@ -703,7 +752,7 @@ function drawEnding(a) {
     // the cart rolls in and stops under the scanner
     doll.wx = doll.wy = 0; doll.mood = fin ? 3 : a < 5 ? 1 : 0;
     const cx2 = -90 + (kx - 40 * sc + 90) * ez((a - 2) / 3), pins = dollStep(0.016, 0, a < 5 ? -300 : 0, 0, 0, fin ? 1.2 : 0); g.fillStyle = 'rgba(60,35,5,.22)'; g.beginPath(); g.ellipse(cx2, fy + 3, 30 * sc, 5 * sc, 0, 0, 7); g.fill();
-    drawDoll(cx2, fy - 2, sc, pins, false); drawCart(cx2, fy - 2, 0, sc, fin ? 0.04 * Math.sin(a * 9) : 0); drawDoll(cx2, fy - 2, sc, pins, true);
+    if (MG && MG.out) drawCart(cx2, fy - 2, 0, sc, 0); else { drawDoll(cx2, fy - 2, sc, pins, false); drawCart(cx2, fy - 2, 0, sc, fin ? 0.04 * Math.sin(a * 9) : 0); drawDoll(cx2, fy - 2, sc, pins, true); }
     if (a > 5.2 && a < 6) { const k = 1 - (a - 5.2) / 0.8; g.shadowColor = '#ff2a2a'; g.shadowBlur = 20; g.fillStyle = `rgba(255,50,50,${k})`; g.fillRect(cx2 - 60 * sc, fy - 34 * sc, 150 * sc, 3); g.shadowBlur = 0; g.font = `${30 * sc}px ${D}`; g.fillStyle = `rgba(240,69,47,${k})`; g.fillText('삑!', cx2 + 20 * sc, fy - 80 * sc - (1 - k) * 20); }
     if (a > 5.2) once('beep', () => { tone(1900, 1900, 0.13, 0.2, 'square'); buzz(40); });
     // keepsakes hop out of the cart onto the belt, pass the scanner and pile up by the till
@@ -734,10 +783,14 @@ function drawEnding(a) {
       // first time only: the reward
       if (!(S.ended > 0) && a > 13.6) { const k2 = ez((a - 13.6) / 0.5), t = '빛의 카트 해금!', fs = Math.min(20, W * 0.024); g.font = `${fs}px ${D}`; const w = g.measureText(t).width + 30; g.globalAlpha = s1 * k2; g.fillStyle = '#2b2233'; g.beginPath(); g.roundRect(W * 0.64 - w / 2, H * 0.2 + 54 + (1 - k2) * 10, w, fs * 1.7, fs * 0.85); g.fill(); g.fillStyle = '#fff3b0'; g.fillText(t, W * 0.64, H * 0.2 + 54 + fs * 1.18 + (1 - k2) * 10); once('gift', () => SFX.level()); } }
     g.globalAlpha = 1; }
+  if (MG) micOverlay(real, MG, true);
   endExit.hidden = a < 4 || !!mic;
   g.restore();
-  if (mic) micOverlay(real, zf);
+  if (MG) micOverlay(real, MG, false); else if (endS.say) sayOverlay(real);
 }
+// the cashier's lines in an ordinary ending
+function sayOverlay(a) { const sc = Math.min(2.2, H / 330), ct = H * 0.76 - 46 * sc, k = Math.min(1.4, H / 420), L = endS.say.find(l => a >= l[0] && a < l[1]); if (!L) return;
+  const f = Math.min(1, (a - L[0]) * 5, (L[1] - a) * 5); speech(W * 0.5 + Math.min(W * 0.34, 330) * 0.6, ct - 92 * sc, L[2], k, f); if (!endS['say' + L[0]]) { endS['say' + L[0]] = 1; tone(520, 560, 0.08, 0.06, 'triangle'); tone(660, 640, 0.08, 0.05, 'triangle', 0.09); } }
 // the shop behind the checkout: shelves stocked with boxes, bottles and cans under a soft haze, hanging lamps, a tiled floor
 function endShop(a, fy, sc) {
   for (let k = 0; k < 6; k++) { const x = W * (0.02 + k * 0.17), w = W * 0.13, top = fy - H * 0.38, h = fy - top; g.fillStyle = 'rgba(201,139,60,.6)'; g.strokeStyle = 'rgba(43,34,51,.35)'; g.lineWidth = 2; g.beginPath(); g.roundRect(x, top, w, h, 4); g.fill(); g.stroke(); g.fillStyle = 'rgba(255,248,230,.6)'; g.fillRect(x + 4, top + 4, w - 8, h - 8);
@@ -758,7 +811,7 @@ function endShop(a, fy, sc) {
 // the cashier: a cartoon clerk in a red cap and teal apron, drawn from the waist up (the counter hides the rest).
 // Waves while the cart rolls in, scans with a hand scanner while the keepsakes pass, and cheers with both arms once it is paid.
 function drawClerk(px, ct, u, a, fin) {
-  const ink = '#2b2233', skin = '#ffd9b8', shirt = '#fff6e6', bob = fin ? -Math.abs(Math.sin(a * 6)) * 5 * u : Math.sin(a * 2.4) * 0.8 * u, shY = ct - 28 * u + bob, hy = shY - 16 * u, look = fin ? 0 : clerkPose === 'point' ? 1.6 * u : -1.4 * u, scan = a >= 5.2 && !fin && !clerkPose;
+  const ink = '#2b2233', skin = '#ffd9b8', shirt = '#fff6e6', bob = fin ? -Math.abs(Math.sin(a * 6)) * 5 * u : Math.sin(a * 2.4) * 0.8 * u, shY = ct - 28 * u + bob, hy = shY - 16 * u, look = fin ? 0 : clerkPose === 'point' || clerkPose === 'walk' || clerkPose === 'give' || clerkPose === 'wave' ? 1.6 * u : -1.4 * u, scan = a >= 5.2 && !fin && !clerkPose;
   g.save(); g.lineJoin = 'round'; g.lineCap = 'round'; g.textAlign = 'center';
   g.fillStyle = skin; g.strokeStyle = ink; g.lineWidth = 2.2; g.beginPath(); g.rect(px - 3.5 * u, hy + 8 * u, 7 * u, 9 * u); g.fill(); g.stroke();
   g.fillStyle = shirt; g.lineWidth = 2.4; g.beginPath(); g.moveTo(px - 16 * u, ct + 8 * u); g.lineTo(px - 15 * u, shY + 5 * u); g.quadraticCurveTo(px - 14 * u, shY - 1 * u, px - 6 * u, shY - 2 * u); g.lineTo(px + 6 * u, shY - 2 * u); g.quadraticCurveTo(px + 14 * u, shY - 1 * u, px + 15 * u, shY + 5 * u); g.lineTo(px + 16 * u, ct + 8 * u); g.closePath(); g.fill(); g.stroke();
@@ -771,9 +824,10 @@ function drawClerk(px, ct, u, a, fin) {
   g.strokeStyle = ink; g.lineWidth = 2.2; g.fillStyle = skin; for (const sd of [-1, 1]) { g.beginPath(); g.arc(px + sd * 11.5 * u, hy + 1.5 * u, 2.8 * u, 0, 7); g.fill(); g.stroke(); }
   g.beginPath(); g.ellipse(px, hy, 11.5 * u, 12.5 * u, 0, 0, 7); g.fill(); g.stroke();
   g.fillStyle = '#5a3a22'; g.beginPath(); g.moveTo(px + 11.4 * u, hy - 1 * u); g.quadraticCurveTo(px + 12 * u, hy - 9 * u, px + 4 * u, hy - 8 * u); g.lineTo(px + 9 * u, hy - 3 * u); g.closePath(); g.fill(); g.beginPath(); g.moveTo(px - 11.4 * u, hy - 2 * u); g.quadraticCurveTo(px - 11 * u, hy - 8 * u, px - 6 * u, hy - 7.5 * u); g.lineTo(px - 9.5 * u, hy - 3 * u); g.closePath(); g.fill();
-  g.fillStyle = '#f0452f'; g.beginPath(); g.ellipse(px + 0.5 * u, hy - 6.5 * u, 12.6 * u, 8.5 * u, 0, Math.PI, 0); g.closePath(); g.fill(); g.stroke();
+  if (clerkNoCap) { g.fillStyle = '#5a3a22'; g.beginPath(); g.ellipse(px, hy - 4.5 * u, 11.9 * u, 9 * u, 0, Math.PI, 0); g.closePath(); g.fill(); g.stroke(); g.beginPath(); g.moveTo(px + 1 * u, hy - 13 * u); g.quadraticCurveTo(px + 4 * u, hy - 18 * u, px + 7 * u, hy - 15 * u); g.stroke(); }
+  else { g.fillStyle = '#f0452f'; g.beginPath(); g.ellipse(px + 0.5 * u, hy - 6.5 * u, 12.6 * u, 8.5 * u, 0, Math.PI, 0); g.closePath(); g.fill(); g.stroke();
   g.beginPath(); g.moveTo(px - 8 * u, hy - 7.2 * u); g.quadraticCurveTo(px - 18 * u, hy - 7.6 * u, px - 20 * u, hy - 3.6 * u); g.lineTo(px - 8 * u, hy - 4.6 * u); g.closePath(); g.fill(); g.stroke();
-  g.fillStyle = '#fff'; g.beginPath(); g.arc(px + 1.5 * u, hy - 10.5 * u, 3 * u, 0, 7); g.fill(); g.fillStyle = '#f0452f'; g.font = `${3.4 * u}px ${FONT}`; g.fillText('73', px + 1.5 * u, hy - 9.3 * u);
+  g.fillStyle = '#fff'; g.beginPath(); g.arc(px + 1.5 * u, hy - 10.5 * u, 3 * u, 0, 7); g.fill(); g.fillStyle = '#f0452f'; g.font = `${3.4 * u}px ${FONT}`; g.fillText('73', px + 1.5 * u, hy - 9.3 * u); }
   // face: eyes that blink (happy arcs at the end), brows, cheeks, nose and a mouth that opens to greet and to cheer
   const blink = (a % 3.3) < 0.12 ? 0.12 : 1; g.lineWidth = 1.4;
   for (const ex0 of [-5 * u, 2.6 * u]) { const ex = px + ex0 + look, ey = hy + 1.2 * u;
@@ -788,7 +842,10 @@ function drawClerk(px, ct, u, a, fin) {
   const arm = (sx, sy, ex, ey, hx, hy2) => { g.strokeStyle = ink; g.lineWidth = 7.5 * u; g.beginPath(); g.moveTo(sx, sy); g.lineTo(ex, ey); g.stroke(); g.strokeStyle = shirt; g.lineWidth = 7.5 * u - 4.4; g.stroke();
     g.strokeStyle = ink; g.lineWidth = 5.6 * u; g.beginPath(); g.moveTo(ex, ey); g.lineTo(hx, hy2); g.stroke(); g.strokeStyle = skin; g.lineWidth = 5.6 * u - 4.4; g.stroke(); g.fillStyle = skin; g.strokeStyle = ink; g.lineWidth = 2; g.beginPath(); g.arc(hx, hy2, 3.3 * u, 0, 7); g.fill(); g.stroke(); };
   const L = [px - 14 * u, shY + 4 * u], R = [px + 14 * u, shY + 4 * u];
-  if (clerkPose === 'point') { arm(...L, px - 20 * u, shY + 12 * u, px - 13 * u, ct - 1 * u); arm(...R, px + 24 * u, shY - 1 * u, px + 38 * u, shY + 7 * u); }
+  if (clerkPose === 'walk') { const sw = Math.sin(px / (9 * u)) * 4 * u; arm(...L, px - 19 * u, shY + 12 * u, px - 18 * u - sw, ct + 2 * u); arm(...R, px + 19 * u, shY + 12 * u, px + 18 * u + sw, ct + 2 * u); }
+  else if (clerkPose === 'give') { arm(...L, px - 19 * u, shY + 12 * u, px - 17 * u, ct + 2 * u); arm(...R, px + 23 * u, shY + 4 * u, px + 34 * u, shY - 6 * u); }
+  else if (clerkPose === 'wave') { arm(...L, px - 19 * u, shY + 12 * u, px - 17 * u, ct + 2 * u); const w = -1.9 + Math.sin(clerkT * 8) * 0.45; arm(...R, px + 21 * u, shY - 7 * u, px + 21 * u + Math.cos(w) * 11 * u, shY - 7 * u + Math.sin(w) * 11 * u); }
+  else if (clerkPose === 'point') { arm(...L, px - 20 * u, shY + 12 * u, px - 13 * u, ct - 1 * u); arm(...R, px + 24 * u, shY - 1 * u, px + 38 * u, shY + 7 * u); }
   else if (clerkPose === 'talk') { arm(...L, px - 20 * u, shY + 12 * u, px - 13 * u, ct - 1 * u); arm(...R, px + 20 * u, shY + 2 * u, px + 22 * u + Math.sin(clerkT * 5) * 2 * u, shY - 14 * u); }
   else if (fin) { arm(...L, px - 21 * u, shY - 6 * u, px - 23 * u + Math.sin(a * 9) * 2 * u, shY - 21 * u); arm(...R, px + 21 * u, shY - 6 * u, px + 23 * u - Math.sin(a * 9) * 2 * u, shY - 21 * u); }
   else if (scan) { const hx = px - 27 * u, hy2 = ct - 4 * u; arm(...L, px - 20 * u, shY + 12 * u, hx, hy2); arm(...R, px + 19 * u, shY + 13 * u, px + 25 * u + Math.sin(a * 14) * 1.5 * u, ct - 4 * u);
@@ -2010,7 +2067,7 @@ function draw(now) {
     finP = run.fin != null ? Math.min(1, (run.tr - run.fin) / C.FIN_T) : 0;
     if (now - liveAt > (run.used.size > 3000 ? 7000 : 2500)) { liveAt = now; liveStore(); }
     if (now - phxT < PHX_TAIL * 1000) { phxTail.push({ x: run.x, y: run.y }); if (phxTail.length > 46) phxTail.shift(); } else if (phxTail.length) phxTail = [];
-    if (run.over) { BST.set(false); if (run.finDone) { state = 'ending'; endT = performance.now(); endS = { mic: micReady() }; for (const b2 of [boostBtn, skillBtn, dashBtn, diveBtn, sphxBtn, endBtn]) b2.hidden = true; flash = 1; flashCol = '#fff'; shake = 20; } else endRun(); }
+    if (run.over) { BST.set(false); if (run.finDone) { state = 'ending'; endT = performance.now(); endS = clerkPlan(); for (const b2 of [boostBtn, skillBtn, dashBtn, diveBtn, sphxBtn, endBtn]) b2.hidden = true; flash = 1; flashCol = '#fff'; shake = 20; } else endRun(); }
   }
   // camera
   const r = run, px = r ? r.x : 0, py = r ? r.y : 0.6, sp = r ? Math.hypot(r.vx, r.vy) : 0, alt = r ? py - G(px) : 0;
@@ -2168,7 +2225,7 @@ function liveRestore(d, fromHot) { if (!d || d.v !== 1 || d.slot !== slot || sta
     r.used = new Set(r.used || []); r.ev = []; r.mag = r.mag || []; r.st = Object.assign({}, C.stats(S), r.st);
     run = r; state = 'fly'; lastZone = d.lastZone != null ? d.lastZone : C.zoneAt(r.x); zoneSaid = true; zoneIn = r.tr - 2; sonicLv = d.sonicLv || 0; if (d.cam && d.cam.vw > 0) { cam.vw = d.cam.vw; cam.y = d.cam.y; }
     frame.lx = r.x; pvx = r.vx; pvy = r.vy; rot = -r.ang; trail = []; flyUI(true); last = performance.now();
-    if (r.over && r.finDone) { state = 'ending'; endT = performance.now(); endS = { mic: micReady() }; for (const b2 of [boostBtn, skillBtn, dashBtn, diveBtn, sphxBtn, endBtn]) b2.hidden = true; } else if (r.over) endRun();
+    if (r.over && r.finDone) { state = 'ending'; endT = performance.now(); endS = clerkPlan(); for (const b2 of [boostBtn, skillBtn, dashBtn, diveBtn, sphxBtn, endBtn]) b2.hidden = true; } else if (r.over) endRun();
     return true; }
   if (d.state === 'shop') { if (TABS.some(t => t[0] === d.tab)) tab = d.tab; openShop(); }
   if (updated) { updated = false; toast('새 버전이 적용됐어요', 2000); }
@@ -2180,7 +2237,7 @@ toAim(); requestAnimationFrame(frame);
 { let booted = false; const boot = d => { if (booted) return; booted = true; try { if (d && d.v === 1 && Date.now() - d.at < 300000) { liveRestore(d, true); return; } const j = JSON.parse(liveLS || 'null'); if (j && Date.now() - j.at < 90000) liveRestore(j, false); } catch (e) {} };
   try { if (HOT && HOT.ready) { HOT.ready(boot); setTimeout(() => boot(HOT.data), 1500); } else boot(HOT && HOT.data); } catch (e) { boot(null); } }
 window.CARTB = { get S() { return S; }, save, cloudNow, snd, tone, noise, buzz, fmt, toast, MUS, AUD, OPT, FONT, get W() { return W; }, get H() { return H; }, get DPR() { return DPR; }, get portrait() { return portrait; }, locX, locY, rbOn, epilogue: startEpilogue, toAim: () => { if (state !== 'fly' && state !== 'ending') toAim(); } };
-window.__cart = { C, SKINS, get cartXY() { return [cartX, cartY]; }, fxTest(cx, f) { const g0 = g; g = cx; try { f({ spinFx, airFx, boostFlame, diveTrail, drawCart, crateFanfare, setDive: v => { diveA = v; } }); } finally { g = g0; } }, drawSkin(cx, k, x, y, sc, ride, wind = 0, gear = false) { const g0 = g; g = cx; pvSkin = k; pvGear = gear; try { if (ride) { resetDoll(); doll.mood = 0; doll.wx = -wind; doll.wy = 0; let pins; for (let i = 0; i < 90; i++) pins = dollStep(0.016, 0, 0, 0, wind, 0); drawDoll(x, y, sc, pins, false); drawCart(x, y, 0, sc); drawDoll(x, y, sc, pins, true); } else drawCart(x, y, 0, sc); } finally { pvSkin = null; pvGear = false; g = g0; resetDoll(); } }, get S() { return S; }, set S(v) { S = v; }, get run() { return run; }, get state() { return state; }, launch, toAim, openShop, save, set peek(v) { peekZ = v; }, CLOUD, get slot() { return slot; }, startCharge, release, tryKick, get charge() { return charge; }, get audio() { return actx ? actx.state : 'none'; }, MUS, EFF, PEFF, OPT, PERF, AUD, liveSnap, liveStore, MAP, get Q() { return Q; }, get updated() { return updated; } };
+window.__cart = { get endS() { return endS; }, C, SKINS, get cartXY() { return [cartX, cartY]; }, fxTest(cx, f) { const g0 = g; g = cx; try { f({ spinFx, airFx, boostFlame, diveTrail, drawCart, crateFanfare, setDive: v => { diveA = v; } }); } finally { g = g0; } }, drawSkin(cx, k, x, y, sc, ride, wind = 0, gear = false) { const g0 = g; g = cx; pvSkin = k; pvGear = gear; try { if (ride) { resetDoll(); doll.mood = 0; doll.wx = -wind; doll.wy = 0; let pins; for (let i = 0; i < 90; i++) pins = dollStep(0.016, 0, 0, 0, wind, 0); drawDoll(x, y, sc, pins, false); drawCart(x, y, 0, sc); drawDoll(x, y, sc, pins, true); } else drawCart(x, y, 0, sc); } finally { pvSkin = null; pvGear = false; g = g0; resetDoll(); } }, get S() { return S; }, set S(v) { S = v; }, get run() { return run; }, get state() { return state; }, launch, toAim, openShop, save, set peek(v) { peekZ = v; }, CLOUD, get slot() { return slot; }, startCharge, release, tryKick, get charge() { return charge; }, get audio() { return actx ? actx.state : 'none'; }, MUS, EFF, PEFF, OPT, PERF, AUD, liveSnap, liveStore, MAP, get Q() { return Q; }, get updated() { return updated; } };
 })();
 </script>
 <script src="microcore.js"></script>

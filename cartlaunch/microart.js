@@ -128,6 +128,7 @@ const MART = (() => {
     g.strokeStyle = INK; g.lineWidth = Math.max(1.5, 2.6 * u); g.lineCap = 'round'; g.lineJoin = 'round';
     g.beginPath(); g.moveTo(-2 * u, 8 * u); g.lineTo(0, -4 * u); g.moveTo(-2 * u, 8 * u); g.lineTo(-7 * u, 15 * u); g.moveTo(-2 * u, 8 * u); g.lineTo(4 * u, 15 * u); g.moveTo(0, 0); g.lineTo(8 * u, -2 * u + Math.sin(t * 8) * 1.5 * u); g.moveTo(0, 0); g.lineTo(-7 * u, 3 * u); g.stroke();
     g.fillStyle = '#fff'; circ(1 * u, -9 * u, 5.2 * u); g.fill(); g.stroke(); g.fillStyle = INK; circ(3 * u, -9.5 * u, 1 * u); g.fill();
+    if (o.cap) cap(1 * u, -9 * u, 5.2 * u, 1);
     g.strokeStyle = '#f0452f'; g.lineWidth = 2.4 * u; g.beginPath(); g.moveTo(-1 * u, -4 * u); g.quadraticCurveTo(-8 * u, -3 * u + Math.sin(t * 14) * 2 * u, -14 * u, -5 * u + Math.sin(t * 11) * 3 * u); g.stroke();
     g.restore();
     // the bubble shell: tinted body, rim, highlight
@@ -143,6 +144,62 @@ const MART = (() => {
   // jet of the thrust behind the bubble
   function thrust(x, y, R, t, k, col) { g.save(); g.globalCompositeOperation = 'lighter'; for (let q = 0; q < 3; q++) { const L = R * (1.6 + q * 0.5 + Math.random() * 0.6) * k, w = R * (0.5 - q * 0.12); g.fillStyle = q === 0 ? hex(col || '#5ad1ff', 0.55) : q === 1 ? 'rgba(160,240,255,.6)' : 'rgba(255,255,255,.8)'; g.beginPath(); g.moveTo(x - R * 0.8, y - w); g.quadraticCurveTo(x - R * 0.8 - L * 0.6, y - w * 0.8, x - R * 0.8 - L, y); g.quadraticCurveTo(x - R * 0.8 - L * 0.6, y + w * 0.8, x - R * 0.8, y + w); g.fill(); } g.restore(); }
 
+
+  /* ---------- characters: the passenger on foot, the cashier's cap, the lab director ---------- */
+  // the cashier's red cap on a head of radius r centred at x,y, brim toward face (1 right, -1 left)
+  function cap(x, y, r, face) { g.save(); g.lineJoin = 'round'; g.strokeStyle = INK; g.lineWidth = Math.max(1.2, r * 0.22); g.fillStyle = '#f0452f';
+    g.beginPath(); g.ellipse(x, y - r * 0.45, r * 1.06, r * 0.78, 0, Math.PI, 0); g.closePath(); g.fill(); g.stroke();
+    g.beginPath(); g.moveTo(x + face * r * 0.6, y - r * 0.5); g.quadraticCurveTo(x + face * r * 1.7, y - r * 0.55, x + face * r * 1.9, y - r * 0.15); g.lineTo(x + face * r * 0.6, y - r * 0.25); g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = '#fff'; circ(x, y - r * 0.85, r * 0.3); g.fill(); g.restore(); }
+  // the stick passenger standing or walking: feet at x,y, unit u, phase ph (null = standing), face 1/-1, s scale
+  function walker(x, y, u, t, o) { o = o || {}; const s = (o.s == null ? 1 : o.s) * u, f = o.face || 1, ph = o.ph;
+    if (s < 0.05) return;
+    const sw = ph == null ? 0 : Math.sin(ph) * 0.55, hip = [x, y - 13 * s], neck = [x + f * 1.2 * s, y - 25 * s], hd = [x + f * 1.8 * s, y - 31 * s], R = 5.6 * s;
+    g.save(); g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = INK; g.lineWidth = Math.max(1, 3.2 * s);
+    const leg = a => { const kx = hip[0] + Math.sin(a) * 6.5 * s, ky = hip[1] + Math.cos(a) * 6.5 * s, fx = kx + Math.sin(a * 0.6) * 6.5 * s, fy = y - Math.max(0, Math.sin(a) * f) * 1.5 * s; g.beginPath(); g.moveTo(...hip); g.lineTo(kx, ky); g.lineTo(fx, fy); g.stroke(); g.beginPath(); g.moveTo(fx, fy); g.lineTo(fx + f * 2.5 * s, fy); g.stroke(); };
+    leg(sw); leg(-sw);
+    g.lineWidth = Math.max(1, 4 * s); g.beginPath(); g.moveTo(...hip); g.lineTo(...neck); g.stroke(); g.lineWidth = Math.max(1, 3.2 * s);
+    const arm = a => { const ex = neck[0] + Math.sin(a) * 6 * s, ey = neck[1] + 2 * s + Math.cos(a) * 6 * s; g.beginPath(); g.moveTo(neck[0], neck[1] + 2 * s); g.lineTo(ex, ey); g.lineTo(ex + Math.sin(a * 1.4) * 5 * s, ey + 5 * s); g.stroke(); };
+    if (o.wave) { arm(-sw); g.beginPath(); g.moveTo(neck[0], neck[1] + 2 * s); g.lineTo(neck[0] + f * 6 * s, neck[1] - 5 * s); g.lineTo(neck[0] + f * (7 + Math.sin(t * 9) * 2) * s, neck[1] - 12 * s); g.stroke(); } else { arm(-sw * 0.8); arm(sw * 0.8); }
+    // scarf: a red knot under the chin and a tail streaming behind
+    g.strokeStyle = '#f0452f'; g.lineWidth = Math.max(1, 2.4 * s); g.beginPath(); g.moveTo(neck[0], neck[1] - 1 * s); g.quadraticCurveTo(neck[0] - f * 6 * s, neck[1] - 1 * s + Math.sin(t * 9) * 1.5 * s, neck[0] - f * (11 + (ph == null ? 0 : 3)) * s, neck[1] + 2 * s + Math.sin(t * 7) * 2.5 * s); g.stroke();
+    g.fillStyle = '#fff6e6'; g.strokeStyle = INK; g.lineWidth = Math.max(1, 2.6 * s); circ(hd[0], hd[1], R); g.fill(); g.stroke();
+    if (R > 2.5) { g.fillStyle = INK; const blink = (t % 3.1) < 0.12; for (const e of [0.6, 3.1]) { const ex = hd[0] + f * e * s, ey = hd[1] - 0.9 * s; if (blink) g.fillRect(ex - s, ey, 2 * s, 0.6 * s); else { circ(ex, ey, 0.95 * s); g.fill(); } }
+      g.strokeStyle = INK; g.lineWidth = Math.max(1, 1.1 * s); g.beginPath(); g.arc(hd[0] + f * 2 * s, hd[1] + 1.8 * s, 1.5 * s, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke(); }
+    if (o.cap) cap(hd[0], hd[1], R, f);
+    g.restore(); }
+  // the lab director: white coat, round glasses, white tufts of hair and a moustache, a clipboard; feet at x,y
+  function director(x, y, u, t, o) { o = o || {}; const f = o.face || 1, ph = o.ph, sw = ph == null ? 0 : Math.sin(ph) * 0.45, bob = ph == null ? Math.sin(t * 2) * 0.6 * u : Math.abs(Math.sin(ph)) * -1.5 * u;
+    g.save(); g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = INK;
+    const hipY = y - 20 * u + bob, shY = y - 44 * u + bob, hy = shY - 12 * u;
+    // legs in dark trousers, brown shoes
+    for (const a of [sw, -sw]) { const fx = x + Math.sin(a) * 9 * u; g.lineWidth = 6.5 * u; g.strokeStyle = INK; g.beginPath(); g.moveTo(x + (a > 0 ? 2 : -2) * u, hipY); g.lineTo(fx, y - 3 * u); g.stroke(); g.lineWidth = 6.5 * u - 3; g.strokeStyle = '#3a3a52'; g.stroke(); g.fillStyle = '#6a4424'; g.strokeStyle = INK; g.lineWidth = 2; g.beginPath(); g.ellipse(fx + f * 2.5 * u, y - 2 * u, 5 * u, 2.6 * u, 0, 0, 7); g.fill(); g.stroke(); }
+    // white coat over a blue shirt and a red tie
+    g.fillStyle = '#ffffff'; g.lineWidth = 2.4; g.beginPath(); g.moveTo(x - 14 * u, hipY + 4 * u); g.lineTo(x - 11 * u, shY + 2 * u); g.quadraticCurveTo(x, shY - 3 * u, x + 11 * u, shY + 2 * u); g.lineTo(x + 14 * u, hipY + 4 * u); g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = '#9ad0ff'; g.beginPath(); g.moveTo(x - 4 * u, shY); g.lineTo(x + 4 * u, shY); g.lineTo(x + 2.5 * u, hipY - 2 * u); g.lineTo(x - 2.5 * u, hipY - 2 * u); g.closePath(); g.fill(); g.lineWidth = 1.5; g.stroke();
+    g.fillStyle = '#d8304a'; g.beginPath(); g.moveTo(x - 1.4 * u, shY + 1 * u); g.lineTo(x + 1.4 * u, shY + 1 * u); g.lineTo(x + 1.8 * u, shY + 12 * u); g.lineTo(x, shY + 14 * u); g.lineTo(x - 1.8 * u, shY + 12 * u); g.closePath(); g.fill(); g.stroke();
+    g.strokeStyle = 'rgba(43,34,51,.5)'; g.lineWidth = 1.3; g.beginPath(); g.moveTo(x - 5 * u, shY + 2 * u); g.lineTo(x - 4 * u, hipY + 3 * u); g.moveTo(x + 5 * u, shY + 2 * u); g.lineTo(x + 4 * u, hipY + 3 * u); g.stroke();
+    g.fillStyle = '#9ad0ff'; g.fillRect(x + 6 * u, shY + 8 * u, 4 * u, 1.5 * u);
+    // arms: one holds the clipboard, the other gestures while talking or waves
+    const arm = (sx, sy, ex, ey, hx, hy2) => { g.strokeStyle = INK; g.lineWidth = 6.5 * u; g.beginPath(); g.moveTo(sx, sy); g.lineTo(ex, ey); g.lineTo(hx, hy2); g.stroke(); g.strokeStyle = '#ffffff'; g.lineWidth = 6.5 * u - 3.6; g.stroke(); g.fillStyle = '#ffd9b8'; g.strokeStyle = INK; g.lineWidth = 1.8; circ(hx, hy2, 2.9 * u); g.fill(); g.stroke(); };
+    const bx = x - f * 13 * u, by = shY + 4 * u; arm(bx, by, bx - f * 3 * u, by + 9 * u, x - f * 4 * u, by + 15 * u);
+    g.save(); g.translate(x - f * 5 * u, by + 13 * u); g.rotate(-0.25 * f); g.fillStyle = '#c98b3c'; g.strokeStyle = INK; g.lineWidth = 2; g.beginPath(); g.roundRect(-5 * u, -8 * u, 10 * u, 13 * u, 1.5 * u); g.fill(); g.stroke(); g.fillStyle = '#fff'; g.fillRect(-4 * u, -6 * u, 8 * u, 10 * u); g.fillStyle = 'rgba(43,34,51,.5)'; for (let q = 0; q < 4; q++) g.fillRect(-3 * u, -4.5 * u + q * 2.2 * u, 6 * u, 0.7 * u); g.restore();
+    const ax = x + f * 13 * u, ay = shY + 4 * u;
+    if (o.wave) arm(ax, ay, ax + f * 6 * u, ay - 6 * u, ax + f * (7 + Math.sin(t * 9) * 2.5) * u, ay - 16 * u);
+    else if (o.talk) arm(ax, ay, ax + f * 7 * u, ay + 5 * u, ax + f * (12 + Math.sin(t * 5) * 2) * u, ay - 2 * u + Math.sin(t * 4) * 2 * u);
+    else arm(ax, ay, ax + f * 2 * u, ay + 10 * u, ax + f * (1 - sw * 6) * u, ay + 19 * u);
+    // head: skin, ears, bald top with white tufts at the sides, round glasses, a moustache
+    g.fillStyle = '#ffd9b8'; g.strokeStyle = INK; g.lineWidth = 2.2; for (const sd of [-1, 1]) { circ(x + sd * 10.5 * u, hy + 1.5 * u, 2.6 * u); g.fill(); g.stroke(); }
+    g.beginPath(); g.ellipse(x, hy, 10.5 * u, 11.5 * u, 0, 0, 7); g.fill(); g.stroke();
+    g.fillStyle = '#f4f4f8'; for (const sd of [-1, 1]) for (let q = 0; q < 4; q++) { circ(x + sd * (10 + q * 1.4) * u, hy - (6 - q * 2.5) * u + Math.sin(t * 3 + q) * 0.4 * u, (3.4 - q * 0.3) * u); g.fill(); }
+    g.strokeStyle = 'rgba(43,34,51,.35)'; g.lineWidth = 1.2; g.beginPath(); g.arc(x - 2 * u, hy - 7 * u, 3 * u, Math.PI * 1.15, Math.PI * 1.7); g.stroke();
+    const lx = f * 1.4 * u, blink = (t % 3.6) < 0.13;
+    g.strokeStyle = INK; g.lineWidth = 1.6; g.fillStyle = 'rgba(220,240,255,.55)'; for (const ex0 of [-4.2, 3.6]) { circ(x + ex0 * u + lx, hy + 0.5 * u, 3.4 * u); g.fill(); g.stroke(); g.fillStyle = INK; if (blink) g.fillRect(x + ex0 * u + lx - 1.4 * u, hy + 0.4 * u, 2.8 * u, 0.7 * u); else { circ(x + ex0 * u + lx * 1.4, hy + 0.7 * u, 1.2 * u); g.fill(); } g.fillStyle = 'rgba(220,240,255,.55)'; }
+    g.beginPath(); g.moveTo(x - 0.8 * u + lx, hy + 0.5 * u); g.lineTo(x + 0.4 * u + lx, hy + 0.5 * u); g.stroke();
+    g.fillStyle = '#f4f4f8'; g.beginPath(); g.ellipse(x - 2.2 * u + lx, hy + 6 * u, 3.6 * u, 1.8 * u, 0.2, 0, 7); g.ellipse(x + 2.2 * u + lx, hy + 6 * u, 3.6 * u, 1.8 * u, -0.2, 0, 7); g.fill(); g.lineWidth = 1.1; g.stroke();
+    if (o.talk && Math.floor(t * 7) % 2) { g.fillStyle = '#7a2230'; g.beginPath(); g.ellipse(x + lx, hy + 9 * u, 2 * u, 1.4 * u, 0, 0, 7); g.fill(); }
+    g.restore(); }
+
   /* ---------- the shrink lab under the shop: the stopped screen ---------- */
   // c: charge 0-1 (or -1), win: [lo, hi] of the perfect window, t time, fire 0-1 after release
   function lab(W, H, t, c, win, fire, opt) {
@@ -156,15 +213,22 @@ const MART = (() => {
     { const px = W * 0.06, py = H * 0.14, pw = 120 * u, ph = 150 * u; g.fillStyle = '#f4efe0'; g.strokeStyle = INK; g.lineWidth = 2; g.beginPath(); g.roundRect(px, py, pw, ph, 4); g.fill(); g.stroke(); g.fillStyle = INK; g.font = `${11 * u}px sans-serif`; g.textAlign = 'center'; g.fillText('크기의 사다리', px + pw / 2, py + 16 * u);
       const L = ['1cm 바닥', '1mm 먼지', '10μm 세포', '100nm 바이러스', '0.1nm 원자', '10fm 원자핵', '10⁻³⁵m ?']; g.font = `${9 * u}px sans-serif`; g.textAlign = 'left'; L.forEach((s, i) => { g.fillStyle = i === L.length - 1 ? '#c0306a' : '#5a5270'; g.fillText(s, px + 18 * u, py + 34 * u + i * 16 * u); g.fillStyle = mixc('#ffb347', '#7a5aff', i / 6); circ(px + 10 * u, py + 31 * u + i * 16 * u, 3 * u); g.fill(); }); }
     // shelves with jars
-    for (let s = 0; s < 2; s++) { const sy = H * (0.22 + s * 0.2), sx = W * 0.58, sw = W * 0.34; g.fillStyle = '#6a5a48'; g.fillRect(sx, sy, sw, 6 * u);
+    for (let s = 0; s < 2; s++) { const sy = H * (0.22 + s * 0.2), sx = W * 0.54, sw = W * 0.27; g.fillStyle = '#6a5a48'; g.fillRect(sx, sy, sw, 6 * u);
       for (let q = 0; q < 6; q++) { const jx = sx + 12 * u + q * sw / 6, jh = (22 + 10 * hs(q + s * 7)) * u, jw = 16 * u; g.fillStyle = hex(['#5ad1ff', '#4dff9a', '#ff7ad0', '#ffd23a', '#b46bff', '#ff6a4a'][(q + s * 2) % 6], 0.35); g.strokeStyle = 'rgba(220,240,255,.6)'; g.lineWidth = 1.5; g.beginPath(); g.roundRect(jx, sy - jh, jw, jh, 3); g.fill(); g.stroke(); g.fillStyle = '#8a7a68'; g.fillRect(jx - 1, sy - jh - 4 * u, jw + 2, 4 * u);
         g.fillStyle = 'rgba(255,255,255,.55)'; circ(jx + jw * 0.5, sy - jh * 0.45, 2.5 * u + Math.sin(t * 2 + q) * 0.8); g.fill(); } }
+    // the entrance from the shop: a wooden door on the back wall, its little sign, open and glowing while someone comes through
+    { const dw = 58 * u, dh = 104 * u, dx = W * 0.905 - dw / 2, dy = fy - dh, op = opt.door || 0; g.fillStyle = '#5a3a22'; g.strokeStyle = INK; g.lineWidth = 2.5; g.beginPath(); g.roundRect(dx - 6 * u, dy - 6 * u, dw + 12 * u, dh + 6 * u, [10 * u, 10 * u, 0, 0]); g.fill(); g.stroke();
+      if (op > 0) { const lg = g.createLinearGradient(0, dy, 0, fy); lg.addColorStop(0, '#fff8e0'); lg.addColorStop(1, '#ffe3a0'); g.fillStyle = lg; g.fillRect(dx, dy, dw, dh); glow(dx + dw / 2, fy - dh * 0.4, dh * 0.9, '#fff3c0', 0.35 * op); }
+      g.fillStyle = '#c98b3c'; g.beginPath(); g.moveTo(dx, dy); g.lineTo(dx + dw * (1 - 0.75 * op), dy + 8 * u * op); g.lineTo(dx + dw * (1 - 0.75 * op), fy - 4 * u * op); g.lineTo(dx, fy); g.closePath(); g.fill(); g.stroke();
+      if (op < 0.5) { g.fillStyle = '#ffd24a'; circ(dx + dw * 0.8, fy - dh * 0.45, 3 * u); g.fill(); g.stroke(); }
+      g.fillStyle = '#f4efe0'; g.beginPath(); g.roundRect(dx + dw / 2 - 30 * u, dy - 30 * u, 60 * u, 18 * u, 4 * u); g.fill(); g.stroke(); g.fillStyle = INK; g.font = `${10 * u}px sans-serif`; g.textAlign = 'center'; g.fillText('마트 출입구', dx + dw / 2, dy - 17.5 * u); }
     // floor: checker tiles in perspective, with the glowing crack on the right
     const fg = g.createLinearGradient(0, fy, 0, H); fg.addColorStop(0, '#5a5470'); fg.addColorStop(1, '#2c2840'); g.fillStyle = fg; g.fillRect(0, fy, W, H - fy);
     g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 1.5; for (let q = -12; q <= 12; q++) { g.beginPath(); g.moveTo(W * 0.5 + q * 50 * u, fy); g.lineTo(W * 0.5 + q * 140 * u, H); g.stroke(); } for (const f of [0.12, 0.32, 0.62]) { const y = fy + (H - fy) * f; g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
     const crx = W * 0.8, cry = fy + (H - fy) * 0.42;
     { const pu = 0.7 + 0.3 * Math.sin(t * 3); glow(crx, cry, 70 * u, '#9ae8ff', 0.35 * pu + fire * 0.4); g.strokeStyle = '#d0f6ff'; g.lineWidth = 3 * u; g.beginPath(); g.moveTo(crx - 46 * u, cry - 4 * u); g.lineTo(crx - 18 * u, cry + 3 * u); g.lineTo(crx + 2 * u, cry - 3 * u); g.lineTo(crx + 26 * u, cry + 4 * u); g.lineTo(crx + 50 * u, cry - 2 * u); g.stroke();
       g.fillStyle = '#fff'; g.font = `${12 * u}px sans-serif`; g.textAlign = 'center'; g.globalAlpha = 0.6 + 0.4 * Math.sin(t * 2); g.fillText('바닥 틈', crx, cry + 26 * u); g.globalAlpha = 1; }
+    if (opt.behind) opt.behind({ fy, u, crx, cry, tx: W * 0.5, ty: fy - 30 * u, dx: W * 0.905 });
     // the shrink ray: a tripod, a barrel with coils, a lens that charges
     const bx = W * 0.2, by = fy - 64 * u;
     g.strokeStyle = INK; g.lineWidth = 4 * u; g.beginPath(); g.moveTo(bx, by + 10 * u); g.lineTo(bx - 26 * u, fy + 4 * u); g.moveTo(bx, by + 10 * u); g.lineTo(bx + 22 * u, fy + 4 * u); g.moveTo(bx, by + 10 * u); g.lineTo(bx, fy + 6 * u); g.stroke();
@@ -175,7 +239,7 @@ const MART = (() => {
     const tx = W * 0.5, ty = fy - 30 * u;
     g.fillStyle = '#4a4660'; g.strokeStyle = INK; g.lineWidth = 2.5; g.beginPath(); g.ellipse(tx, fy + 4 * u, 46 * u, 10 * u, 0, 0, TAU); g.fill(); g.stroke(); g.fillStyle = '#5ad1ff'; g.globalAlpha = 0.5; g.beginPath(); g.ellipse(tx, fy + 2 * u, 34 * u, 6 * u, 0, 0, TAU); g.fill(); g.globalAlpha = 1;
     const sc = fire > 0 ? Math.max(0, 1 - fire * 1.4) : 1, bob = Math.sin(t * 2) * 3 * u;
-    if (sc > 0.02) bubble(tx + (fire > 0 ? fire * fire * (crx - tx) : 0), ty + bob + (fire > 0 ? fire * (cry - ty) : 0), 26 * u * sc, t, { rb: opt.rb });
+    const bs = sc * (opt.bubbleS == null ? 1 : opt.bubbleS); if (bs > 0.02) bubble(tx + (fire > 0 ? fire * fire * (crx - tx) : 0), ty + bob + (fire > 0 ? fire * (cry - ty) : 0), 26 * u * bs, t, { rb: opt.rb, cap: true });
     if (c > 0) { const R = (90 - 70 * Math.min(1.15, c)) * u, inWin = c >= win[0] && c <= win[1];
       g.strokeStyle = inWin ? '#ffd24a' : 'rgba(160,240,255,.9)'; g.lineWidth = inWin ? 4 : 2.5; circ(tx, ty, Math.max(4, R)); g.stroke(); g.setLineDash([6, 6]); g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 1.5; circ(tx, ty, (90 - 70 * (win[0] + win[1]) / 2) * u); g.stroke(); g.setLineDash([]);
       g.strokeStyle = 'rgba(160,240,255,.5)'; g.lineWidth = 2 + 3 * c; g.beginPath(); g.moveTo(bx + 64 * u, by + 4 * u); g.lineTo(tx, ty); g.stroke(); }
@@ -202,5 +266,5 @@ const MART = (() => {
   function dot(x, y, R, t) { glow(x, y, R * 5, '#ffe27a', 0.45); glow(x, y, R * 2.2, '#ffffff', 0.8); g.fillStyle = '#fffbe8'; circ(x, y, R * (1 + 0.06 * Math.sin(t * 3))); g.fill();
     for (let q = 0; q < 6; q++) { const an = t * 1.4 + q * 1.047; g.fillStyle = 'rgba(255,240,180,.9)'; circ(x + Math.cos(an) * R * 2.6, y + Math.sin(an) * R * 1.6, R * 0.16); g.fill(); } }
 
-  return { use, backdrop, blocker, rod, gate, ring, grain, crystal, energy, bubble, thrust, lab, tunnel, dot, glow, hex, mixc, hs };
+  return { use, cap, walker, director, backdrop, blocker, rod, gate, ring, grain, crystal, energy, bubble, thrust, lab, tunnel, dot, glow, hex, mixc, hs };
 })();
