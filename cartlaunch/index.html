@@ -177,6 +177,12 @@ button{font-family:var(--disp);touch-action:manipulation}
 .ac.off p{color:#5f558f}
 .ac.done{border-color:#ffcf4a}
 .ac.done h3::before{content:"★ ";color:#ffcf4a}
+/* every achievement cleared: each card's border turns into a turning rainbow with a soft glow of the same colours */
+@property --rba{syntax:'<angle>';inherits:false;initial-value:0deg}
+.ac.rb{border-color:transparent;background:linear-gradient(160deg,#30275e,#221a45) padding-box,conic-gradient(from var(--rba),#ff4d4d,#ffb03b,#fff15a,#5dff7a,#4dd8ff,#6a7bff,#d36bff,#ff4d4d) border-box;animation:rbSpin 3s linear infinite,rbGlow 3s linear infinite}
+@keyframes rbSpin{to{--rba:360deg}}
+@keyframes rbGlow{0%,100%{box-shadow:0 0 9px rgba(255,77,77,.55)}17%{box-shadow:0 0 9px rgba(255,176,59,.55)}33%{box-shadow:0 0 9px rgba(255,241,90,.5)}50%{box-shadow:0 0 9px rgba(93,255,122,.5)}67%{box-shadow:0 0 9px rgba(77,216,255,.55)}83%{box-shadow:0 0 9px rgba(211,107,255,.55)}}
+@media (prefers-reduced-motion:reduce){.ac.rb{animation:none}}
 .ac h3 .ic{width:13px;height:13px;vertical-align:-1px;margin-right:4px}
 .ac.tc{gap:4px}
 .ac.tc h3{display:flex;align-items:baseline;gap:6px}
@@ -319,7 +325,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 134, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 135, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -1088,7 +1094,7 @@ function renderShop() {
     const slots = []; for (let k = 1; k <= SLOTS; k++) { const q = k === slot ? S : loadSlot(k); slots.push(`<div class="ac${k === slot ? ' done' : ''}"><h3>슬롯 ${k}${k === slot ? ' · 지금 플레이 중' : ''}</h3><p>${q && (q.runs || k === slot) ? `${Z[Math.min(q.zone, Z.length - 1)].name} · 환생 ${q.rebirths}회 · 초월 ${q.trans || 0}회 · ${fmt(q.runs)}판` : '빈 슬롯 · 새 게임'}</p>${k === slot ? '' : `<button class="buy sm" data-slot="${k}">이 슬롯으로</button>`}</div>`); }
     list.innerHTML = `<div class="bh">계정 · 저장 슬롯 3개</div>` + acctHTML() + slots.join('') + xcodeHTML() + `<div class="bh">기록</div><div class="ac done"><h3>최고 ${fmtD(S.best)}</h3><p>${S.runs}판 · 업그레이드 ${C.total(S)}Lv · 환생 ${S.rebirths}회</p><p>업적 ${n}개 → 골드 +${n * 3}%</p></div>` +
       `<div class="bh">구역</div><div class="ac"><h3>${Z[S.zone].name}</h3><p>지금까지 간 곳은 지도에서 필름처럼 넘겨 볼 수 있어요.</p><button class="buy sm" data-goto="map">지도 열기</button></div>` +
-      `<div class="bh">업적 · 하나당 골드 +3%</div>` + C.ACH.map(a => `<div class="ac${S.ach[a.id] ? ' done' : ' off'}"><h3>${a.name}</h3><p>${a.desc}</p></div>`).join('') +
+      `<div class="bh">업적 · 하나당 골드 +3%</div>` + C.ACH.map(a => `<div class="ac${S.ach[a.id] ? ' done' : ' off'}${n >= C.ACH.length ? ' rb' : ''}"><h3>${a.name}</h3><p>${a.desc}</p></div>`).join('') +
       `<div class="bh">기타</div><p class="note">코인은 공중에 2~3개씩 떠 있어요. 부스트·도약·대시·급강하로 높이를 맞춰 보세요.</p><div class="ac"><h3>골드만 비우기</h3><p>업그레이드·별은 그대로 두고 보유 골드만 0으로. 이 기기의 내 기록에만 적용됩니다.</p><button class="buy sm" data-zero="1">${confirmKey === 'zero' ? '정말요? 한 번 더' : '골드 0으로'}</button></div><div class="ac"><h3>처음부터 다시</h3><p>지금 슬롯의 별·업적까지 모두 지웁니다. 다른 슬롯은 그대로예요.</p><button class="buy sm" data-wipe="1">${confirmKey === 'wipe' ? '정말요? 한 번 더' : '초기화'}</button></div>` + `<p class="note">버전 ${VER}</p>`; }
   { const tw = list.querySelector(':scope > .tw, :scope > .vt > .tw'); if (tw && !renderShop.again) { const o = tw.offsetTop; if (Math.abs((TREE.off[tab] ?? -99) - o) > 3) { TREE.off[tab] = o; renderShop.again = true; renderShop(); renderShop.again = false; return; } } }
   if (keepScroll) { list.scrollLeft = sc0[0]; list.scrollTop = sc0[1]; } else { list.scrollLeft = 0; list.scrollTop = 0; }
