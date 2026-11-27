@@ -330,7 +330,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 144, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 145, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -1198,7 +1198,7 @@ function acctHTML() { const st2 = CLOUD.state;
     : st2 === 'local' ? `<li>게임을 만든 계정이나 초대받은 계정으로 열면 계정에 저장돼요.</li><li>지금 기록은 아래 <b>저장 코드 복사</b>로 다른 곳에 옮길 수 있어요.</li>`
     : cw === 'nodb' || cw === 'nouser' || cw === 'noclaude' ? `<li>휴대폰에서는 <b>Claude 앱 대신 크롬이나 사파리에서 claude.ai에 로그인한 뒤</b> 이 게임 링크를 열어 보세요. 브라우저의 claude.ai에서는 계정 저장이 돼요.</li><li>앱에서 하던 기록은 아래 <b>저장 코드 복사</b> → 브라우저에서 <b>붙여넣기</b>로 옮기면 돼요.</li>`
     : `<li>claude.ai에 로그인한 뒤 이 페이지를 다시 열면 계정에 저장돼요.</li><li>로그인했는데도 이 표시가 남으면 <b>다시 연결</b>을 눌러 보세요.</li><li>다른 곳에서 하던 기록은 아래 <b>저장 코드 붙여넣기</b>로 가져올 수 있어요.</li>`;
-  return `<div class="ac acct warn"><h3>⚠️ 이 브라우저에만 저장 중</h3><p>${why} 기록이 <b>지금 이 브라우저에만</b> 저장되고 있어요. 다른 브라우저나 기기에서는 보이지 않아요.</p><ul class="how">${how}</ul><div class="brow"><button class="buy sm" data-acct="retry">다시 연결</button></div><p class="diag">진단: ${cw || 'none'}${CLOUD.perm ? ' · 권한 ' + CLOUD.perm : ''}${window.claude ? '' : ' · claude 없음'} · ${(navigator.userAgent.match(/(iPhone|iPad|Android|Windows|Mac OS X|Linux)/) || ['?'])[0]}</p></div>`; }
+  return `<div class="ac acct warn"><h3>⚠️ 이 브라우저에만 저장 중</h3><p>${why} 기록이 <b>지금 이 브라우저에만</b> 저장되고 있어요. 다른 브라우저나 기기에서는 보이지 않아요.</p><ul class="how">${how}</ul><div class="brow"><button class="buy sm" data-acct="retry">다시 연결</button></div><p class="diag">진단: ${cw || 'none'}${CLOUD.perm ? ' · 권한 ' + CLOUD.perm : ''}${(() => { try { return window.top === window ? ' · 단독 페이지' : ' · claude 화면 안'; } catch (e) { return ' · claude 화면 안'; } })()} · ${location.hostname.split('.').slice(-2).join('.')}${window.claude ? '' : ' · claude 없음'} · ${(navigator.userAgent.match(/(iPhone|iPad|Android|Windows|Mac OS X|Linux)/) || ['?'])[0]}</p></div>`; }
 function xcodeHTML() { const m = xcode.mode;
   return `<div class="ac xcode"><h3>기록 옮기기 · 저장 코드</h3><p>로그인이 안 되는 곳(카카오톡 등)과 크롬 사이에서 기록을 옮길 때 써요. 옮기고 싶은 곳에서 <b>복사</b>하고, 가져올 곳에서 <b>붙여넣기</b> 하세요. 카카오톡 '나와의 채팅'에 붙여 두면 편해요.</p>
     <div class="brow"><button class="buy sm" data-xcode="copy">저장 코드 복사</button><button class="buy sm" data-xcode="paste">저장 코드 붙여넣기</button></div>
