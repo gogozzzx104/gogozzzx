@@ -344,6 +344,11 @@ async function cloudPush() { if (CLOUD.state !== 'on' || CLOUD.busy) return; con
   catch (e) { if (e && e.code === 'unavailable') CLOUD.dirty[n] = 1; else { CLOUD.state = 'local'; CLOUD.dirty = {}; } }   // a refused write means this viewer may only read: stay on this device
   CLOUD.busy = false; if (CLOUD.state === 'on' && Object.keys(CLOUD.dirty).length) { clearTimeout(CLOUD.timer); CLOUD.timer = setTimeout(cloudPush, 15000); } }
 const save = () => { S.rev = (S.rev || 0) + 1; LS.set(skey(slot), JSON.stringify(S)); cloudMark(slot); };
+// '다시 연결' first asks the platform itself: its own permission dialog for the store and the viewer's identity (the only 'login' a page
+// can trigger).  The answers are kept for the diagnostic line; a standing refusal opens the platform's Permissions panel instead.
+async function cloudAsk() { try { CLOUD.perm = ''; if (!window.claude || !claude.use) return; const pm = await claude.use('permissions'); if (!pm) { CLOUD.perm = '권한창 없음'; return; }
+    let r = await pm.request(['db', 'user']); if (r && (r.db === 'denied' || r.user === 'denied')) { try { await pm.manage(); r = { db: await pm.state('db'), user: await pm.state('user') }; } catch (e) {} }
+    CLOUD.perm = `db ${(r && r.db) || '?'} · user ${(r && r.user) || '?'}`; } catch (e) { CLOUD.perm = '권한 확인 실패'; } }
 // connect the account copy; runs at start and again from the 기록 tab's '다시 연결' button
 // CLOUD.why records the step that stopped it, shown in the 기록 tab: noclaude (opened outside the claude.ai viewer), nodb / nouser (this view
 // does not offer account saving), noid (no signed-in identity here), read:<code> (the account copy could not be read)
@@ -1193,7 +1198,7 @@ function acctHTML() { const st2 = CLOUD.state;
     : st2 === 'local' ? `<li>게임을 만든 계정이나 초대받은 계정으로 열면 계정에 저장돼요.</li><li>지금 기록은 아래 <b>저장 코드 복사</b>로 다른 곳에 옮길 수 있어요.</li>`
     : cw === 'nodb' || cw === 'nouser' || cw === 'noclaude' ? `<li>휴대폰에서는 <b>Claude 앱 대신 크롬이나 사파리에서 claude.ai에 로그인한 뒤</b> 이 게임 링크를 열어 보세요. 브라우저의 claude.ai에서는 계정 저장이 돼요.</li><li>앱에서 하던 기록은 아래 <b>저장 코드 복사</b> → 브라우저에서 <b>붙여넣기</b>로 옮기면 돼요.</li>`
     : `<li>claude.ai에 로그인한 뒤 이 페이지를 다시 열면 계정에 저장돼요.</li><li>로그인했는데도 이 표시가 남으면 <b>다시 연결</b>을 눌러 보세요.</li><li>다른 곳에서 하던 기록은 아래 <b>저장 코드 붙여넣기</b>로 가져올 수 있어요.</li>`;
-  return `<div class="ac acct warn"><h3>⚠️ 이 브라우저에만 저장 중</h3><p>${why} 기록이 <b>지금 이 브라우저에만</b> 저장되고 있어요. 다른 브라우저나 기기에서는 보이지 않아요.</p><ul class="how">${how}</ul><div class="brow"><button class="buy sm" data-acct="retry">다시 연결</button></div><p class="diag">진단: ${cw || 'none'}${window.claude ? '' : ' · claude 없음'} · ${(navigator.userAgent.match(/(iPhone|iPad|Android|Windows|Mac OS X|Linux)/) || ['?'])[0]}</p></div>`; }
+  return `<div class="ac acct warn"><h3>⚠️ 이 브라우저에만 저장 중</h3><p>${why} 기록이 <b>지금 이 브라우저에만</b> 저장되고 있어요. 다른 브라우저나 기기에서는 보이지 않아요.</p><ul class="how">${how}</ul><div class="brow"><button class="buy sm" data-acct="retry">다시 연결</button></div><p class="diag">진단: ${cw || 'none'}${CLOUD.perm ? ' · 권한 ' + CLOUD.perm : ''}${window.claude ? '' : ' · claude 없음'} · ${(navigator.userAgent.match(/(iPhone|iPad|Android|Windows|Mac OS X|Linux)/) || ['?'])[0]}</p></div>`; }
 function xcodeHTML() { const m = xcode.mode;
   return `<div class="ac xcode"><h3>기록 옮기기 · 저장 코드</h3><p>로그인이 안 되는 곳(카카오톡 등)과 크롬 사이에서 기록을 옮길 때 써요. 옮기고 싶은 곳에서 <b>복사</b>하고, 가져올 곳에서 <b>붙여넣기</b> 하세요. 카카오톡 '나와의 채팅'에 붙여 두면 편해요.</p>
     <div class="brow"><button class="buy sm" data-xcode="copy">저장 코드 복사</button><button class="buy sm" data-xcode="paste">저장 코드 붙여넣기</button></div>
@@ -1281,7 +1286,7 @@ const shopClick = e => { const nd = e.target.closest('.nd'), sk = e.target.close
     else if (b.dataset.wipe) { if (confirmKey !== 'wipe') confirmKey = 'wipe'; else { S = C.newSave(); LS.set('cart.force.' + slot, '1'); confirmKey = ''; } }
     else if (b.dataset.slot) { switchSlot(+b.dataset.slot); return; }
     else if (b.dataset.acct === 'push') { cloudNow(); toast('계정에 저장하는 중…', 1200); setTimeout(() => { if (state === 'shop') renderShop(); }, 1500); }
-    else if (b.dataset.acct === 'retry') { toast('계정에 다시 연결하는 중…', 1500); cloudInit().then(() => { toast(CLOUD.state === 'on' ? '계정에 연결됐어요' : '아직 계정에 연결되지 않았어요 · 로그인 상태를 확인해 주세요', 2400); if (state === 'shop') renderShop(); }); }
+    else if (b.dataset.acct === 'retry') { toast('계정에 다시 연결하는 중…', 1500); cloudAsk().then(() => cloudInit()).then(() => { toast(CLOUD.state === 'on' ? '계정에 연결됐어요' : '아직 계정에 연결되지 않았어요 · 로그인 상태를 확인해 주세요', 2400); if (state === 'shop') renderShop(); }); }
     else if (b.dataset.xcode === 'copy') { confirmKey = ''; toCodeA(S).then(code => { xcode = { mode: 'copy', text: code, msg: '' }; const done = `✅ 슬롯 ${slot} 저장 코드를 복사했어요 (${fmt(S.runs)}판 · 환생 ${S.rebirths}회 · ${code.length.toLocaleString()}자, 끝이 ! 로 끝나요). 옮길 곳에서 '저장 코드 붙여넣기'로 가져오세요.`, show = () => { if (state === 'shop') renderShop(); };
       try { navigator.clipboard.writeText(code).then(() => { xcode.msg = done; show(); }, () => { xcode.msg = oldCopy(code) ? done : '자동 복사가 막혀 있어요. 아래 상자를 길게 눌러 전체 선택 후 복사하세요.'; show(); }); } catch (e) { xcode.msg = oldCopy(code) ? done : '아래 상자를 길게 눌러 전체 선택 후 복사하세요.'; } show(); }); }
     else if (b.dataset.xcode === 'paste') { xcode = { mode: 'paste', text: '', msg: '' }; confirmKey = ''; }
