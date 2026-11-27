@@ -193,6 +193,7 @@ button{font-family:var(--disp);touch-action:manipulation}
 .note{grid-column:1/-1;font-size:11.5px;color:#b3a9dd;line-height:1.5;margin:0}
 .acct,.xcode{grid-column:1/-1}.acct.ok{border-color:#3fe6a0}.acct.warn{border-color:#ffb057;background:rgba(255,176,87,.08)}.acct p{color:#e4dcff}.acct b,.xcode b{color:#fff}
 .how{margin:2px 0 0;padding-left:18px;font-size:12px;line-height:1.55;color:#e4dcff}
+.diag{margin:4px 0 0;font:700 10px var(--body)!important;color:#8479b8!important;opacity:.8}
 .xbox{width:100%;min-height:74px;box-sizing:border-box;border-radius:8px;border:1.5px solid #53468f;background:#120e28;color:#efeaff;font:11px/1.35 monospace;padding:6px;word-break:break-all;resize:vertical;user-select:text;-webkit-user-select:text;-webkit-touch-callout:default;touch-action:auto}
 .xmsg{color:#7df3da !important;font-weight:700}
 .sk{border:2px solid #53468f;border-radius:12px;background:linear-gradient(160deg,#30275e,#221a45);color:#fff;padding:6px;display:flex;flex-direction:column;align-items:center;gap:2px;font:15px var(--disp)}
@@ -329,7 +330,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 142, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 143, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -344,10 +345,12 @@ async function cloudPush() { if (CLOUD.state !== 'on' || CLOUD.busy) return; con
   CLOUD.busy = false; if (CLOUD.state === 'on' && Object.keys(CLOUD.dirty).length) { clearTimeout(CLOUD.timer); CLOUD.timer = setTimeout(cloudPush, 15000); } }
 const save = () => { S.rev = (S.rev || 0) + 1; LS.set(skey(slot), JSON.stringify(S)); cloudMark(slot); };
 // connect the account copy; runs at start and again from the 기록 tab's '다시 연결' button
-async function cloudInit() { try { CLOUD.tried = true; if (!window.claude || !claude.use) return; const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]); if (!db || !user) return; const uid = await user.id(); if (!uid) return;
+// CLOUD.why records the step that stopped it, shown in the 기록 tab: noclaude (opened outside the claude.ai viewer), nodb / nouser (this view
+// does not offer account saving), noid (no signed-in identity here), read:<code> (the account copy could not be read)
+async function cloudInit() { try { CLOUD.tried = true; CLOUD.why = 'wait'; if (!window.claude || !claude.use) { CLOUD.why = 'noclaude'; return; } const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]); if (!db) { CLOUD.why = user ? 'nodb' : 'nouser'; return; } if (!user) { CLOUD.why = 'nouser'; return; } const uid = await user.id(); if (!uid) { CLOUD.why = 'noid'; return; }
     CLOUD.ref = n => db.doc('data/users/' + uid + '/slot' + n); let adopt = false; const got = [];
-    for (let n = 1; n <= SLOTS; n++) got[n] = await CLOUD.ref(n).get();
-    CLOUD.state = 'on';
+    try { for (let n = 1; n <= SLOTS; n++) got[n] = await CLOUD.ref(n).get(); } catch (e) { CLOUD.why = 'read:' + ((e && e.code) || 'error'); throw e; }
+    CLOUD.state = 'on'; CLOUD.why = 'ok';
     for (let n = 1; n <= SLOTS; n++) { const local = loadSlot(n), cloud = got[n].exists ? parseSave(got[n].data().json) : null, force = LS.get('cart.force.' + n);
       if (force || ahead(local, cloud)) CLOUD.dirty[n] = 1;   // this device is further along (or the slot was reset here): the account copy follows
       else if (ahead(cloud, local)) { if (local) LS.set(skey(n) + '.bak', JSON.stringify(local)); LS.set(skey(n), JSON.stringify(cloud)); if (n === slot) adopt = true; } }   // the account is further along: keep the old local copy as a backup and continue from the account
@@ -1183,11 +1186,14 @@ let xcode = { mode: '', text: '', msg: '' };
 const ago = t => { const s = Math.round((Date.now() - t) / 1000); return s < 60 ? `${s}초 전` : s < 3600 ? `${Math.round(s / 60)}분 전` : `${Math.round(s / 3600)}시간 전`; };
 function acctHTML() { const st2 = CLOUD.state;
   if (st2 === 'on') return `<div class="ac acct ok"><h3>✅ 계정에 저장 중</h3><p>로그인한 claude.ai 계정에 저장돼요. 다른 기기나 브라우저에서 <b>같은 계정으로 로그인해 열면</b> 이어서 할 수 있어요.${CLOUD.okAt ? ` 마지막으로 계정에 저장: ${ago(CLOUD.okAt)}` : ''}</p><button class="buy sm" data-acct="push">지금 계정에 저장</button></div>`;
-  const why = st2 === 'local' ? '이 계정은 이 게임 페이지에 쓸 권한이 없어서' : INAPP ? `${INAPP} 안의 브라우저는 크롬·사파리와 로그인이 따로라서 claude.ai에 로그인되지 않았고,` : 'claude.ai에 로그인되지 않은 상태라서';
+  const cw = CLOUD.why || '', why = st2 === 'local' ? '이 계정은 이 게임 페이지에 쓸 권한이 없어서' : INAPP ? `${INAPP} 안의 브라우저는 크롬·사파리와 로그인이 따로라서 claude.ai에 로그인되지 않았고,`
+    : cw === 'nodb' || cw === 'nouser' ? '지금 이 화면(휴대폰 Claude 앱 등)은 게임에 계정 저장 기능을 열어 주지 않아서, 로그인돼 있어도'
+    : cw === 'noclaude' ? '게임이 claude.ai 화면 밖에서 열려서' : cw === 'noid' ? '이 화면에서 로그인한 계정을 확인할 수 없어서' : cw.startsWith('read:') ? '계정에 저장된 기록을 읽지 못해서' : cw === 'wait' ? '아직 계정에 연결하는 중이라' : 'claude.ai에 로그인되지 않은 상태라서';
   const how = INAPP ? `<li><b>${INAPP} 화면 오른쪽 위(또는 아래) 메뉴 → '다른 브라우저로 열기'</b>를 눌러 크롬이나 사파리에서 여세요.</li><li>거기서 claude.ai에 로그인한 상태로 열면 계정에 저장돼요.</li><li>${INAPP}에서 하던 기록은 아래 <b>저장 코드 복사</b>로 옮길 수 있어요.</li>`
     : st2 === 'local' ? `<li>게임을 만든 계정이나 초대받은 계정으로 열면 계정에 저장돼요.</li><li>지금 기록은 아래 <b>저장 코드 복사</b>로 다른 곳에 옮길 수 있어요.</li>`
+    : cw === 'nodb' || cw === 'nouser' || cw === 'noclaude' ? `<li>휴대폰에서는 <b>Claude 앱 대신 크롬이나 사파리에서 claude.ai에 로그인한 뒤</b> 이 게임 링크를 열어 보세요. 브라우저의 claude.ai에서는 계정 저장이 돼요.</li><li>앱에서 하던 기록은 아래 <b>저장 코드 복사</b> → 브라우저에서 <b>붙여넣기</b>로 옮기면 돼요.</li>`
     : `<li>claude.ai에 로그인한 뒤 이 페이지를 다시 열면 계정에 저장돼요.</li><li>로그인했는데도 이 표시가 남으면 <b>다시 연결</b>을 눌러 보세요.</li><li>다른 곳에서 하던 기록은 아래 <b>저장 코드 붙여넣기</b>로 가져올 수 있어요.</li>`;
-  return `<div class="ac acct warn"><h3>⚠️ 이 브라우저에만 저장 중</h3><p>${why} 기록이 <b>지금 이 브라우저에만</b> 저장되고 있어요. 다른 브라우저나 기기에서는 보이지 않아요.</p><ul class="how">${how}</ul><div class="brow"><button class="buy sm" data-acct="retry">다시 연결</button></div></div>`; }
+  return `<div class="ac acct warn"><h3>⚠️ 이 브라우저에만 저장 중</h3><p>${why} 기록이 <b>지금 이 브라우저에만</b> 저장되고 있어요. 다른 브라우저나 기기에서는 보이지 않아요.</p><ul class="how">${how}</ul><div class="brow"><button class="buy sm" data-acct="retry">다시 연결</button></div><p class="diag">진단: ${cw || 'none'}${window.claude ? '' : ' · claude 없음'} · ${(navigator.userAgent.match(/(iPhone|iPad|Android|Windows|Mac OS X|Linux)/) || ['?'])[0]}</p></div>`; }
 function xcodeHTML() { const m = xcode.mode;
   return `<div class="ac xcode"><h3>기록 옮기기 · 저장 코드</h3><p>로그인이 안 되는 곳(카카오톡 등)과 크롬 사이에서 기록을 옮길 때 써요. 옮기고 싶은 곳에서 <b>복사</b>하고, 가져올 곳에서 <b>붙여넣기</b> 하세요. 카카오톡 '나와의 채팅'에 붙여 두면 편해요.</p>
     <div class="brow"><button class="buy sm" data-xcode="copy">저장 코드 복사</button><button class="buy sm" data-xcode="paste">저장 코드 붙여넣기</button></div>
