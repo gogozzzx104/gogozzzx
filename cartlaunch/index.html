@@ -193,7 +193,7 @@ button{font-family:var(--disp);touch-action:manipulation}
 .note{grid-column:1/-1;font-size:11.5px;color:#b3a9dd;line-height:1.5;margin:0}
 .acct,.xcode{grid-column:1/-1}.acct.ok{border-color:#3fe6a0}.acct.warn{border-color:#ffb057;background:rgba(255,176,87,.08)}.acct p{color:#e4dcff}.acct b,.xcode b{color:#fff}
 .how{margin:2px 0 0;padding-left:18px;font-size:12px;line-height:1.55;color:#e4dcff}
-.xbox{width:100%;min-height:74px;box-sizing:border-box;border-radius:8px;border:1.5px solid #53468f;background:#120e28;color:#efeaff;font:11px/1.35 monospace;padding:6px;word-break:break-all;resize:vertical;user-select:text;-webkit-user-select:text;touch-action:auto}
+.xbox{width:100%;min-height:74px;box-sizing:border-box;border-radius:8px;border:1.5px solid #53468f;background:#120e28;color:#efeaff;font:11px/1.35 monospace;padding:6px;word-break:break-all;resize:vertical;user-select:text;-webkit-user-select:text;-webkit-touch-callout:default;touch-action:auto}
 .xmsg{color:#7df3da !important;font-weight:700}
 .sk{border:2px solid #53468f;border-radius:12px;background:linear-gradient(160deg,#30275e,#221a45);color:#fff;padding:6px;display:flex;flex-direction:column;align-items:center;gap:2px;font:15px var(--disp)}
 .sk canvas{width:110px;height:70px;background:linear-gradient(#8fc4ff,#dff1ff);border-radius:8px}
@@ -329,7 +329,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 141, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 142, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -890,7 +890,7 @@ const spinOff = () => { ptrSide = 0; if (state === 'charge') release(); }; cv.ad
 addEventListener('blur', () => { keys.clear(); ptrSide = 0; boostHeld = false; mapHold(0); });
 // Scrolling by drag, in stage coordinates, so it also works while the stage is rotated for a portrait-locked phone.
 function dragScroll(el) { let id = null, x0 = 0, y0 = 0, sx = 0, sy = 0, moved = false, vx = 0, vy = 0, lx = 0, ly = 0, lt = 0, raf = 0; const k = () => el.id === 'rBody' ? 1 + (uiK - 1) * 0.45 : uiK;
-  el.addEventListener('pointerdown', e => { id = e.pointerId; x0 = lx = locX(e); y0 = ly = locY(e); sx = el.scrollLeft; sy = el.scrollTop; moved = false; vx = vy = 0; lt = e.timeStamp; cancelAnimationFrame(raf); });
+  el.addEventListener('pointerdown', e => { if (e.target && e.target.closest && e.target.closest('textarea, input')) { id = null; return; } id = e.pointerId; x0 = lx = locX(e); y0 = ly = locY(e); sx = el.scrollLeft; sy = el.scrollTop; moved = false; vx = vy = 0; lt = e.timeStamp; cancelAnimationFrame(raf); });
   el.addEventListener('pointermove', e => { if (e.pointerId !== id) return; const x = locX(e), y = locY(e); if (Math.hypot(x - x0, y - y0) > 8) moved = true; if (moved) { el.scrollLeft = sx - (x - x0) / k(); el.scrollTop = sy - (y - y0) / k(); const d = Math.max(1, e.timeStamp - lt); vx = vx * 0.6 + (lx - x) / k() / d * 0.4; vy = vy * 0.6 + (ly - y) / k() / d * 0.4; lx = x; ly = y; lt = e.timeStamp; } });
   const up = e => { if (e.pointerId !== id) return; id = null; if (!moved) return; const glide = () => { if (Math.hypot(vx, vy) < 0.02) return; el.scrollLeft += vx * 16; el.scrollTop += vy * 16; vx *= 0.95; vy *= 0.95; raf = requestAnimationFrame(glide); }; glide(); };
   el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
@@ -902,7 +902,7 @@ endBtn.addEventListener('click', () => { if (state === 'fly' && run && !run.over
 const KB = matchMedia('(pointer: fine)').matches; if (KB) root.classList.add('kb');
 addEventListener('keydown', e => { if (e.target && e.target.closest && e.target.closest('textarea, input')) return; if (window.MICRO && MICRO.on && state !== 'shop') return; if (e.code === 'ArrowRight' && state === 'aim' && S.micro && S.micro.open && window.MICRO) { MICRO.enter({ slide: true }); return; } if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); keys.add(e.code); if (e.repeat) return; snd(); root.classList.add('kb'); if (state === 'ending') return; if (state === 'shop' && e.code === 'Escape') toAim(); if (state === 'shop' && tab === 'map' && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) mapHold(e.code === 'ArrowLeft' ? -1 : 1); if (state === 'result' && e.code === 'KeyU') openShop(); if (e.code === 'Space') { if (state === 'aim') startCharge(); else if (state === 'push') tryKick(); else if (state === 'fly') boostHeld = true; else if (state === 'result') toAim(); } if (e.code === 'KeyW' || e.code === 'ArrowUp' || e.code === 'ShiftLeft') skillTap = true; if (e.code === 'KeyE') dashTap = true; if (e.code === 'KeyS' || e.code === 'ArrowDown') diveTap = true; if (e.code === 'KeyQ') sphxTap = true; });
 addEventListener('keyup', e => { keys.delete(e.code); if (window.MICRO && MICRO.on) return; if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') mapHold(0); if (e.code === 'Space') { boostHeld = false; if (state === 'charge') release(); } });
-document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('contextmenu', e => { if (e.target && e.target.closest && e.target.closest('textarea, input')) return; e.preventDefault(); });
 $('#rAgain').addEventListener('click', toAim); $('#rShop').addEventListener('click', openShop); // Full screen: the browser bar and the site's own header sit outside this page, so the only way past them is to ask for the whole
 // screen right after a tap.  It is asked for by itself: on the first tap or key after the page opens, and again on every launch.
 // The only button is '창으로' (shown while full screen); after it the game stays in a window until the next launch.
@@ -1192,10 +1192,19 @@ function xcodeHTML() { const m = xcode.mode;
   return `<div class="ac xcode"><h3>기록 옮기기 · 저장 코드</h3><p>로그인이 안 되는 곳(카카오톡 등)과 크롬 사이에서 기록을 옮길 때 써요. 옮기고 싶은 곳에서 <b>복사</b>하고, 가져올 곳에서 <b>붙여넣기</b> 하세요. 카카오톡 '나와의 채팅'에 붙여 두면 편해요.</p>
     <div class="brow"><button class="buy sm" data-xcode="copy">저장 코드 복사</button><button class="buy sm" data-xcode="paste">저장 코드 붙여넣기</button></div>
     ${m === 'copy' ? `<textarea class="xbox" readonly onfocus="this.select()" onclick="this.select()">${xcode.text}</textarea>` : ''}
-    ${m === 'paste' ? `<textarea class="xbox" id="xIn" placeholder="여기에 저장 코드를 붙여 넣으세요">${String(xcode.text).replace(/[&<>"']/g, c => '&#' + c.charCodeAt(0) + ';')}</textarea><button class="buy sm" data-xcode="load">${confirmKey === 'xload' ? '정말요? 지금 슬롯 기록을 바꿔요 · 한 번 더' : `슬롯 ${slot}로 불러오기`}</button>` : ''}
+    ${m === 'paste' ? `<button class="buy sm" data-xcode="clip">클립보드에서 붙여넣기</button><textarea class="xbox" id="xIn" placeholder="여기에 저장 코드를 붙여 넣으세요 (길게 누르거나 오른쪽 클릭 → 붙여넣기, PC는 Ctrl+V)">${String(xcode.text).replace(/[&<>"']/g, c => '&#' + c.charCodeAt(0) + ';')}</textarea><button class="buy sm" data-xcode="load">${confirmKey === 'xload' ? '정말요? 지금 슬롯 기록을 바꿔요 · 한 번 더' : `슬롯 ${slot}로 불러오기`}</button>` : ''}
     ${xcode.msg ? `<p class="xmsg">${xcode.msg}</p>` : ''}</div>`; }
+// copying in app views without the clipboard API: a hidden text box, select, the old copy command
+const oldCopy = t => { try { const ta = document.createElement('textarea'); ta.value = t; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0'; document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, t.length); const ok = document.execCommand('copy'); ta.remove(); return ok; } catch (e) { return false; } };
 const toCode = q => 'CART1.' + btoa(unescape(encodeURIComponent(JSON.stringify(q))));
-const fromCode = t => { try { const m = String(t || '').trim().replace(/\s+/g, '').match(/CART1\.([A-Za-z0-9+/=]+)/); if (!m) return null; return parseSave(decodeURIComponent(escape(atob(m[1])))); } catch (e) { return null; } };
+// Reading a pasted code survives what phones and chat apps do to long text: line breaks, invisible characters (zero-width spaces,
+// soft hyphens, no-break spaces), URL-safe letters, words before or after the code.  Only base64 letters after 'CART1.' are kept, and
+// the decoded text is cut at the save's closing brace, so anything stuck on the end is ignored.
+const fromCode = t => { try { const s0 = String(t || ''), i = s0.toUpperCase().indexOf('CART1.'); if (i < 0) return null;
+  let b = s0.slice(i + 6).replace(/[\u00ad\u200b-\u200f\u2028\u2029\u2060\ufeff]/g, '').replace(/-/g, '+').replace(/_/g, '/');
+  const m = b.match(/^[\sA-Za-z0-9+/=\u00a0]*/); b = (m ? m[0] : '').replace(/[^A-Za-z0-9+/]/g, ''); b = b.slice(0, b.length - (b.length % 4 === 1 ? 1 : 0)); while (b.length % 4) b += '=';
+  let bin = atob(b); const e = bin.lastIndexOf('}'); if (e < 0) return null; bin = bin.slice(0, e + 1);
+  for (let k = 0; k < 4; k++) { try { return parseSave(decodeURIComponent(escape(bin))); } catch (er) { const e2 = bin.lastIndexOf('}', bin.length - 2); if (e2 < 0) break; bin = bin.slice(0, e2 + 1); } } return null; } catch (e) { return null; } };
 function renderShop() {
   st = C.stats(S); $('#sGold').textContent = fmt(S.gold);
   $('#sZones').innerHTML = `<b>${S.zone + 1}번째 구역 · ${Z[S.zone].name}</b>`;
@@ -1253,8 +1262,9 @@ const shopClick = e => { const nd = e.target.closest('.nd'), sk = e.target.close
     else if (b.dataset.acct === 'push') { cloudNow(); toast('계정에 저장하는 중…', 1200); setTimeout(() => { if (state === 'shop') renderShop(); }, 1500); }
     else if (b.dataset.acct === 'retry') { toast('계정에 다시 연결하는 중…', 1500); cloudInit().then(() => { toast(CLOUD.state === 'on' ? '계정에 연결됐어요' : '아직 계정에 연결되지 않았어요 · 로그인 상태를 확인해 주세요', 2400); if (state === 'shop') renderShop(); }); }
     else if (b.dataset.xcode === 'copy') { const code = toCode(S); xcode = { mode: 'copy', text: code, msg: '' }; confirmKey = '';
-      try { navigator.clipboard.writeText(code).then(() => { xcode.msg = `✅ 슬롯 ${slot} 저장 코드를 복사했어요 (${fmt(S.runs)}판 · 환생 ${S.rebirths}회). 옮길 곳에서 '저장 코드 붙여넣기'로 가져오세요.`; if (state === 'shop') renderShop(); }, () => { xcode.msg = '자동 복사가 막혀 있어요. 아래 상자를 길게 눌러 전체 선택 후 복사하세요.'; if (state === 'shop') renderShop(); }); } catch (e) { xcode.msg = '아래 상자를 길게 눌러 전체 선택 후 복사하세요.'; } }
+      try { navigator.clipboard.writeText(code).then(() => { xcode.msg = `✅ 슬롯 ${slot} 저장 코드를 복사했어요 (${fmt(S.runs)}판 · 환생 ${S.rebirths}회). 옮길 곳에서 '저장 코드 붙여넣기'로 가져오세요.`; if (state === 'shop') renderShop(); }, () => { xcode.msg = oldCopy(code) ? `✅ 슬롯 ${slot} 저장 코드를 복사했어요.` : '자동 복사가 막혀 있어요. 아래 상자를 길게 눌러 전체 선택 후 복사하세요.'; if (state === 'shop') renderShop(); }); } catch (e) { xcode.msg = oldCopy(code) ? `✅ 슬롯 ${slot} 저장 코드를 복사했어요.` : '아래 상자를 길게 눌러 전체 선택 후 복사하세요.'; } }
     else if (b.dataset.xcode === 'paste') { xcode = { mode: 'paste', text: '', msg: '' }; confirmKey = ''; }
+    else if (b.dataset.xcode === 'clip') { try { navigator.clipboard.readText().then(t => { xcode.text = t; xcode.msg = fromCode(t) ? '코드를 붙여 넣었어요. 아래 불러오기를 누르세요.' : '클립보드에 저장 코드가 없어요. 휴대폰에서 다시 복사해 주세요.'; confirmKey = ''; if (state === 'shop') renderShop(); }, () => { xcode.msg = '이 브라우저가 클립보드 읽기를 막았어요. 상자를 길게 누르거나 오른쪽 클릭 → 붙여넣기(PC는 Ctrl+V) 해 주세요.'; if (state === 'shop') renderShop(); }); } catch (er) { xcode.msg = '상자에 직접 붙여넣기(Ctrl+V) 해 주세요.'; } }
     else if (b.dataset.xcode === 'load') { const box = $('#xIn'), t = box ? box.value : ''; xcode.text = t; const q = fromCode(t);
       if (!q) { xcode.msg = '❌ 저장 코드가 아니에요. CART1. 로 시작하는 코드를 통째로 붙여 넣어 주세요.'; confirmKey = ''; }
       else if (confirmKey !== 'xload') { confirmKey = 'xload'; xcode.msg = `가져올 기록: ${Z[Math.min(q.zone, Z.length - 1)].name} · ${fmt(q.runs)}판 · 환생 ${q.rebirths}회 · 초월 ${q.trans || 0}회. 지금 슬롯 ${slot} 기록은 백업해 두고 바꿔요.`; }
