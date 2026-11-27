@@ -330,7 +330,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 143, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 144, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -1211,6 +1211,21 @@ const fromCode = t => { try { const s0 = String(t || ''), i = s0.toUpperCase().i
   const m = b.match(/^[\sA-Za-z0-9+/=\u00a0]*/); b = (m ? m[0] : '').replace(/[^A-Za-z0-9+/]/g, ''); b = b.slice(0, b.length - (b.length % 4 === 1 ? 1 : 0)); while (b.length % 4) b += '=';
   let bin = atob(b); const e = bin.lastIndexOf('}'); if (e < 0) return null; bin = bin.slice(0, e + 1);
   for (let k = 0; k < 4; k++) { try { return parseSave(decodeURIComponent(escape(bin))); } catch (er) { const e2 = bin.lastIndexOf('}', bin.length - 2); if (e2 < 0) break; bin = bin.slice(0, e2 + 1); } } return null; } catch (e) { return null; } };
+// Compressed codes (CART2): the save as JSON, deflated (about 2.5x shorter than CART1), base64url, then '.' + a checksum + '!' so a code
+// cut short anywhere is caught and reported instead of silently failing.  CART1 codes still load.
+const b64u = u8 => { let t = ''; for (let i = 0; i < u8.length; i += 0x8000) t += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(t).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+const ub64 = t => { let b = t.replace(/-/g, '+').replace(/_/g, '/'); while (b.length % 4) b += '='; const r = atob(b), u = new Uint8Array(r.length); for (let i = 0; i < r.length; i++) u[i] = r.charCodeAt(i); return u; };
+const sum36 = j => { let h = 2166136261; for (let i = 0; i < j.length; i++) { h ^= j.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
+const zip = async (u8, pack) => new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(pack ? new CompressionStream('deflate-raw') : new DecompressionStream('deflate-raw'))).arrayBuffer());
+async function toCodeA(q) { const j = JSON.stringify(q); try { if (window.CompressionStream) return 'CART2.' + b64u(await zip(new TextEncoder().encode(j), 1)) + '.' + sum36(j) + '!'; } catch (e) {} return toCode(q); }
+// { q } on success, otherwise { err }: none (no code here), cut (cut short or damaged), old (this browser cannot unpack), bad
+async function fromCodeA(t) { const s0 = String(t || ''), i = s0.toUpperCase().indexOf('CART2.');
+  if (i < 0) { const q = fromCode(t); return q ? { q } : { err: /CART1\./i.test(s0) ? 'cut' : 'none' }; }
+  if (!window.DecompressionStream) return { err: 'old' };
+  const s1 = s0.slice(i + 6).replace(/[\s\u00a0\u00ad\u200b-\u200f\u2028\u2029\u2060\ufeff]/g, ''), m = s1.match(/^([A-Za-z0-9_+/-]+)\.([0-9a-z]+)!/);
+  if (!m) return { err: 'cut' };
+  try { const j = new TextDecoder().decode(await zip(ub64(m[1].replace(/\+/g, '-').replace(/\//g, '_')), 0)); if (sum36(j) !== m[2]) return { err: 'cut' }; const q = parseSave(j); return q ? { q } : { err: 'bad' }; } catch (e) { return { err: 'cut' }; } }
+const codeErr = (r, t) => r.err === 'cut' ? `❌ 코드가 중간에 잘렸거나 일부가 빠졌어요 (붙여 넣은 길이 ${String(t || '').length.toLocaleString()}자). 복사한 곳에서 처음(CART2.)부터 끝(!)까지 전부 다시 복사해 주세요.` : r.err === 'old' ? '❌ 이 브라우저는 압축된 저장 코드를 못 읽어요. 최신 크롬·사파리에서 열어 주세요.' : '❌ 저장 코드가 아니에요. CART2. 로 시작해 ! 로 끝나는 코드를 통째로 붙여 넣어 주세요.';
 function renderShop() {
   st = C.stats(S); $('#sGold').textContent = fmt(S.gold);
   $('#sZones').innerHTML = `<b>${S.zone + 1}번째 구역 · ${Z[S.zone].name}</b>`;
@@ -1267,14 +1282,14 @@ const shopClick = e => { const nd = e.target.closest('.nd'), sk = e.target.close
     else if (b.dataset.slot) { switchSlot(+b.dataset.slot); return; }
     else if (b.dataset.acct === 'push') { cloudNow(); toast('계정에 저장하는 중…', 1200); setTimeout(() => { if (state === 'shop') renderShop(); }, 1500); }
     else if (b.dataset.acct === 'retry') { toast('계정에 다시 연결하는 중…', 1500); cloudInit().then(() => { toast(CLOUD.state === 'on' ? '계정에 연결됐어요' : '아직 계정에 연결되지 않았어요 · 로그인 상태를 확인해 주세요', 2400); if (state === 'shop') renderShop(); }); }
-    else if (b.dataset.xcode === 'copy') { const code = toCode(S); xcode = { mode: 'copy', text: code, msg: '' }; confirmKey = '';
-      try { navigator.clipboard.writeText(code).then(() => { xcode.msg = `✅ 슬롯 ${slot} 저장 코드를 복사했어요 (${fmt(S.runs)}판 · 환생 ${S.rebirths}회). 옮길 곳에서 '저장 코드 붙여넣기'로 가져오세요.`; if (state === 'shop') renderShop(); }, () => { xcode.msg = oldCopy(code) ? `✅ 슬롯 ${slot} 저장 코드를 복사했어요.` : '자동 복사가 막혀 있어요. 아래 상자를 길게 눌러 전체 선택 후 복사하세요.'; if (state === 'shop') renderShop(); }); } catch (e) { xcode.msg = oldCopy(code) ? `✅ 슬롯 ${slot} 저장 코드를 복사했어요.` : '아래 상자를 길게 눌러 전체 선택 후 복사하세요.'; } }
+    else if (b.dataset.xcode === 'copy') { confirmKey = ''; toCodeA(S).then(code => { xcode = { mode: 'copy', text: code, msg: '' }; const done = `✅ 슬롯 ${slot} 저장 코드를 복사했어요 (${fmt(S.runs)}판 · 환생 ${S.rebirths}회 · ${code.length.toLocaleString()}자, 끝이 ! 로 끝나요). 옮길 곳에서 '저장 코드 붙여넣기'로 가져오세요.`, show = () => { if (state === 'shop') renderShop(); };
+      try { navigator.clipboard.writeText(code).then(() => { xcode.msg = done; show(); }, () => { xcode.msg = oldCopy(code) ? done : '자동 복사가 막혀 있어요. 아래 상자를 길게 눌러 전체 선택 후 복사하세요.'; show(); }); } catch (e) { xcode.msg = oldCopy(code) ? done : '아래 상자를 길게 눌러 전체 선택 후 복사하세요.'; } show(); }); }
     else if (b.dataset.xcode === 'paste') { xcode = { mode: 'paste', text: '', msg: '' }; confirmKey = ''; }
-    else if (b.dataset.xcode === 'clip') { try { navigator.clipboard.readText().then(t => { xcode.text = t; xcode.msg = fromCode(t) ? '코드를 붙여 넣었어요. 아래 불러오기를 누르세요.' : '클립보드에 저장 코드가 없어요. 휴대폰에서 다시 복사해 주세요.'; confirmKey = ''; if (state === 'shop') renderShop(); }, () => { xcode.msg = '이 브라우저가 클립보드 읽기를 막았어요. 상자를 길게 누르거나 오른쪽 클릭 → 붙여넣기(PC는 Ctrl+V) 해 주세요.'; if (state === 'shop') renderShop(); }); } catch (er) { xcode.msg = '상자에 직접 붙여넣기(Ctrl+V) 해 주세요.'; } }
-    else if (b.dataset.xcode === 'load') { const box = $('#xIn'), t = box ? box.value : ''; xcode.text = t; const q = fromCode(t);
-      if (!q) { xcode.msg = '❌ 저장 코드가 아니에요. CART1. 로 시작하는 코드를 통째로 붙여 넣어 주세요.'; confirmKey = ''; }
+    else if (b.dataset.xcode === 'clip') { try { navigator.clipboard.readText().then(t => fromCodeA(t).then(r => { xcode.text = t; xcode.msg = r.q ? '코드를 붙여 넣었어요. 아래 불러오기를 누르세요.' : r.err === 'none' ? '클립보드에 저장 코드가 없어요. 휴대폰에서 다시 복사해 주세요.' : codeErr(r, t); confirmKey = ''; if (state === 'shop') renderShop(); }), () => { xcode.msg = '이 브라우저가 클립보드 읽기를 막았어요. 상자를 길게 누르거나 오른쪽 클릭 → 붙여넣기(PC는 Ctrl+V) 해 주세요.'; if (state === 'shop') renderShop(); }); } catch (er) { xcode.msg = '상자에 직접 붙여넣기(Ctrl+V) 해 주세요.'; } }
+    else if (b.dataset.xcode === 'load') { const box = $('#xIn'), t = box ? box.value : ''; xcode.text = t; fromCodeA(t).then(r => { const q = r.q;
+      if (!q) { xcode.msg = codeErr(r, t); confirmKey = ''; }
       else if (confirmKey !== 'xload') { confirmKey = 'xload'; xcode.msg = `가져올 기록: ${Z[Math.min(q.zone, Z.length - 1)].name} · ${fmt(q.runs)}판 · 환생 ${q.rebirths}회 · 초월 ${q.trans || 0}회. 지금 슬롯 ${slot} 기록은 백업해 두고 바꿔요.`; }
-      else { LS.set(skey(slot) + '.bak', JSON.stringify(S)); S = q; S.rev = (S.rev || 0) + 1; LS.set(skey(slot), JSON.stringify(S)); LS.set('cart.force.' + slot, '1'); cloudMark(slot); cloudNow(); confirmKey = ''; xcode = { mode: '', text: '', msg: `✅ 기록을 가져왔어요 (${fmt(S.runs)}판).` + (CLOUD.state === 'on' ? ' 계정에도 저장했어요.' : '') }; st = C.stats(S); SFX.zone(); } } }
+      else { LS.set(skey(slot) + '.bak', JSON.stringify(S)); S = q; S.rev = (S.rev || 0) + 1; LS.set(skey(slot), JSON.stringify(S)); LS.set('cart.force.' + slot, '1'); cloudMark(slot); cloudNow(); confirmKey = ''; xcode = { mode: '', text: '', msg: `✅ 기록을 가져왔어요 (${fmt(S.runs)}판).` + (CLOUD.state === 'on' ? ' 계정에도 저장했어요.' : '') }; st = C.stats(S); SFX.zone(); } if (state === 'shop') renderShop(); }); } }
   else if (sel[tab] && !e.target.closest('.pop') && e.target.closest('#sList')) sel[tab] = null;   // tap on empty space closes the card
   else return;
   save(); renderShop(); };
