@@ -282,7 +282,7 @@ function drawRun(dt, tm) {
   if (now() - tunT < 0.7) { const f = (now() - tunT) / 0.7; g.globalAlpha = 1 - f; A.tunnel(W, H, 0.3 + f * 0.7, [['#2c2a40', '#3e3a58', '#9ae8ff', '#ffffff'], C.ZONES[0].pal], tm, 1); g.globalAlpha = 1; }
 }
 function drawHud(r, tm) {
-  const st = r.st, p = r.X / C.LEN, z = Math.min(C.ZN - 1, Math.floor(p)), sl = C.sizeLabel(C.lgAt(p)), s = Math.min(1.5, Math.max(0.8, H / 420));
+  const st = r.st, p = r.X / C.LEN, z = Math.min(C.ZN - 1, Math.floor(p)), sl = C.sizeLabel(C.lgAt(p)), s = Math.min(1.5, Math.max(0.8, H / 420)) * ((B.OPT && B.OPT.hud) || 1);
   // top-left: the size of the world around the capsule, the zone and how far through it
   txt(sl.num, 14, 44 * s, 'left', 34 * s, '#ffffff'); g.font = `${34 * s}px ${FONT}`; const w1 = g.measureText(sl.num).width;
   txt(sl.unit, 20 + w1, 44 * s, 'left', 17 * s, '#cfe8ff'); txt(`${C.ZONES[z].name}${sl.east ? ' · ' + sl.east : ''}`, 14, 66 * s, 'left', 14 * s, '#ffe27a');

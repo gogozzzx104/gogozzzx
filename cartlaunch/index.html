@@ -291,6 +291,8 @@ button{font-family:var(--disp);touch-action:manipulation}
 .kb .hbtn::after{content:attr(data-key);position:absolute;top:-6px;right:-2px;background:#2b2233;color:#fff;font:700 11px sans-serif;padding:2px 7px;border-radius:9px;pointer-events:none}
 .hbtn,#topbar,#endBtn,#toast,#endExit{zoom:var(--hk,1)}
 #endExit{position:absolute;right:18px;bottom:16px;padding:0 30px;z-index:3}
+/* touch screens: the top buttons (full screen, settings, sound, upgrade) get a finger-sized height */
+@media (pointer: coarse){#topbar .pill,#endBtn,#mEnd{min-height:36px;padding:6px 14px;font-size:16px}#topbar{gap:8px}}
 #toMicro{position:absolute;right:0;top:50%;transform:translateY(-50%);z-index:2;border:3px solid var(--ink);border-right:0;border-radius:16px 0 0 16px;background:linear-gradient(#9ae8ff,#4ab8e8);color:var(--ink);font:20px var(--disp);padding:14px 6px 14px 10px;box-shadow:-3px 4px 0 var(--ink);display:flex;flex-direction:column;align-items:center;gap:2px;zoom:var(--hk,1);animation:toMicroP 2.4s ease-in-out infinite}
 #toMicro small{font:700 10px var(--body);writing-mode:vertical-rl;letter-spacing:1px}
 @keyframes toMicroP{0%,100%{box-shadow:-3px 4px 0 var(--ink)}50%{box-shadow:-3px 4px 0 var(--ink),0 0 16px 3px rgba(154,232,255,.7)}}
@@ -330,7 +332,7 @@ const $ = s => document.querySelector(s), C = CORE, Z = C.ZONES;
 /* ---------------- save ---------------- */
 // Three save slots.  Each lives on this device; a signed-in viewer who may write to the page's store also has them kept in their own
 // private part of it (data/users/<their id>/slotN), so the same account continues on another device.  Nobody else can read or change it.
-const VER = 148, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
+const VER = 149, SLOTS = 3, skey = n => n === 1 ? 'cart.save' : 'cart.save.' + n;
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const parseSave = t => { try { const j = JSON.parse(t || 'null'); if (j && j.lv) { const q = Object.assign(C.newSave(), j); q.v = j.v; C.migrate(q); return q; } } catch (e) {} return null; };   // older saves are converted by the core
 const loadSlot = n => parseSave(LS.get(skey(n)));
@@ -379,7 +381,7 @@ const fmtD = m => m < 1000 ? m.toFixed(1) + 'm' : m < 1e6 ? (m / 1000).toFixed(2
 /* ---------------- options ---------------- */
 // Kept on this device only.  gfx: auto | low | mid | high · fps: 0 (no limit) | 30 | 60 · shake / flash: strength 0..1
 const RM = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
-const OPT = Object.assign({ gfx: 'auto', fx: RM ? 1 : 2, fps: 0, shake: RM ? 0.4 : 1, flash: RM ? 0.35 : 1, vib: 1, sfx: 1, mus: 1, wind: 1, meter: 0, pops: 1 }, (() => { try { return JSON.parse(LS.get('cart.opt') || '{}') || {}; } catch (e) { return {}; } })());
+const OPT = Object.assign({ gfx: 'auto', fx: RM ? 1 : 2, fps: 0, shake: RM ? 0.4 : 1, flash: RM ? 0.35 : 1, vib: 1, sfx: 1, mus: 1, wind: 1, meter: 0, pops: 1, ui: 1, hud: 1, card: 1 }, (() => { try { return JSON.parse(LS.get('cart.opt') || '{}') || {}; } catch (e) { return {}; } })());
 const saveOpt = () => LS.set('cart.opt', JSON.stringify(OPT));
 // What each graphics mode draws.  dpr: pixel-ratio ceiling · part: particle amount · cap: live particles · cnt: sky object amount
 // glow: blurred glows · haze, far, shade, shadow, rays, vig, trail: the extra scenery passes
@@ -394,7 +396,7 @@ let Q = QL.mid, autoQ = Math.max(0, Math.min(2, +(LS.get('cart.autoq') || 1)));
 const root = $('#root'), cv = $('#cv'); let g = cv.getContext('2d', { alpha: false }) || cv.getContext('2d');
 const FONT = getComputedStyle(root).getPropertyValue('--disp');
 let W = 800, H = 400, portrait = false, DPR = 1, uiK = 1, hudK = 1;
-function layout() { const vw = innerWidth, vh = innerHeight; portrait = vh > vw; W = portrait ? vh : vw; H = portrait ? vw : vh; uiK = Math.max(1, Math.min(2.2, W / 940, H / 470)); root.style.setProperty('--k', uiK.toFixed(3)); hudK = Math.max(1, Math.min(1.7, W / 1100, H / 560)); root.style.setProperty('--hk', hudK.toFixed(3)); root.style.setProperty('--ck', (1 + (uiK - 1) * 0.45).toFixed(3));   // big screens: shop, result card and flight HUD each get their own scale
+function layout() { const vw = innerWidth, vh = innerHeight; portrait = vh > vw; W = portrait ? vh : vw; H = portrait ? vw : vh; const uk0 = Math.max(1, Math.min(2.2, W / 940, H / 470)); uiK = uk0 * (OPT.ui || 1); root.style.setProperty('--k', uiK.toFixed(3)); hudK = Math.max(1, Math.min(1.7, W / 1100, H / 560)) * (OPT.hud || 1); root.style.setProperty('--hk', hudK.toFixed(3)); root.style.setProperty('--ck', ((1 + (uk0 - 1) * 0.45) * (OPT.card || 1)).toFixed(3));   // big screens: shop, result card and flight HUD each get their own scale
   root.classList.toggle('sm', H / uiK < 440); root.classList.toggle('xs', H / uiK < 345);
   root.style.width = W + 'px'; root.style.height = H + 'px'; root.style.transform = portrait ? `rotate(90deg) translateY(-${H}px)` : 'none';
   DPR = Math.min(devicePixelRatio || 1, Q.dpr); cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); }
@@ -1171,8 +1173,11 @@ const OPTS = [
   ['pops', '글자 효과', () => OPT.pops ? '착지·코인마다 글자가 뜹니다' : '중요한 글자만 뜹니다', [[0, '적게'], [1, '보통']]],
   ['vib', '진동', () => '지원하는 휴대폰에서만 울립니다', [[0, '끔'], [1, '켬']]],
   ['sfx', '효과음 크기', () => '', VOL], ['mus', '음악 크기', () => '', VOL], ['wind', '바람 소리', () => '날아가는 동안 아주 작게 나는 바람 소리', [[0, '끔'], [1, '켬']]],
+  ['ui', '업그레이드·설정 화면 글자 크기', () => '업그레이드·기록·설정 화면 전체의 글자와 버튼 크기 (작은 세상 연구소도 같이 바뀜)', 'step'],
+  ['hud', '비행 화면 글자·버튼 크기', () => '날아가는 동안 보이는 거리·골드 글자와 부스트·대시 버튼, 위쪽 버튼들의 크기', 'step'],
+  ['card', '결과 카드 크기', () => '판이 끝나고 나오는 결과 카드의 크기', 'step'],
   ['meter', '성능 표시', () => '화면 아래에 fps와 프레임 처리 시간을 표시', [[0, '끔'], [1, '켬']]] ];
-function optHTML() { return `<div class="bh">설정 · 이 기기에만 저장</div>` + OPTS.map(([k, name, note, ch]) => `<div class="ac oc"><h3>${name}</h3>${note() ? `<p>${note()}</p>` : ''}<div class="seg">${ch.map(([v, lb]) => `<button type="button" class="${OPT[k] === v ? 'on' : ''}" data-opt="${k}" data-v="${v}">${lb}</button>`).join('')}</div></div>`).join(''); }
+function optHTML() { return `<div class="bh">설정 · 이 기기에만 저장</div>` + OPTS.map(([k, name, note, ch]) => `<div class="ac oc"><h3>${name}</h3>${note() ? `<p>${note()}</p>` : ''}<div class="seg">${ch === 'step' ? `<button type="button" data-ostep="${k}" data-d="-0.1">−10</button><button type="button" data-ostep="${k}" data-d="-0.05">−5</button><button type="button" class="${(OPT[k] || 1) === 1 ? 'on' : ''}" data-ostep="${k}" data-d="0" title="100%로">${Math.round((OPT[k] || 1) * 100)}%</button><button type="button" data-ostep="${k}" data-d="0.05">+5</button><button type="button" data-ostep="${k}" data-d="0.1">+10</button>` : ch.map(([v, lb]) => `<button type="button" class="${OPT[k] === v ? 'on' : ''}" data-opt="${k}" data-v="${v}">${lb}</button>`).join('')}</div></div>`).join(''); }
 function setOpt(k, v) { OPT[k] = isNaN(+v) ? v : +v; saveOpt(); if (k === 'gfx') { if (v === 'auto') { PERF.fail = 0; PERF.up = null; LS.del('cart.autofail'); } setQ(); } if (k === 'sfx' || k === 'mus') { snd(); AUD.vol(); } SFX.ui(); }
 // auto rebirth: unlocked once the transcendence auto-buy and the rebirth-tree keep (전생 각인) are both maxed; bought once for ◆10,
 // then toggled.  While on, every finished run that would give stars ends in a rebirth (and the auto-buy right after it).
@@ -1268,6 +1273,7 @@ function renderShop() {
 $('#sTabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if (!b) return; tab = b.dataset.t; confirmKey = ''; $('#sDet').scrollTop = 0; SFX.ui(); renderShop(); });
 const shopClick = e => { const nd = e.target.closest('.nd'), sk = e.target.closest('.sk'), b = e.target.closest('.buy'), ob = e.target.closest('[data-opt]'), pk = e.target.closest('[data-pick]'), k1 = $('#sList').scrollTop, k2 = 0;
   if (ob) { setOpt(ob.dataset.opt, ob.dataset.v); renderShop(); return; }
+  { const os = e.target.closest('[data-ostep]'); if (os) { const k = os.dataset.ostep, d = +os.dataset.d; OPT[k] = d ? Math.round(Math.max(0.6, Math.min(1.8, (OPT[k] || 1) + d)) * 100) / 100 : 1; saveOpt(); SFX.ui(); layout(); const sc = $('#sList').scrollTop; renderShop(); $('#sList').scrollTop = sc; return; } }
   if (e.target.closest('.veil')) { SFX.lock(); return; }
   { const gt = e.target.closest('[data-goto]'); if (gt) { tab = gt.dataset.goto; SFX.ui(); renderShop(); return; } }
   if (tab === 'map') return;
